@@ -10,7 +10,8 @@ export const SECTIONS = [
   { id: 9,  key: 's09', title: 'Aprendizaje no supervisado',       duration: 180,  color: '#22c55e' },
   { id: 10, key: 's10', title: 'Repr. distribuidas + recurrentes', duration: 60,   color: '#22c55e' },
   { id: 11, key: 's11', title: 'Códigos demográficos',             duration: 90,   color: '#a78bfa' },
-  { id: 12, key: 's12', title: 'De 1992 a hoy + cierre',           duration: 120,  color: '#7c6dfa' },
+  { id: 12, key: 's12', title: 'De 1992 a hoy',                    duration: 120,  color: '#7c6dfa' },
+  { id: 13, key: 's13', title: 'Cierre argumental',                duration: 120,  color: '#7c6dfa' },
 ]
 
-export const TOTAL_DURATION = SECTIONS.reduce((s, x) => s + x.duration, 0) // 1200s = 20min
+export const TOTAL_DURATION = SECTIONS.reduce((s, x) => s + x.duration, 0) // 1320s = 22min

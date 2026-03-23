@@ -13,6 +13,7 @@ import S09_NoSupervisado from './slides/S09_NoSupervisado'
 import S10_ReprDistribuidas from './slides/S10_ReprDistribuidas'
 import S11_CodigosDemograficos from './slides/S11_CodigosDemograficos'
 import S12_De1992AHoy from './slides/S12_De1992AHoy'
+import S13_CierreArgumental from './slides/S13_CierreArgumental'
 
 const SLIDES = [
   { id: 's01', label: 'Apertura', time: '1 min', Component: S01_Apertura },
@@ -27,6 +28,7 @@ const SLIDES = [
   { id: 's10', label: 'Repr. distribuidas', time: '1 min', Component: S10_ReprDistribuidas },
   { id: 's11', label: 'Códigos demográficos', time: '1.5 min', Component: S11_CodigosDemograficos },
   { id: 's12', label: 'De 1992 a hoy', time: '2 min', Component: S12_De1992AHoy },
+  { id: 's13', label: 'Cierre argumental', time: '2 min', Component: S13_CierreArgumental },
 ]
 
 export default function App() {
@@ -288,7 +290,7 @@ export default function App() {
       </main>
 
       {/* AI Panel */}
-      <AIPanel visible={aiVisible} onClose={() => setAiVisible(false)} />
+      <AIPanel visible={aiVisible} onClose={() => setAiVisible(false)} currentSlide={SLIDES[current]} />
     </div>
   )
 }

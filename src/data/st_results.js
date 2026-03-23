@@ -135,23 +135,55 @@ export const ST_CRITICA = {
 }
 
 export const HINTON_CONTEXT = `
-Texto de referencia: Hinton, G. E. (1992). How Neural Networks Learn from Experience. Scientific American, 267(3), 144-151.
+TEXTO DE REFERENCIA
+Hinton, G. E. (1992). "How Neural Networks Learn from Experience." Scientific American, 267(3), 144-151.
+IMPORTANTE: Es un artículo de divulgación científica (Scientific American), no un paper técnico. Su estatus es de propuesta programática dirigida a público amplio.
 
-Tesis central: El cerebro es una computadora notable que aprende creando representaciones internas del mundo a través del ajuste de pesos sinápticos.
+TESIS CENTRAL
+La red neuronal artificial no es una descripción del cerebro, sino una apuesta en un programa de investigación (en sentido lakatosiano). Su valor explicativo — no solo instrumental — depende de si ese programa genera predicciones nuevas y corroborables sobre cognición real.
 
-Conceptos clave:
-- Representaciones distribuidas: la información se almacena distribuida en múltiples unidades, no en una sola
-- Buena representación: económica (pocos recursos para describir las unidades ocultas) y reconstructiva (la entrada puede recuperarse desde las ocultas)
-- Retropropagación: algoritmo de aprendizaje supervisado que propaga el error hacia atrás para ajustar los pesos
-- Aprendizaje no supervisado: componentes principales, competitivo (Kohonen), sparse coding (Barlow)
-- Códigos demográficos: un concepto se representa en la actividad distribuida de una población de neuronas (experimento de Sparks con el ojo de mono)
-- Convergencia computación/biología: Andersen y Zipser mostraron que redes entrenadas con retropropagación desarrollan unidades similares a neuronas reales de corteza visual
+ESTRUCTURA DE LA PRESENTACIÓN (13 slides)
+S01-Apertura: El cerebro ¿es una computadora o es una apuesta? Contexto: Daugman → Hinton → Bechtel.
+S02-Neurona real: Visualización 3D interactiva. Comparación biológica-artificial.
+S03-Neurona artificial: Pesos ajustables, funciones sigmoidal/lineal/umbral.
+S04-Arquitectura: Red MLP 2→8→8→1 en vivo con TensorFlow.js.
+S05-Entrenamiento: Ciclo de 4 fases (Presentar→Evaluar→Calcular EP→Actualizar).
+S06-Retropropagación: Flujo forward/backward, gradientes, timeline histórico (Werbos 1974 → Hinton 1986).
+S07-Alcances+Crítica: Clasificador MNIST en vivo. Pregunta: ¿explica o solo funciona? Cierre con Daugman.
+S08-Límites: 4 límites analíticos + alternativa hebbiana + superficie 3D de error.
+S09-No supervisado: PCA, Competitivo, Kohonen SOM, Hebb — visualizaciones animadas.
+S10-Repr. distribuidas: Local vs. distribuida vs. sparse. RNNs. Puente a Bechtel.
+S11-Códigos demográficos: Experimento de Sparks, cálculo poblacional, ojo de mono interactivo.
+S12-De 1992 a hoy: Timeline histórico + Putnam/Fodor (realizabilidad múltiple) + interpretabilidad.
+S13-Cierre argumental: Tesis central, arco Daugman-Hinton-Bechtel, pregunta para discusión.
 
-Límites reconocidos por el propio Hinton:
-1. Requiere instructor con la salida correcta (supervisado)
-2. Tiempo de aprendizaje crece más rápido que el tamaño de la red
-3. Riesgo de mínimos locales
-4. Retropropagación no es biológicamente plausible (envía errores por las mismas conexiones, sin mecanismo biológico conocido)
+CONCEPTOS TÉCNICOS CLAVE
+- Neurona artificial: suma ponderada de entradas → función de activación → salida
+- Retropropagación: propaga el error desde la salida hacia capas anteriores via regla de la cadena
+- Representación distribuida: el conocimiento está en patrones de activación, no en unidades individuales
+- Buena representación: económica (baja descripción de las unidades ocultas) + reconstructiva (la entrada puede recuperarse)
+- Aprendizaje hebbiano: "neuronas que se disparan juntas, se conectan juntas" (Hebb 1949). No requiere señal de error externa. Oja (1982) implementó PCA con reglas hebbianas locales.
+- Códigos demográficos: la información reside en el promedio de la actividad de una población (experimento de Sparks con colículo superior de mono)
+- Sparse coding (Barlow): subconjunto pequeño de neuronas activas — equilibrio entre economía y decodificabilidad
 
-Tensión filosófica central: La tesis computacional del cerebro (BRAIN_COMP) es un compromiso ontológico fuerte — posiblemente verdadero, pero no lógicamente necesario (◇¬BRAIN_COMP es satisfacible en Modal K).
+LOS 4 LÍMITES DE LA RETROPROPAGACIÓN
+1. Requiere instructor con salida correcta (supervisado)
+2. Tiempo de aprendizaje O(n³) — crece más rápido que el tamaño de la red
+3. Riesgo de mínimos locales — el espacio de error no es convexo
+4. Implausibilidad biológica — requiere simetría de pesos bidireccional y señal de error global sin mecanismo neural conocido
+
+CONVERGENCIA EMPÍRICA: ANDERSEN & ZIPSER
+Redes entrenadas con retropropagación para tareas de coordenadas espaciales desarrollaron unidades con campos receptivos similares a neuronas de corteza parietal de mono (área 7a). Esto NO prueba que el cerebro use retropropagación, pero SÍ muestra que el tipo de representaciones que emergen es compatible con lo biológico. Es la evidencia empírica más fuerte del paper.
+
+CONEXIONES CON OTROS AUTORES DEL CURSO
+- Daugman (1992): cada época interpreta el cerebro con su metáfora tecnológica dominante (hidráulica→relojería→telégrafo→computadora). El éxito funcional de la red no la diferencia de metáforas anteriores — solo la hace más potente.
+- Bechtel (2001): defiende una noción funcional e informacional de representación (regulador de Watt). La pregunta: ¿las unidades ocultas de una red "representan" en el sentido de Bechtel?
+- Putnam/Fodor: realizabilidad múltiple — un mismo estado mental puede realizarse en sustratos distintos. Si es verdad, silicio y carbono son equivalentes. Si el sustrato importa (embodiment, emergencia), la equivalencia se rompe.
+- Lakatos: programa de investigación progresivo (predice hechos nuevos) vs. degenerativo (solo explica lo conocido). El conexionismo de 2024: ¿sigue siendo progresivo como neurofilosofía, o se convirtió en ingeniería pura?
+
+TEOREMA DE APROXIMACIÓN UNIVERSAL (Cybenko 1989)
+Una MLP con una sola capa oculta y función sigmoidal puede aproximar cualquier función continua arbitrariamente bien. Implicación filosófica: si puede aproximar cualquier función, ¿qué significa que "explique" una función cognitiva específica?
+
+TENSIÓN FILOSÓFICA CENTRAL
+BRAIN_COMP es un compromiso ontológico fuerte — posiblemente verdadero, pero no lógicamente necesario. ◇(¬BRAIN_COMP) es satisfacible en Modal K. La convergencia es posible, no necesaria.
 `

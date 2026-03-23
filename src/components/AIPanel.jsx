@@ -5,13 +5,32 @@ const ENDPOINT = 'https://ollama.humanizar-dev.cloud/api/chat/completions'
 const MODEL = 'qwen2.5-coder:14b'
 const AUTH = 'Bearer sk-bac7ed4eba894e0d8f14eade1dc589fe'
 
-const SYSTEM_PROMPT = `Eres un asistente filosófico especializado en el texto de Hinton (1992) sobre redes neuronales.
-Responde siempre en español. Sé conciso pero preciso. No inventes información más allá del texto.
-Usa los conceptos del marco formal cuando sea relevante (representaciones, buena representación, retropropagación, códigos demográficos, etc.).
+const QUICK_QUESTIONS = [
+  '¿Por qué la retropropagación no es biológicamente plausible?',
+  '¿Qué diferencia hay entre representación local y distribuida?',
+  '¿Qué demostró el experimento de Sparks?',
+  '¿Qué es la realizabilidad múltiple?',
+  '¿Cómo se relaciona Hinton con Daugman?',
+  '¿Qué significa que sea un programa de investigación lakatosiano?',
+  '¿Qué prueba Andersen y Zipser?',
+  '¿Qué es el teorema de aproximación universal?',
+]
+
+function buildSystemPrompt(currentSlide) {
+  const slideCtx = currentSlide
+    ? `\nSLIDE ACTUAL: ${currentSlide.id} — "${currentSlide.label}". Prioriza respuestas relevantes a este slide, pero responde cualquier pregunta sobre la presentación completa.`
+    : ''
+  return `Eres un asistente filosófico especializado en la presentación sobre Hinton (1992) y el contexto del curso de Filosofía de las Neurociencias.
+Responde siempre en español. Sé conciso pero preciso (máximo 4 oraciones salvo que pidan más detalle).
+Usa los conceptos del marco formal cuando sea relevante.
+Si la pregunta es sobre un slide específico, responde en ese contexto.
+Si no sabes algo, dilo claramente en lugar de inventar.
+${slideCtx}
 
 ${HINTON_CONTEXT}`
+}
 
-export default function AIPanel({ visible, onClose }) {
+export default function AIPanel({ visible, onClose, currentSlide }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: '¿Tienes preguntas sobre el texto de Hinton o la presentación?' }
   ])
