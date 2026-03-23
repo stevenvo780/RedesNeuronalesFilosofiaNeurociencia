@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle } from 'react'
 import { Play, Pause, ArrowRight, ArrowLeft } from 'lucide-react'
 import { BlockMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
@@ -214,10 +214,37 @@ function GradBars({ gradMags }) {
 }
 
 // ── Main slide ────────────────────────────────────────────────────────────────
-export default function S06_Retropropagacion({ profesorMode }) {
+export default function S06_Retropropagacion({ profesorMode, ref }) {
   const { gradMags, activations, weights, epoch, training, start, stop } = useNeuralNet({ hiddenSizes: [8, 8] })
-  const [mode, setMode]           = useState('forward')
-  const [activeStep, setActiveStep] = useState(null)
+  
+  // Seq state: 0 = Forward, 1 = Backprop Inicio, 2 = Paso 1, 3 = Paso 2, 4 = Paso 3, 5 = Paso 4
+  const [seqIndex, setSeqIndex] = useState(0)
+  const seqRef = useRef(0)
+
+  // Omitimos dependencias o usamos ref para evitar stale closures en imperative_handle
+  useImperativeHandle(ref, () => ({
+    advanceStep() {
+      if (seqRef.current >= 5) return false
+      seqRef.current++
+      setSeqIndex(seqRef.current)
+      return true
+    },
+    retreatStep() {
+      if (seqRef.current <= 0) return false
+      seqRef.current--
+      setSeqIndex(seqRef.current)
+      return true
+    }
+  }))
+
+  const setStepIdx = (idx) => {
+    seqRef.current = idx
+    setSeqIndex(idx)
+  }
+
+  // Derived state
+  const mode = seqIndex === 0 ? 'forward' : 'backward'
+  const activeStep = seqIndex >= 2 ? seqIndex - 2 : null
 
   // Auto-start on slide mount, run indefinitely
   useEffect(() => {
@@ -254,21 +281,29 @@ export default function S06_Retropropagacion({ profesorMode }) {
       <div style={{ display: 'flex', gap: '2rem', width: '100%', maxWidth: '1100px', alignItems: 'flex-start' }}>
         {/* Network with gradient visualization */}
         <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          {/* Sequential Controls */}
           <div style={{ display: 'flex', gap: '0.8rem' }}>
-            {['forward', 'backward'].map(m => (
-              <button key={m} onClick={() => setMode(m)} style={{
-                flex: 1, padding: '0.6rem', borderRadius: '8px',
-                border: `1px solid ${mode === m ? (m === 'forward' ? '#22c55e' : '#ef4444') : 'var(--border)'}`,
-                background: mode === m ? (m === 'forward' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)') : 'var(--bg-3)',
-                color: mode === m ? (m === 'forward' ? '#22c55e' : '#ef4444') : 'var(--text-dim)',
-                fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
-              }}>
-                {m === 'forward'
-                  ? <><ArrowRight size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward Pass</>
-                  : <><ArrowLeft  size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop Pass</>}
-              </button>
-            ))}
+            <button onClick={() => setStepIdx(0)} style={{
+              flex: 1, padding: '0.6rem', borderRadius: '8px',
+              border: `1px solid ${mode === 'forward' ? '#22c55e' : 'var(--border)'}`,
+              background: mode === 'forward' ? 'rgba(34,197,94,0.12)' : 'var(--bg-3)',
+              color: mode === 'forward' ? '#22c55e' : 'var(--text-dim)',
+              fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
+            }}>
+              <ArrowRight size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward Pass
+            </button>
+            <button onClick={() => setStepIdx(1)} style={{
+              flex: 1, padding: '0.6rem', borderRadius: '8px',
+              border: `1px solid ${mode === 'backward' ? '#ef4444' : 'var(--border)'}`,
+              background: mode === 'backward' ? 'rgba(239,68,68,0.12)' : 'var(--bg-3)',
+              color: mode === 'backward' ? '#ef4444' : 'var(--text-dim)',
+              fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
+            }}>
+              <ArrowLeft size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop Pass
+            </button>
           </div>
 
           <div style={{ height: '350px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', position: 'relative', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
@@ -306,7 +341,7 @@ export default function S06_Retropropagacion({ profesorMode }) {
           {STEPS.map((s, i) => (
             <div
               key={s.id}
-              onClick={() => { setActiveStep(i); setMode('backward') }}
+              onClick={() => setStepIdx(i + 2)}
               style={{
                 background: activeStep === i ? `${s.color}14` : 'var(--bg-3)',
                 border: `1px solid ${activeStep === i ? s.color : 'var(--border)'}`,
@@ -352,3 +387,4 @@ export default function S06_Retropropagacion({ profesorMode }) {
     </div>
   )
 }
+

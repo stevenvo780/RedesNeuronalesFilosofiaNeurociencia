@@ -47,6 +47,7 @@ export default function App() {
   // Ref for slide sub-step navigation (advanceStep / retreatStep)
   const slideRef = useRef(null)
   const prevSlide = useRef(current)
+  const audioRef = useRef(null)
   if (prevSlide.current !== current) {
     slideRef.current = null   // reset before child mounts
     prevSlide.current = current
@@ -113,6 +114,73 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [current, goTo])
+
+  // ── Media Session API: watch / headphones / lock-screen controls ──
+  // Start silent audio on first user interaction (auto-play policy)
+  useEffect(() => {
+    const ensureAudio = () => {
+      const audio = audioRef.current
+      if (!audio || !audio.paused) return
+      audio.volume = 0.01          // near-silent but nonzero so OS counts it
+      audio.play().catch(() => {})
+    }
+    // Try immediately and also on first interaction
+    ensureAudio()
+    window.addEventListener('click', ensureAudio, { once: true })
+    window.addEventListener('keydown', ensureAudio, { once: true })
+    window.addEventListener('touchstart', ensureAudio, { once: true })
+    return () => {
+      window.removeEventListener('click', ensureAudio)
+      window.removeEventListener('keydown', ensureAudio)
+      window.removeEventListener('touchstart', ensureAudio)
+    }
+  }, [])
+
+  // Register / update media session handlers & metadata per slide
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return
+    const ms = navigator.mediaSession
+
+    const advance = () => {
+      if (slideRef.current?.advanceStep?.()) return
+      goTo(current + 1)
+    }
+    const retreat = () => {
+      if (slideRef.current?.retreatStep?.()) return
+      goTo(current - 1)
+    }
+
+    // Required handlers — Chrome won't show controls without play/pause
+    ms.setActionHandler('play',          () => { audioRef.current?.play() })
+    ms.setActionHandler('pause',         () => { /* keep playing silently */ })
+    ms.setActionHandler('nexttrack',     advance)
+    ms.setActionHandler('previoustrack', retreat)
+    // Prevent seeking from resetting the loop
+    ms.setActionHandler('seekto',        () => {})
+    ms.setActionHandler('seekforward',   advance)
+    ms.setActionHandler('seekbackward',  retreat)
+
+    ms.metadata = new MediaMetadata({
+      title:  `${String(current + 1).padStart(2, '0')} — ${SLIDES[current].label}`,
+      artist: 'Hinton 1992 · Redes Neuronales',
+      album:  'Filosofía de las Neurociencias',
+    })
+    ms.playbackState = 'playing'
+
+    // Update position state so OS thinks there's a long track playing
+    if (ms.setPositionState) {
+      ms.setPositionState({
+        duration:  SLIDES.length * 120,             // fake: ~30 min track
+        playbackRate: 1,
+        position: current * 120,                    // each slide = ~2 min marker
+      })
+    }
+
+    return () => {
+      ;['play','pause','nexttrack','previoustrack','seekto','seekforward','seekbackward']
+        .forEach(a => ms.setActionHandler(a, null))
+    }
   }, [current, goTo])
 
   const { Component } = SLIDES[current]
@@ -341,6 +409,9 @@ export default function App() {
 
       {/* AI Panel */}
       <AIPanel visible={aiVisible} onClose={() => setAiVisible(false)} currentSlide={SLIDES[current]} />
+
+      {/* Silent audio for Media Session API (watch / headphones / media controls) */}
+      <audio ref={audioRef} src="/silence.wav" loop preload="auto" style={{ display: 'none' }} />
     </div>
   )
 }

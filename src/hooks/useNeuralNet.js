@@ -25,6 +25,7 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
   const xsRef      = useRef(null)
   const ysRef      = useRef(null)
   const runningRef = useRef(false)
+  const isFittingRef = useRef(false)
   const speedRef   = useRef(60)
 
   const [epoch,       setEpoch]       = useState(0)
@@ -130,23 +131,28 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
     const model = modelRef.current
     const xs = xsRef.current
     const ys = ysRef.current
-    if (!model || !xs || !ys) return
+    if (!model || !xs || !ys || isFittingRef.current) return
 
-    const res = await model.fit(xs, ys, { epochs: 1, batchSize: 64, shuffle: true })
-    const l = res.history.loss[0]
-    const a = (res.history.acc ?? res.history.accuracy)?.[0] ?? 0
+    isFittingRef.current = true
+    try {
+      const res = await model.fit(xs, ys, { epochs: 1, batchSize: 64, shuffle: true })
+      const l = res.history.loss[0]
+      const a = (res.history.acc ?? res.history.accuracy)?.[0] ?? 0
 
-    setLoss(l)
-    setAccuracy(a)
-    setEpoch(e => {
-      const ne = e + 1
-      if (ne % 5  === 0) computeGrid(model)
-      if (ne % 3  === 0) snapWeights(model)
-      if (ne % 10 === 0) computeGrads(model)
-      if (ne % 5  === 0 && dataRef.current)
-        computeActivations(model, dataRef.current.X[Math.floor(Math.random() * 10)])
-      return ne
-    })
+      setLoss(l)
+      setAccuracy(a)
+      setEpoch(e => {
+        const ne = e + 1
+        if (ne % 5  === 0) computeGrid(model)
+        if (ne % 3  === 0) snapWeights(model)
+        if (ne % 10 === 0) computeGrads(model)
+        if (ne % 5  === 0 && dataRef.current)
+          computeActivations(model, dataRef.current.X[Math.floor(Math.random() * 10)])
+        return ne
+      })
+    } finally {
+      isFittingRef.current = false
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = useCallback(async () => {
