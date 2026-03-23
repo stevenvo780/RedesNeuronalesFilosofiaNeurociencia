@@ -152,9 +152,11 @@ export default function S01_Apertura({ profesorMode }) {
             MARCO FILOSÓFICO
           </div>
           <p style={{ color: 'var(--text)', lineHeight: 1.6, fontSize: '1.05rem' }}>
-            Este texto instala un <STTooltip term="representacionalismo"><span style={{ color: 'var(--accent-2)' }}>marco computacional-representacional</span></STTooltip> con 
-            compromisos ontológicos fuertes. El cerebro como computadora no es una <STTooltip term="isomorfismo">metáfora decorativa</STTooltip> — es una apuesta 
-            empírica que genera predicciones falsificables. Al final la cuestionaremos con el propio formalismo del texto.
+            Este texto instala un <STTooltip term="representacionalismo"><span style={{ color: 'var(--accent-2)' }}>marco computacional-representacional</span></STTooltip> con
+            compromisos ontológicos fuertes. El cerebro como computadora no es metáfora decorativa — es una apuesta
+            empírica que genera predicciones falsificables. Pero Daugman ya nos advirtió: cada época tiene su metáfora
+            tecnológica dominante (hidráulica → relojería → telégrafo → <em>computadora</em>). La pregunta al final
+            del recorrido: ¿esta vez es diferente, o simplemente es la más potente hasta ahora?
           </p>
         </div>
       )}
@@ -180,6 +182,29 @@ export default function S01_Apertura({ profesorMode }) {
             <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>{n.desc}</div>
           </div>
         ))}
+      </div>
+
+      {/* Identificación de la fuente */}
+      <div style={{
+        fontSize: '0.82rem',
+        color: 'var(--text-dim)',
+        fontFamily: 'monospace',
+        textAlign: 'center',
+        zIndex: 1,
+        padding: '0.6rem 1.2rem',
+        background: 'var(--bg-3)',
+        border: '1px solid var(--border)',
+        borderRadius: '8px',
+        maxWidth: '700px',
+        width: '100%',
+        lineHeight: 1.7,
+      }}>
+        <span style={{ color: 'var(--accent-2)' }}>Fuente:</span>{' '}
+        Hinton, G.E. (1992). "How neural networks learn from experience."{' '}
+        <em style={{ color: 'var(--text)' }}>Scientific American</em>, 267(3), 144–151.
+        <span style={{ display: 'block', color: 'var(--text-dim)', opacity: 0.65, marginTop: '0.2rem', fontSize: '0.76rem' }}>
+          Artículo de divulgación — propuesta programática dirigida a público amplio, no demostración formal
+        </span>
       </div>
     </div>
   )

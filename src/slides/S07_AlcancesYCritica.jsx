@@ -311,6 +311,29 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
         <STTensionPanel />
       </div>
 
+      {/* Cierre con Daugman */}
+      <div style={{
+        width: '100%',
+        maxWidth: '1100px',
+        background: 'rgba(6,182,212,0.05)',
+        border: '1px solid rgba(6,182,212,0.25)',
+        borderLeft: '4px solid #06b6d4',
+        borderRadius: '0 12px 12px 0',
+        padding: '1.25rem 2rem',
+      }}>
+        <div style={{ fontSize: '0.75rem', color: '#06b6d4', fontFamily: 'monospace', marginBottom: '0.6rem', letterSpacing: '0.08em' }}>
+          CIERRE CON DAUGMAN — METÁFORA TECNOLÓGICA
+        </div>
+        <p style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.7, margin: 0 }}>
+          Daugman (1992) nos advirtió: cada época interpreta el cerebro con su tecnología dominante —
+          hidráulica, relojería, telégrafo, <span style={{ color: '#06b6d4' }}>computadora</span>.
+          La red neuronal <em>funciona</em>, pero eso no la hace diferente de las metáforas anteriores;
+          la hace <span style={{ color: 'var(--accent-2)' }}>más potente</span>.
+          El éxito predictivo — reconocer dígitos, predecir mercados — no cierra la pregunta ontológica:{' '}
+          <em>¿describe el mecanismo real del cerebro, o es nuestra mejor herramienta actual para imitarlo?</em>
+        </p>
+      </div>
+
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '1.05rem', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--yellow)' }}>Punto de quiebre filosófico:</strong>{' '}

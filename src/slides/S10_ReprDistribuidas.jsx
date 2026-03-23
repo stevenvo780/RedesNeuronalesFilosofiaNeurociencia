@@ -1,6 +1,7 @@
 import STTooltip from "../components/st/STTooltip"
 import STTensionPanel from "../components/st/STTensionPanel"
 import { useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 
 const REPR_TYPES = [
   {
@@ -173,6 +174,34 @@ export default function S10_ReprDistribuidas({ profesorMode }) {
           <canvas ref={recCanvasRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
+
+      {/* Puente a Bechtel */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        style={{
+          background: 'rgba(167,139,250,0.07)',
+          border: '1px solid rgba(167,139,250,0.32)',
+          borderRadius: '12px',
+          padding: '1.25rem 2rem',
+          maxWidth: '900px',
+          width: '100%',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: '0.75rem', color: '#a78bfa', fontFamily: 'monospace', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>
+          HACIA BECHTEL (2001)
+        </div>
+        <p style={{ fontSize: '1.05rem', color: 'var(--accent-2)', fontStyle: 'italic', lineHeight: 1.65, margin: 0 }}>
+          "Hasta aquí hemos <em>asumido</em> que las redes tienen representaciones.
+          Pero ¿qué es exactamente una representación mental — qué condiciones debe cumplir
+          algo para contar como representación y no solo como correlato funcional?"
+        </p>
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginTop: '0.6rem' }}>
+          → Siguiente texto: Bechtel — mecanismos y condiciones de la representación mental
+        </div>
+      </motion.div>
 
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1000px', width: '100%', fontSize: '1rem', lineHeight: 1.6 }}>

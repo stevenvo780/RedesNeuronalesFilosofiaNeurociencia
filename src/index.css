@@ -40,10 +40,22 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  justify-content: flex-start;
+  padding: 3rem 2rem;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.section-slide > *:first-child {
+  margin-top: auto;
+}
+.section-slide > *:last-child {
+  margin-bottom: auto;
+}
+.section-slide > * {
+  flex-shrink: 0;
 }
 
 .section-title {

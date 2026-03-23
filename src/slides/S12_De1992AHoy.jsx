@@ -88,6 +88,44 @@ export default function S12_De1992AHoy({ profesorMode }) {
         ))}
       </div>
 
+      {/* Realizabilidad múltiple */}
+      <div style={{
+        width: '100%',
+        maxWidth: '1100px',
+        background: 'var(--bg-3)',
+        border: '1px solid var(--border)',
+        borderRadius: '12px',
+        padding: '1.25rem 2rem',
+      }}>
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.8rem' }}>
+          REALIZABILIDAD MÚLTIPLE — PUTNAM & FODOR
+        </div>
+        <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+          {[
+            {
+              titulo: 'Tesis de Putnam (1967)',
+              color: '#06b6d4',
+              texto: 'Un mismo estado mental puede realizarse en sustratos físicos distintos: carbono, silicio, sistemas más exóticos. La función, no el material, define el estado mental.',
+            },
+            {
+              titulo: 'Autonomía según Fodor',
+              color: '#eab308',
+              texto: 'Las taxonomías psicológicas y neurobiológicas no tienen por qué coincidir. La psicología puede ser autónoma respecto a la neurociencia. Si son autónomas, las redes no explican la mente biológica — solo la imitan.',
+            },
+            {
+              titulo: 'La tensión irresuelta',
+              color: '#f97316',
+              texto: 'Si la realizabilidad múltiple es verdadera, silicio y carbono son equivalentes. Pero si hay algo específico del sustrato biológico (emergencia, embodiment, termodinámica), la equivalencia se rompe.',
+            },
+          ].map(item => (
+            <div key={item.titulo} style={{ flex: '1 1 240px' }}>
+              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: item.color, marginBottom: '0.4rem' }}>{item.titulo}</div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{item.texto}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Interpretabilidad */}
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1000px', width: '100%' }}>

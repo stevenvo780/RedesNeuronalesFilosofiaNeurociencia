@@ -86,11 +86,11 @@ export default function STArgGraph() {
   }, [])
 
   return (
-    <div className="st-card" style={{ padding: '1.25rem' }}>
+    <div className="st-card" style={{ padding: '1.25rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '0.5rem', fontFamily: 'monospace' }}>
         ST · 02_Argumento_Global · cadena argumental validada
       </div>
-      <svg ref={svgRef} style={{ width: '100%', height: '140px' }} />
+      <svg ref={svgRef} style={{ minWidth: '760px', width: '100%', height: '140px' }} />
     </div>
   )
 }

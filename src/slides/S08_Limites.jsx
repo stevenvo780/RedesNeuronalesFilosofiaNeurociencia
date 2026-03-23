@@ -298,6 +298,30 @@ export default function S08_Limites({ profesorMode }) {
         ]}
       />
 
+      {/* Alternativa biológica: Hebb */}
+      <div style={{
+        background: 'rgba(34,197,94,0.05)',
+        border: '1px solid rgba(34,197,94,0.22)',
+        borderLeft: '4px solid #22c55e',
+        borderRadius: '0 10px 10px 0',
+        padding: '1rem 1.5rem',
+        maxWidth: '1100px',
+        width: '100%',
+      }}>
+        <div style={{ fontSize: '0.75rem', color: '#22c55e', fontFamily: 'monospace', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>
+          ALTERNATIVA BIOLÓGICAMENTE PLAUSIBLE — REGLA DE HEBB (1949)
+        </div>
+        <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.65, margin: 0 }}>
+          <span style={{ color: 'var(--text-h)', fontStyle: 'italic' }}>"Neuronas que se disparan juntas, se conectan juntas."</span>{' '}
+          El aprendizaje hebbiano no requiere señal de error externa ni simetría de pesos — solo
+          correlación local entre activaciones pre y post sináptica. Oja (1982) demostró que el{' '}
+          <strong style={{ color: '#22c55e' }}>Análisis de Componentes Principales (PCA)</strong>{' '}
+          puede implementarse con reglas hebbianas locales. Es más lento y menos preciso que la
+          retropropagación, pero <em>biológicamente plausible</em>. La retropropagación sacrificó
+          fidelidad biológica por eficiencia computacional — una apuesta pragmática, no una descripción del cerebro.
+        </p>
+      </div>
+
       {/* Bridge */}
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
