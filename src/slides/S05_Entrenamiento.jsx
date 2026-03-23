@@ -1,116 +1,238 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
+import 'katex/dist/katex.min.css'
+import { useNeuralNet } from '../hooks/useNeuralNet'
 
 const PHASES = [
-  { id: 'presentar', label: '1. PRESENTAR', color: '#22c55e', desc: 'La imagen entra. La capa de entrada se activa.' },
-  { id: 'evaluar', label: '2. EVALUAR', color: '#ef4444', desc: 'Salida generada vs. salida deseada. El error aparece.' },
-  { id: 'calcular', label: '3. CALCULAR EP', color: '#eab308', desc: 'Se calcula el error parcial por cada conexión.' },
-  { id: 'actualizar', label: '4. ACTUALIZAR', color: '#7c6dfa', desc: 'Los pesos se mueven. El error baja.' },
+  { id: 'presentar', label: '1. PRESENTAR',   color: '#22c55e', desc: 'Un punto (x,y) del espacio espiral entra a la red. La capa de entrada se activa.' },
+  { id: 'evaluar',   label: '2. EVALUAR',     color: '#ef4444', desc: 'La red produce una predicción. Se mide el error respecto a la clase real.' },
+  { id: 'calcular',  label: '3. CALCULAR EP', color: '#eab308', desc: 'Se calcula el gradiente de la pérdida respecto a cada peso — la responsabilidad de cada conexión.' },
+  { id: 'actualizar',label: '4. ACTUALIZAR',  color: '#7c6dfa', desc: 'Los pesos se ajustan en la dirección opuesta al gradiente. La frontera se mueve.' },
 ]
 
-export default function S05_Entrenamiento({ profesorMode }) {
-  const [phase, setPhase] = useState(0)
-  const [running, setRunning] = useState(false)
-  const [errorHistory, setErrorHistory] = useState(Array.from({ length: 40 }, (_, i) => 1 - i * 0.015 + Math.random() * 0.05))
-  const [epoch, setEpoch] = useState(40)
-  const intervalRef = useRef(null)
-  const chartRef = useRef(null)
-
-  const step = useCallback(() => {
-    setPhase(p => (p + 1) % 4)
-    setEpoch(e => {
-      const ne = e + 1
-      setErrorHistory(h => {
-        const last = h[h.length - 1]
-        const next = Math.max(0.02, last - (0.012 + Math.random() * 0.015))
-        return [...h.slice(-59), next]
-      })
-      return ne
-    })
-  }, [])
+// ── Decision boundary canvas ──────────────────────────────────────────────────
+function BoundaryCanvas({ gridPreds, gridRes, data, phase }) {
+  const canvasRef = useRef(null)
 
   useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(step, 800)
-    } else {
-      clearInterval(intervalRef.current)
+    const canvas = canvasRef.current
+    if (!canvas || !gridPreds?.length || !data) return
+    const ctx = canvas.getContext('2d')
+    const W = canvas.offsetWidth
+    const H = canvas.offsetHeight
+    const offscreen = new OffscreenCanvas(gridRes, gridRes)
+    const oct = offscreen.getContext('2d')
+    const imageData = oct.createImageData(gridRes, gridRes)
+
+    for (let i = 0; i < gridRes * gridRes; i++) {
+      const p = gridPreds[i] ?? 0.5
+      imageData.data[i * 4 + 0] = Math.round(120 * p + 20)
+      imageData.data[i * 4 + 1] = Math.round(30 + 80 * (1 - Math.abs(p - 0.5) * 2))
+      imageData.data[i * 4 + 2] = Math.round(120 * (1 - p) + 20)
+      imageData.data[i * 4 + 3] = 200
     }
-    return () => clearInterval(intervalRef.current)
-  }, [running, step])
+    oct.putImageData(imageData, 0, 0)
 
-  // Chart
+    canvas.width = W; canvas.height = H
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(offscreen, 0, 0, W, H)
+
+    // Decision boundary line (0.5 contour) — approximate with thick highlight
+    for (let i = 0; i < gridRes * gridRes; i++) {
+      const p = gridPreds[i] ?? 0.5
+      if (Math.abs(p - 0.5) < 0.04) {
+        const row = Math.floor(i / gridRes)
+        const col = i % gridRes
+        const px = (col / gridRes) * W
+        const py = (row / gridRes) * H
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.fillRect(px, py, W / gridRes + 1, H / gridRes + 1)
+      }
+    }
+
+    // Data points
+    if (data.X) {
+      data.X.forEach(([x, y_], i) => {
+        const px = ((x + 1) / 2) * W
+        const py = ((y_ + 1) / 2) * H
+        const isClass1 = data.y[i] === 1
+        ctx.beginPath()
+        ctx.arc(px, py, 4, 0, Math.PI * 2)
+        ctx.fillStyle = isClass1 ? 'rgba(124,109,250,0.9)' : 'rgba(239,68,68,0.9)'
+        ctx.fill()
+        ctx.strokeStyle = '#0a0a1a'
+        ctx.lineWidth = 0.8
+        ctx.stroke()
+      })
+    }
+
+    // Phase overlay indicator
+    ctx.fillStyle = PHASES[phase]?.color + '22' ?? 'transparent'
+    ctx.fillRect(0, 0, W, H)
+
+  }, [gridPreds, gridRes, data, phase])
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+      <div style={{
+        position: 'absolute', top: 6, left: 8,
+        fontSize: '0.62rem', color: '#ffffff88', fontFamily: 'monospace',
+        background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '3px',
+      }}>
+        frontera de decisión
+      </div>
+      <div style={{
+        position: 'absolute', bottom: 6, left: 8, display: 'flex', gap: '0.5rem',
+      }}>
+        <span style={{ fontSize: '0.6rem', color: 'rgba(239,68,68,0.9)', fontFamily: 'monospace' }}>● clase 0</span>
+        <span style={{ fontSize: '0.6rem', color: 'rgba(124,109,250,0.9)', fontFamily: 'monospace' }}>● clase 1</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Loss curve ────────────────────────────────────────────────────────────────
+function LossCurve({ lossHistory, accHistory }) {
+  const canvasRef = useRef(null)
+
   useEffect(() => {
-    const canvas = chartRef.current
-    if (!canvas) return
+    const canvas = canvasRef.current
+    if (!canvas || lossHistory.length < 2) return
     const ctx = canvas.getContext('2d')
     const W = canvas.width = canvas.offsetWidth
     const H = canvas.height = canvas.offsetHeight
     ctx.clearRect(0, 0, W, H)
 
     // Grid
-    ctx.strokeStyle = '#2a2a38'
+    ctx.strokeStyle = '#1e1e2e'
     ctx.lineWidth = 1
     for (let i = 0; i <= 4; i++) {
-      const y = H - (H * i / 4)
+      const y = H * i / 4
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke()
     }
 
-    // Error curve
-    const data = errorHistory
-    ctx.strokeStyle = '#7c6dfa'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    data.forEach((v, i) => {
-      const x = (i / (data.length - 1)) * W
-      const y = H - v * H
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-    })
-    ctx.stroke()
+    const drawCurve = (data, color, fillColor) => {
+      if (data.length < 2) return
+      ctx.strokeStyle = color; ctx.lineWidth = 2
+      ctx.beginPath()
+      data.forEach((v, i) => {
+        const x = (i / (data.length - 1)) * W
+        const y = H - v * H
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath()
+      ctx.fillStyle = fillColor; ctx.fill()
+    }
 
-    // Fill
-    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath()
-    ctx.fillStyle = 'rgba(124,109,250,0.08)'
-    ctx.fill()
+    drawCurve(lossHistory, '#ef4444', 'rgba(239,68,68,0.08)')
+    drawCurve(accHistory,  '#22c55e', 'rgba(34,197,94,0.07)')
 
-    // Current error label
-    ctx.fillStyle = '#a78bfa'
-    ctx.font = '10px monospace'
-    ctx.textAlign = 'right'
-    ctx.fillText(`error: ${(data[data.length - 1] * 100).toFixed(1)}%`, W - 4, 14)
-  }, [errorHistory])
+    // Labels
+    const last = lossHistory[lossHistory.length - 1]
+    const lastAcc = accHistory[accHistory.length - 1]
+    ctx.font = '9px monospace'; ctx.textAlign = 'right'
+    ctx.fillStyle = '#ef4444'
+    ctx.fillText(`loss: ${last?.toFixed(3)}`, W - 4, 12)
+    ctx.fillStyle = '#22c55e'
+    ctx.fillText(`acc: ${(lastAcc * 100)?.toFixed(1)}%`, W - 4, 24)
+  }, [lossHistory, accHistory])
+
+  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+}
+
+// ── Main slide ────────────────────────────────────────────────────────────────
+export default function S05_Entrenamiento({ profesorMode }) {
+  const net = useNeuralNet({ hiddenSizes: [8, 8], gridRes: 50 })
+
+  const [phase, setPhase]           = useState(0)
+  const [lossHistory, setLossH]     = useState([1.0])
+  const [accHistory, setAccH]       = useState([0.5])
+  const phaseTimerRef               = useRef(null)
+
+  // Keep loss/acc history in sync with real values
+  useEffect(() => {
+    if (net.loss) setLossH(h => [...h.slice(-79), net.loss])
+    if (net.accuracy) setAccH(h => [...h.slice(-79), net.accuracy])
+  }, [net.epoch])
+
+  // Auto-advance phase while training
+  useEffect(() => {
+    clearInterval(phaseTimerRef.current)
+    if (net.training) {
+      phaseTimerRef.current = setInterval(() => setPhase(p => (p + 1) % 4), 900)
+    }
+    return () => clearInterval(phaseTimerRef.current)
+  }, [net.training])
 
   const current = PHASES[phase]
 
   return (
-    <div className="section-slide" style={{ gap: '1.25rem' }}>
+    <div className="section-slide" style={{ gap: '1rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Entrenamiento supervisado</div>
-        <div className="section-subtitle">Los 4 pasos en vivo</div>
+        <div className="section-subtitle">Red real entrenando en tiempo real</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '560px' }}>
-        "El aprendizaje no es magia — es una curva de error cayendo. Y vamos a verla caer."
+      {/* Main layout: boundary + curve */}
+      <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '760px', height: '230px' }}>
+        {/* Decision boundary */}
+        <div style={{
+          flex: '1.3', background: 'var(--bg-3)', borderRadius: '10px',
+          border: '1px solid var(--border)', overflow: 'hidden',
+        }}>
+          <BoundaryCanvas gridPreds={net.gridPreds} gridRes={net.gridRes} data={net.data} phase={phase} />
+        </div>
+
+        {/* Loss curve + stats */}
+        <div style={{ flex: 0.8, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{
+            flex: 1, background: 'var(--bg-3)', borderRadius: '8px',
+            border: '1px solid var(--border)', overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <LossCurve lossHistory={lossHistory} accHistory={accHistory} />
+            <div style={{ position: 'absolute', top: 4, left: 7, fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+              curva de aprendizaje
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div style={{
+            background: 'var(--bg-3)', border: '1px solid var(--border)',
+            borderRadius: '8px', padding: '0.5rem 0.7rem',
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem',
+          }}>
+            {[
+              { label: 'época', value: net.epoch, color: '#7c6dfa' },
+              { label: 'pérdida', value: net.loss?.toFixed(4), color: '#ef4444' },
+              { label: 'precisión', value: `${((net.accuracy ?? 0.5) * 100).toFixed(1)}%`, color: '#22c55e' },
+              { label: 'estado', value: net.training ? 'entrenando' : 'pausado', color: net.training ? '#22c55e' : '#888' },
+            ].map(s => (
+              <div key={s.label}>
+                <div style={{ fontSize: '0.58rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{s.label}</div>
+                <div style={{ fontSize: '0.78rem', color: s.color, fontWeight: 600, fontFamily: 'monospace' }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Phase indicator */}
-      <div style={{ display: 'flex', gap: '0.4rem', width: '100%', maxWidth: '640px' }}>
+      <div style={{ display: 'flex', gap: '0.3rem', width: '100%', maxWidth: '760px' }}>
         {PHASES.map((p, i) => (
           <button
             key={p.id}
-            onClick={() => { setRunning(false); setPhase(i) }}
+            onClick={() => { net.stop(); setPhase(i) }}
             style={{
-              flex: 1,
-              padding: '0.5rem 0.25rem',
+              flex: 1, padding: '0.45rem 0.25rem',
               borderRadius: '6px',
               border: `2px solid ${phase === i ? p.color : 'var(--border)'}`,
-              background: phase === i ? `${p.color}22` : 'var(--bg-3)',
+              background: phase === i ? `${p.color}1a` : 'var(--bg-3)',
               color: phase === i ? p.color : 'var(--text-dim)',
-              fontSize: '0.68rem',
-              fontWeight: phase === i ? 700 : 400,
-              cursor: 'pointer',
-              textAlign: 'center',
-              lineHeight: 1.3,
+              fontSize: '0.62rem', fontWeight: phase === i ? 700 : 400,
+              cursor: 'pointer', textAlign: 'center', lineHeight: 1.3,
             }}
           >
             {p.label}
@@ -120,82 +242,61 @@ export default function S05_Entrenamiento({ profesorMode }) {
 
       {/* Current phase description */}
       <div style={{
-        background: `${current.color}18`,
-        border: `1px solid ${current.color}66`,
+        background: `${current.color}14`,
+        border: `1px solid ${current.color}55`,
         borderLeft: `4px solid ${current.color}`,
-        borderRadius: '6px',
-        padding: '0.75rem 1rem',
-        maxWidth: '640px',
-        width: '100%',
+        borderRadius: '6px', padding: '0.6rem 1rem',
+        maxWidth: '760px', width: '100%',
       }}>
-        <div style={{ fontSize: '0.85rem', color: current.color, fontWeight: 600, marginBottom: '0.25rem' }}>
+        <div style={{ fontSize: '0.8rem', color: current.color, fontWeight: 600, marginBottom: '0.2rem' }}>
           {current.label}
         </div>
-        <div style={{ fontSize: '0.82rem', color: 'var(--text)' }}>{current.desc}</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text)' }}>{current.desc}</div>
         {profesorMode && phase === 1 && (
-          <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
-            <InlineMath math="E = \frac{1}{2}(y - d)^2" />
+          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
+            <InlineMath math="\mathcal{L} = -\frac{1}{N}\sum_i [y_i \log \hat{y}_i + (1-y_i)\log(1-\hat{y}_i)]" />
+          </div>
+        )}
+        {profesorMode && phase === 2 && (
+          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
+            <InlineMath math="\nabla_{W} \mathcal{L} = \frac{\partial \mathcal{L}}{\partial W}" />
+          </div>
+        )}
+        {profesorMode && phase === 3 && (
+          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
+            <InlineMath math="W \leftarrow W - \alpha \nabla_{W} \mathcal{L}" />
           </div>
         )}
       </div>
 
-      {/* Controls + chart */}
-      <div style={{ display: 'flex', gap: '1rem', width: '100%', maxWidth: '640px', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <button
-            onClick={() => setRunning(r => !r)}
-            style={{
-              padding: '0.5rem 1.2rem',
-              borderRadius: '6px',
-              border: `1px solid ${running ? '#ef4444' : 'var(--accent)'}`,
-              background: running ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
-              color: running ? '#ef4444' : 'var(--accent-2)',
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-            }}
-          >
-            {running ? '⏸ Pausar' : '▶ Iniciar'}
-          </button>
-          <button
-            onClick={step}
-            style={{
-              padding: '0.5rem 1.2rem',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg-3)',
-              color: 'var(--text-dim)',
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-            }}
-          >
-            → Frame
-          </button>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace', textAlign: 'center' }}>
-            época {epoch}
-          </div>
-        </div>
-
-        <div style={{
-          flex: 1,
-          height: '140px',
-          background: 'var(--bg-3)',
-          border: '1px solid var(--border)',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-          <canvas ref={chartRef} style={{ width: '100%', height: '100%' }} />
-          <div style={{ position: 'absolute', top: 4, left: 8, fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-            curva de aprendizaje
-          </div>
-        </div>
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button
+          onClick={() => net.training ? net.stop() : net.start()}
+          style={{
+            padding: '0.5rem 1.4rem', borderRadius: '6px',
+            border: `1px solid ${net.training ? '#ef4444' : 'var(--accent)'}`,
+            background: net.training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
+            color: net.training ? '#ef4444' : 'var(--accent-2)',
+            fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600,
+          }}
+        >
+          {net.training ? '⏸ Pausar' : '▶ Entrenar'}
+        </button>
+        <button onClick={net.step} style={{ padding: '0.5rem 0.9rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '0.8rem', cursor: 'pointer' }}>
+          → 1 época
+        </button>
+        <button onClick={net.reset} style={{ padding: '0.5rem 0.9rem', borderRadius: '6px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>
+          ↺ Reiniciar
+        </button>
       </div>
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '640px', width: '100%', fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--accent-2)' }}>Nota filosófica:</strong>{' '}
-          La complejidad como posicionalidad — el aprendizaje persiste y puede modificarse.
-          Las neuronas son las células que sostienen funcionalmente el cambio aprendido.
+        <div className="st-card" style={{ maxWidth: '760px', width: '100%', fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--accent-2)' }}>Lo que ves es real:</strong>{' '}
+          La frontera de decisión muestra las predicciones actuales de la red TF.js sobre el espacio 2D completo.
+          Blanco = límite p=0.5. Azul = predice clase 1. Rojo = predice clase 0. La frontera se mueve
+          con cada actualización de pesos — el aprendizaje es literalmente visible.
         </div>
       )}
     </div>
