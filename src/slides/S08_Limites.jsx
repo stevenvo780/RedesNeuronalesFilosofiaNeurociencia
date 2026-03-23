@@ -195,6 +195,138 @@ function LossScene() {
   )
 }
 
+// ── O(n³) complexity curve ──────────────────────────────────────────────────────
+function ComplexityCurve() {
+  const ref = useRef(null)
+  const anim = useRef({ t: 0 })
+
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    let raf
+
+    const draw = () => {
+      const ctx = canvas.getContext('2d')
+      const W = canvas.width = canvas.offsetWidth * 2
+      const H = canvas.height = canvas.offsetHeight * 2
+      ctx.scale(2, 2)
+      const w = W / 2, h = H / 2
+      ctx.clearRect(0, 0, w, h)
+
+      // Background
+      ctx.fillStyle = '#04040e'
+      ctx.fillRect(0, 0, w, h)
+
+      const pad = { l: 52, r: 16, t: 30, b: 32 }
+      const pw = w - pad.l - pad.r
+      const ph = h - pad.t - pad.b
+
+      // Sweep progress
+      anim.current.t += 0.003
+      if (anim.current.t > 1.6) anim.current.t = 0
+      const sweep = Math.min(anim.current.t, 1)
+
+      // Grid
+      ctx.strokeStyle = 'rgba(124,109,250,0.08)'
+      ctx.lineWidth = 0.5
+      for (let i = 0; i <= 5; i++) {
+        const x = pad.l + (i / 5) * pw
+        ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke()
+        const y = pad.t + (i / 5) * ph
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke()
+      }
+
+      // Axis labels
+      ctx.fillStyle = 'rgba(167,139,250,0.6)'
+      ctx.font = '9px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText('tamaño de red (n)', pad.l + pw / 2, h - 6)
+      ctx.save()
+      ctx.translate(12, pad.t + ph / 2)
+      ctx.rotate(-Math.PI / 2)
+      ctx.fillText('costo computacional', 0, 0)
+      ctx.restore()
+
+      // n labels
+      const ns = [10, 50, 100, 200, 500]
+      ns.forEach((n, i) => {
+        const x = pad.l + ((i + 0.5) / ns.length) * pw
+        ctx.fillStyle = 'rgba(167,139,250,0.4)'
+        ctx.fillText(n, x, pad.t + ph + 14)
+      })
+
+      // Curves
+      const maxN = 500
+      const maxVal = Math.pow(maxN, 3)
+      const curves = [
+        { fn: n => n, color: '#22c55e', label: 'O(n)', dash: [4, 3] },
+        { fn: n => n * n, color: '#eab308', label: 'O(n²)', dash: [] },
+        { fn: n => n * n * n, color: '#ef4444', label: 'O(n³)', dash: [], width: 2.5 },
+      ]
+
+      const steps = 120
+      const sweepIdx = Math.floor(sweep * steps)
+
+      curves.forEach(c => {
+        ctx.beginPath()
+        ctx.strokeStyle = c.color
+        ctx.lineWidth = c.width || 1.5
+        ctx.setLineDash(c.dash || [])
+        let lastX = 0, lastY = 0
+        for (let i = 0; i <= sweepIdx; i++) {
+          const n = (i / steps) * maxN
+          const val = c.fn(n)
+          const x = pad.l + (i / steps) * pw
+          const y = pad.t + ph - (val / maxVal) * ph
+          if (i === 0) ctx.moveTo(x, Math.max(y, pad.t))
+          else ctx.lineTo(x, Math.max(y, pad.t))
+          lastX = x; lastY = Math.max(y, pad.t)
+        }
+        ctx.stroke()
+        ctx.setLineDash([])
+
+        // Label at curve end
+        if (sweepIdx > 10) {
+          ctx.fillStyle = c.color
+          ctx.font = 'bold 9px monospace'
+          ctx.textAlign = 'left'
+          const labelY = Math.max(lastY - 4, pad.t + 8)
+          ctx.fillText(c.label, lastX + 4, labelY)
+        }
+      })
+
+      // Sweep line
+      if (sweep < 1) {
+        const sx = pad.l + sweep * pw
+        ctx.strokeStyle = 'rgba(124,109,250,0.5)'
+        ctx.lineWidth = 1
+        ctx.setLineDash([3, 3])
+        ctx.beginPath(); ctx.moveTo(sx, pad.t); ctx.lineTo(sx, pad.t + ph); ctx.stroke()
+        ctx.setLineDash([])
+      }
+
+      // Danger zone label
+      if (sweep > 0.5) {
+        const alpha = Math.min((sweep - 0.5) * 2, 1)
+        ctx.fillStyle = `rgba(239,68,68,${alpha * 0.15})`
+        const dangerX = pad.l + 0.55 * pw
+        ctx.fillRect(dangerX, pad.t, pad.l + pw - dangerX, ph)
+        ctx.fillStyle = `rgba(239,68,68,${alpha * 0.7})`
+        ctx.font = 'bold 9px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillText('zona intratable', pad.l + 0.77 * pw, pad.t + 16)
+      }
+
+      raf = requestAnimationFrame(draw)
+    }
+
+    raf = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }} />
+}
+
 // ── Limits data ────────────────────────────────────────────────────────────────
 const LIMITS = [
   {
@@ -237,65 +369,72 @@ export default function S08_Limites({ profesorMode }) {
       {/* L-cards — accordion */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+        gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '0.75rem',
         width: '100%',
         maxWidth: '1100px',
-        alignItems: 'start',
+        alignItems: 'stretch',
       }}>
         {LIMITS.map((l, i) => {
           const isOpen = activeLimit === l.n
           return (
             <motion.div
               key={l.n}
+              layout
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.12 }}
+              transition={{ delay: i * 0.1, type: 'spring', stiffness: 260, damping: 22 }}
               onClick={() => setActiveLimit(isOpen ? null : l.n)}
-              whileHover={{ scale: 1.015 }}
+              whileHover={{ scale: 1.02, boxShadow: `0 0 18px ${l.color}22` }}
+              whileTap={{ scale: 0.98 }}
               style={{
                 background: isOpen ? `rgba(${hexRgb(l.color)},0.08)` : 'var(--bg-3)',
                 border: `1px solid ${isOpen ? l.color + 'aa' : l.color + '44'}`,
-                borderLeft: `4px solid ${l.color}`,
+                borderTop: `3px solid ${l.color}`,
                 borderRadius: '8px',
-                padding: '1rem',
+                padding: '0.75rem 0.85rem',
                 cursor: 'pointer',
                 transition: 'background 0.2s, border-color 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                 <span style={{
                   fontSize: '0.6rem', color: l.color, fontFamily: 'monospace', fontWeight: 700,
-                  background: `${l.color}22`, padding: '1px 6px', borderRadius: '3px',
+                  background: `${l.color}22`, padding: '1px 6px', borderRadius: '3px', flexShrink: 0,
                 }}>L{l.n}</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-h)', flex: 1 }}>{l.title}</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-h)', flex: 1, lineHeight: 1.2 }}>{l.title}</span>
                 <motion.span
                   animate={{ rotate: isOpen ? 180 : 0 }}
-                  transition={{ duration: 0.22 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   style={{ fontSize: '0.65rem', color: l.color, lineHeight: 1, flexShrink: 0 }}
                 >▼</motion.span>
               </div>
               {/* Teaser */}
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.45, margin: 0, fontStyle: 'italic' }}>
+              <p style={{
+                fontSize: '0.75rem', color: 'var(--text-dim)', lineHeight: 1.4, margin: 0,
+                fontStyle: 'italic', flex: 1,
+              }}>
                 {l.brief}
               </p>
               {/* Expanded detail */}
-              <AnimatePresence>
+              <AnimatePresence mode="wait">
                 {isOpen && (
                   <motion.div
-                    initial={{ maxHeight: 0, opacity: 0 }}
-                    animate={{ maxHeight: 250, opacity: 1 }}
-                    exit={{ maxHeight: 0, opacity: 0 }}
-                    transition={{ duration: 0.28, ease: 'easeInOut' }}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 24 }}
                     style={{ overflow: 'hidden' }}
                   >
                     <div style={{
-                      paddingTop: '0.7rem',
-                      marginTop: '0.6rem',
+                      paddingTop: '0.6rem',
+                      marginTop: '0.5rem',
                       borderTop: `1px solid ${l.color}33`,
                     }}>
-                      <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.55, margin: 0 }}>{l.desc}</p>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text)', lineHeight: 1.5, margin: 0 }}>{l.desc}</p>
                     </div>
                   </motion.div>
                 )}
@@ -305,43 +444,91 @@ export default function S08_Limites({ profesorMode }) {
         })}
       </div>
 
-      {/* Loss landscape 3D */}
+      {/* Visualizations 2-col grid: Loss landscape + O(n³) curve */}
       <div style={{
-        width: '100%', maxWidth: '1100px',
-        background: '#04040e',
-        border: '1px solid rgba(124,109,250,0.3)',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: '0 0 30px rgba(124,109,250,0.12)',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '0.75rem',
+        width: '100%',
+        maxWidth: '1100px',
       }}>
-        <div style={{
-          padding: '0.45rem 0.85rem',
-          borderBottom: '1px solid rgba(124,109,250,0.2)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'rgba(124,109,250,0.04)',
-        }}>
-          <span style={{ fontSize: '0.7rem', color: '#a78bfa', fontFamily: 'monospace' }}>
-            Espacio de error 3D — superficie de pérdida con mínimos locales · clic L3 para contexto
-          </span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>arrastrar para rotar</span>
-        </div>
-        <div style={{ height: '300px' }}>
-          <Canvas camera={{ position: [1, 10, 12], fov: 45 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-            <Suspense fallback={null}>
-              <color attach="background" args={['#04040e']} />
-              <LossScene />
-              <EffectComposer disableNormalPass>
-                <Bloom luminanceThreshold={0.15} mipmapBlur luminanceSmoothing={0.1} intensity={2.0} />
-              </EffectComposer>
-            </Suspense>
-          </Canvas>
-        </div>
-        <div style={{ padding: '0.35rem 0.85rem', display: 'flex', gap: '1.5rem', borderTop: '1px solid rgba(124,109,250,0.15)' }}>
-          <span style={{ fontSize: '0.8rem', color: '#00f5ff', fontFamily: 'monospace' }}>● SGD global</span>
-          <span style={{ fontSize: '0.8rem', color: '#ff7700', fontFamily: 'monospace' }}>● SGD atrapado</span>
-          <span style={{ fontSize: '0.8rem', color: '#22c55e', fontFamily: 'monospace' }}>▲ mínimo global</span>
-          <span style={{ fontSize: '0.8rem', color: '#ef4444', fontFamily: 'monospace' }}>▲ mínimo local</span>
-        </div>
+        {/* Left: Loss landscape 3D (L3) */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 22 }}
+          style={{
+            background: '#04040e',
+            border: '1px solid rgba(124,109,250,0.3)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 0 24px rgba(124,109,250,0.1)',
+          }}
+        >
+          <div style={{
+            padding: '0.35rem 0.7rem',
+            borderBottom: '1px solid rgba(124,109,250,0.2)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            background: 'rgba(124,109,250,0.04)',
+          }}>
+            <span style={{ fontSize: '0.62rem', color: '#a78bfa', fontFamily: 'monospace' }}>
+              L3 · Superficie de pérdida 3D
+            </span>
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>arrastrar para rotar</span>
+          </div>
+          <div style={{ height: '280px' }}>
+            <Canvas camera={{ position: [1, 10, 12], fov: 45 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
+              <Suspense fallback={null}>
+                <color attach="background" args={['#04040e']} />
+                <LossScene />
+                <EffectComposer disableNormalPass>
+                  <Bloom luminanceThreshold={0.15} mipmapBlur luminanceSmoothing={0.1} intensity={2.0} />
+                </EffectComposer>
+              </Suspense>
+            </Canvas>
+          </div>
+          <div style={{ padding: '0.3rem 0.7rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap', borderTop: '1px solid rgba(124,109,250,0.15)' }}>
+            <span style={{ fontSize: '0.65rem', color: '#00f5ff', fontFamily: 'monospace' }}>● SGD global</span>
+            <span style={{ fontSize: '0.65rem', color: '#ff7700', fontFamily: 'monospace' }}>● SGD atrapado</span>
+            <span style={{ fontSize: '0.65rem', color: '#22c55e', fontFamily: 'monospace' }}>▲ mín. global</span>
+            <span style={{ fontSize: '0.65rem', color: '#ef4444', fontFamily: 'monospace' }}>▲ mín. local</span>
+          </div>
+        </motion.div>
+
+        {/* Right: O(n³) complexity curve (L2) */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4, type: 'spring', stiffness: 200, damping: 22 }}
+          style={{
+            background: '#04040e',
+            border: '1px solid rgba(234,179,8,0.3)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 0 24px rgba(234,179,8,0.08)',
+          }}
+        >
+          <div style={{
+            padding: '0.35rem 0.7rem',
+            borderBottom: '1px solid rgba(234,179,8,0.2)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            background: 'rgba(234,179,8,0.04)',
+          }}>
+            <span style={{ fontSize: '0.62rem', color: '#eab308', fontFamily: 'monospace' }}>
+              L2 · Escalabilidad O(n³) — costo vs tamaño de red
+            </span>
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>animación cíclica</span>
+          </div>
+          <div style={{ height: '280px' }}>
+            <ComplexityCurve />
+          </div>
+          <div style={{ padding: '0.3rem 0.7rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap', borderTop: '1px solid rgba(234,179,8,0.15)' }}>
+            <span style={{ fontSize: '0.65rem', color: '#22c55e', fontFamily: 'monospace' }}>— O(n)</span>
+            <span style={{ fontSize: '0.65rem', color: '#eab308', fontFamily: 'monospace' }}>— O(n²)</span>
+            <span style={{ fontSize: '0.65rem', color: '#ef4444', fontFamily: 'monospace', fontWeight: 700 }}>— O(n³)</span>
+            <span style={{ fontSize: '0.6rem', color: 'rgba(239,68,68,0.6)', fontFamily: 'monospace' }}>zona intratable</span>
+          </div>
+        </motion.div>
       </div>
 
       <STFloatingButton />

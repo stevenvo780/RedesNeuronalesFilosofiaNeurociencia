@@ -96,7 +96,7 @@ function NeuronDiagram({ inputs, weights, sum, output, transferFn }) {
           <text x={inputX} y={inputYs[i] - 3}
             fill="#555" fontSize="7" textAnchor="middle" fontFamily="monospace">x{i+1}=</text>
           <text x={inputX} y={inputYs[i] + 7}
-            fill="#a78bfa" fontSize="9" textAnchor="middle" fontFamily="monospace">{x}</text>
+            fill="#a78bfa" fontSize="9" textAnchor="middle" fontFamily="monospace">{inputs[i]}</text>
         </g>
       ))}
       <text x={inputX} y={svgH - 3} fill="#444" fontSize="7" textAnchor="middle" fontFamily="monospace">dendrita</text>
