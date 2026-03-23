@@ -197,7 +197,7 @@ export default function App() {
         transition: 'margin-right 0.3s ease',
       }}>
         {/* Slide with Framer Motion */}
-        <div style={{ width: '100%', height: 'calc(100% - 36px)', overflow: 'hidden auto', position: 'relative' }}>
+        <div style={{ width: '100%', height: 'calc(100% - 36px)', overflow: 'hidden', position: 'relative' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={current}
