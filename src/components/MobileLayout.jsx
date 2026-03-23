@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BotMessageSquare, X, ChevronRight, ChevronLeft } from 'lucide-react'
+import { BotMessageSquare, ChevronRight, ChevronLeft, HelpCircle } from 'lucide-react'
 import { SLIDE_SUMMARIES } from '../data/slideSummaries'
 import AIPanel from './AIPanel'
+import QAModal from './QAModal'
+
+const MotionDiv = motion.div
 
 /**
  * MobileLayout — full mobile experience.
@@ -14,6 +17,7 @@ import AIPanel from './AIPanel'
 export default function MobileLayout({ slides, profesorMode }) {
   const [activeSlide, setActiveSlide] = useState(null)   // index or null
   const [aiOpen, setAiOpen] = useState(false)
+  const [qaOpen, setQaOpen] = useState(false)
   const cardRefs = useRef([])
 
   // Close drawer on Escape
@@ -21,12 +25,16 @@ export default function MobileLayout({ slides, profesorMode }) {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         if (aiOpen) setAiOpen(false)
+        else if (qaOpen) setQaOpen(false)
         else if (activeSlide !== null) setActiveSlide(null)
+      }
+      if (e.key === 'q' || e.key === 'Q') {
+        setQaOpen(v => !v)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [aiOpen, activeSlide])
+  }, [aiOpen, activeSlide, qaOpen])
 
   // Lock body scroll when AI overlay is open (but NOT for slide — slide handles its own scroll)
   useEffect(() => {
@@ -122,6 +130,17 @@ export default function MobileLayout({ slides, profesorMode }) {
             >
               <BotMessageSquare size={16} strokeWidth={1.8} />
             </button>
+            <button
+              onClick={() => setQaOpen(true)}
+              style={{
+                background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
+                color: 'var(--accent-2)', cursor: 'pointer', padding: '0.3rem',
+                display: 'flex', alignItems: 'center',
+              }}
+              aria-label="Abrir Q&A"
+            >
+              <HelpCircle size={16} strokeWidth={1.8} />
+            </button>
           </div>
         </div>
         {/* Scrollable slide content */}
@@ -141,7 +160,7 @@ export default function MobileLayout({ slides, profesorMode }) {
         <AnimatePresence>
           {aiOpen && (
             <>
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => setAiOpen(false)}
@@ -150,7 +169,7 @@ export default function MobileLayout({ slides, profesorMode }) {
                   background: 'rgba(0,0,0,0.5)',
                 }}
               />
-              <motion.div
+              <MotionDiv
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 300 }}
                 style={{
@@ -167,10 +186,12 @@ export default function MobileLayout({ slides, profesorMode }) {
                   currentSlide={currentSlideData}
                   mobile
                 />
-              </motion.div>
+              </MotionDiv>
             </>
           )}
         </AnimatePresence>
+
+        <QAModal isOpen={qaOpen} onClose={() => setQaOpen(false)} />
       </div>
     )
   }
@@ -217,7 +238,7 @@ export default function MobileLayout({ slides, profesorMode }) {
                   <div style={{
                     fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace',
                   }}>
-                    {String(i + 1).padStart(2, '0')} · {slide.time}
+                    {String(i + 1).padStart(2, '0')}
                   </div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-h)', lineHeight: 1.25 }}>
                     {summary.title}
@@ -273,30 +294,49 @@ export default function MobileLayout({ slides, profesorMode }) {
         })}
       </div>
 
-      {/* ── FAB: AI ────────────────────────────────── */}
-      <button
-        onClick={() => setAiOpen(true)}
-        style={{
-          position: 'fixed', bottom: '1.2rem', right: '1.2rem',
-          zIndex: 90,
-          width: '56px', height: '56px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #7c6dfa 0%, #06b6d4 100%)',
-          border: 'none',
-          boxShadow: '0 4px 20px rgba(124,109,250,0.5)',
-          color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
-        }}
-        aria-label="Abrir chat IA"
-      >
-        <BotMessageSquare size={26} strokeWidth={1.8} />
-      </button>
+      {/* ── FABs: AI + Q&A ─────────────────────────── */}
+      <div style={{
+        position: 'fixed', bottom: '1.2rem', right: '1.2rem', zIndex: 90,
+        display: 'flex', flexDirection: 'column', gap: '0.7rem'
+      }}>
+        <button
+          onClick={() => setQaOpen(true)}
+          style={{
+            width: '52px', height: '52px', borderRadius: '50%',
+            background: 'rgba(17,17,24,0.94)',
+            border: '1px solid rgba(124,109,250,0.28)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            color: 'var(--accent-2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          aria-label="Abrir Q&A"
+        >
+          <HelpCircle size={23} strokeWidth={1.9} />
+        </button>
+
+        <button
+          onClick={() => setAiOpen(true)}
+          style={{
+            width: '56px', height: '56px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, #7c6dfa 0%, #06b6d4 100%)',
+            border: 'none',
+            boxShadow: '0 4px 20px rgba(124,109,250,0.5)',
+            color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          aria-label="Abrir chat IA"
+        >
+          <BotMessageSquare size={26} strokeWidth={1.8} />
+        </button>
+      </div>
 
       {/* ── AI overlay ─────────────────────────────── */}
       <AnimatePresence>
         {aiOpen && (
           <>
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setAiOpen(false)}
@@ -305,7 +345,7 @@ export default function MobileLayout({ slides, profesorMode }) {
                 background: 'rgba(0,0,0,0.5)',
               }}
             />
-            <motion.div
+            <MotionDiv
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               style={{
@@ -322,10 +362,12 @@ export default function MobileLayout({ slides, profesorMode }) {
                 currentSlide={slides[0]}
                 mobile
               />
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>
+
+      <QAModal isOpen={qaOpen} onClose={() => setQaOpen(false)} />
     </div>
   )
 }

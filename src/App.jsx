@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Radio, Tv2, BotMessageSquare } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Radio, BotMessageSquare, HelpCircle } from 'lucide-react'
 import AIPanel from './components/AIPanel'
 import MobileLayout from './components/MobileLayout'
 import S00_Intro from './slides/S00_Intro'
@@ -18,40 +18,43 @@ import S11_CodigosDemograficos from './slides/S11_CodigosDemograficos'
 import S12_De1992AHoy from './slides/S12_De1992AHoy'
 import S12b_Convergencia from './slides/S12b_Convergencia'
 import S13_CierreArgumental from './slides/S13_CierreArgumental'
+import QAModal from './components/QAModal'
+
+const MotionDiv = motion.div
 
 const SLIDES = [
-  { id: 's00', label: 'Intro', time: '—', Component: S00_Intro },
-  { id: 's01', label: 'Apertura', time: '1 min', Component: S01_Apertura },
-  { id: 's02', label: 'Neurona real', time: '1.5 min', Component: S02_NeuronasReal },
-  { id: 's03', label: 'Neurona artificial', time: '1.5 min', Component: S03_NeuronasArtificial },
-  { id: 's04', label: 'Arquitectura', time: '2 min', Component: S04_Arquitectura },
-  { id: 's05', label: 'Entrenamiento', time: '2 min', Component: S05_Entrenamiento },
-  { id: 's06', label: 'Retropropagación', time: '2 min', Component: S06_Retropropagacion },
-  { id: 's07', label: 'Alcances + Crítica', time: '1.5 min', Component: S07_AlcancesYCritica },
-  { id: 's08', label: 'Límites', time: '1 min', Component: S08_Limites },
-  { id: 's09', label: 'No supervisado', time: '3 min', Component: S09_NoSupervisado },
-  { id: 's10', label: 'Repr. distribuidas', time: '1 min', Component: S10_ReprDistribuidas },
-  { id: 's11', label: 'Códigos demográficos', time: '1.5 min', Component: S11_CodigosDemograficos },
-  { id: 's12', label: 'De 1992 a hoy', time: '2 min', Component: S12_De1992AHoy },
-  { id: 's12b', label: 'Convergencia empírica', time: '1.5 min', Component: S12b_Convergencia },
-  { id: 's13', label: 'Cierre argumental', time: '2 min', Component: S13_CierreArgumental },
+  { id: 's00', label: 'Intro', Component: S00_Intro },
+  { id: 's01', label: 'Apertura', Component: S01_Apertura },
+  { id: 's02', label: 'Neurona real', Component: S02_NeuronasReal },
+  { id: 's03', label: 'Neurona artificial', Component: S03_NeuronasArtificial },
+  { id: 's04', label: 'Arquitectura', Component: S04_Arquitectura },
+  { id: 's05', label: 'Entrenamiento', Component: S05_Entrenamiento },
+  { id: 's06', label: 'Retropropagación', Component: S06_Retropropagacion },
+  { id: 's07', label: 'Alcances + Crítica', Component: S07_AlcancesYCritica },
+  { id: 's08', label: 'Límites', Component: S08_Limites },
+  { id: 's09', label: 'No supervisado', Component: S09_NoSupervisado },
+  { id: 's10', label: 'Repr. distribuidas', Component: S10_ReprDistribuidas },
+  { id: 's11', label: 'Códigos demográficos', Component: S11_CodigosDemograficos },
+  { id: 's12', label: 'De 1992 a hoy', Component: S12_De1992AHoy },
+  { id: 's12b', label: 'Convergencia empírica', Component: S12b_Convergencia },
+  { id: 's13', label: 'Cierre argumental', Component: S13_CierreArgumental },
 ]
 
 export default function App() {
   const [current, setCurrent] = useState(0)
   const [profesorMode, setProfesorMode] = useState(false)
   const [aiVisible, setAiVisible] = useState(false)
+  const [qaOpen, setQaOpen] = useState(false)
   const [navVisible, setNavVisible] = useState(true)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
 
   // Ref for slide sub-step navigation (advanceStep / retreatStep)
   const slideRef = useRef(null)
-  const prevSlide = useRef(current)
   const audioRef = useRef(null)
-  if (prevSlide.current !== current) {
-    slideRef.current = null   // reset before child mounts
-    prevSlide.current = current
-  }
+
+  useEffect(() => {
+    slideRef.current = null
+  }, [current])
 
   // Responsive breakpoint
   useEffect(() => {
@@ -68,6 +71,11 @@ export default function App() {
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'Escape' && qaOpen) {
+        setQaOpen(false)
+        return
+      }
+
       switch (e.key) {
         case 'ArrowRight':
         case 'ArrowDown':
@@ -104,6 +112,10 @@ export default function App() {
         case 'N':
           setNavVisible(v => !v)
           break
+        case 'q':
+        case 'Q':
+          setQaOpen(v => !v)
+          break
         case 'Home':
           goTo(0)
           break
@@ -114,7 +126,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [current, goTo])
+  }, [current, goTo, qaOpen])
 
   // ── Media Session API: watch / headphones / lock-screen controls ──
   // Start silent audio on first user interaction (auto-play policy)
@@ -253,9 +265,11 @@ export default function App() {
                 }}>
                   {s.label}
                 </span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', flexShrink: 0 }}>
-                  {s.time}
-                </span>
+                {s.time && (
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', flexShrink: 0 }}>
+                    {s.time}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -298,6 +312,24 @@ export default function App() {
               <BotMessageSquare size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
               {aiVisible ? 'IA activa' : 'Panel IA'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(A)</span>
             </button>
+            <button
+              onClick={() => setQaOpen(true)}
+              style={{
+                padding: '0.6rem 0.8rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'none',
+                color: 'var(--text-dim)',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '0.45rem',
+              }}
+            >
+              <HelpCircle size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+              Q&A <span style={{ opacity: 0.5, fontWeight: 400 }}>(Q)</span>
+            </button>
           </div>
         </nav>
       )}
@@ -313,7 +345,7 @@ export default function App() {
         {/* Slide with Framer Motion */}
         <div style={{ width: '100%', height: 'calc(100% - 36px)', overflow: 'hidden', position: 'relative' }}>
           <AnimatePresence mode="wait">
-            <motion.div
+            <MotionDiv
               key={current}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -322,7 +354,7 @@ export default function App() {
               style={{ width: '100%', minHeight: '100%', position: 'absolute', inset: 0 }}
             >
               <Component ref={slideRef} profesorMode={profesorMode} />
-            </motion.div>
+            </MotionDiv>
           </AnimatePresence>
         </div>
 
@@ -402,13 +434,14 @@ export default function App() {
             padding: '2px 6px',
             borderRadius: '4px',
           }}>
-            N=nav · P=profesor · A=IA · ←→=slide
+            N=nav · P=profesor · A=IA · Q=Q&A · ←→=slide
           </div>
         )}
       </main>
 
       {/* AI Panel */}
       <AIPanel visible={aiVisible} onClose={() => setAiVisible(false)} currentSlide={SLIDES[current]} />
+      <QAModal isOpen={qaOpen} onClose={() => setQaOpen(false)} />
 
       {/* Silent audio for Media Session API (watch / headphones / media controls) */}
       <audio ref={audioRef} src="/silence.wav" loop preload="auto" style={{ display: 'none' }} />

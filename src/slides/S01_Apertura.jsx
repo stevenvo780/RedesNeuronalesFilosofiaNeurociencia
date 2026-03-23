@@ -159,10 +159,22 @@ export default function S01_Apertura({ profesorMode }) {
   }, [])
 
   return (
-    <div className="section-slide" style={{ gap: '2rem', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+    <div className="section-slide" style={{ position: 'relative' }}>
       <NetworkBackground />
+      <div style={{
+        width: '100%',
+        maxWidth: '1400px',
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '2rem',
+        position: 'relative',
+        zIndex: 1,
+      }}>
       {/* Frase de apertura */}
-      <div style={{ textAlign: 'center', zIndex: 1 }}>
+      <div style={{ textAlign: 'center' }}>
         <div style={{
           fontSize: 'clamp(1.8rem, 5vw, 3.5rem)',
           fontWeight: 700,
@@ -202,13 +214,13 @@ export default function S01_Apertura({ profesorMode }) {
       </div>
 
       {/* Mapa argumental ST */}
-      <div ref={betRef} style={{ width: '100%', zIndex: 1, position: 'relative' }}>
+      <div ref={betRef} style={{ width: '100%', position: 'relative' }}>
         <STArgGraph />
       </div>
 
       {/* Apuesta filosófica */}
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '1000px', width: '100%', zIndex: 1 }}>
+        <div className="st-card" style={{ maxWidth: '1000px', width: '100%' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '0.6rem', fontFamily: 'monospace' }}>
             MARCO FILOSÓFICO
           </div>
@@ -223,7 +235,7 @@ export default function S01_Apertura({ profesorMode }) {
       )}
 
       {/* Contexto en el curso */}
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', zIndex: 1 }}>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         {[
           { label: 'Daugman 1992', desc: 'metáforas del cerebro', color: 'var(--text-dim)' },
           { label: 'Hinton 1992', desc: 'redes neuronales', color: 'var(--accent)' },
@@ -251,7 +263,6 @@ export default function S01_Apertura({ profesorMode }) {
         color: 'var(--text-dim)',
         fontFamily: 'monospace',
         textAlign: 'center',
-        zIndex: 1,
         padding: '0.6rem 1.2rem',
         background: 'var(--bg-3)',
         border: '1px solid var(--border)',
@@ -266,6 +277,7 @@ export default function S01_Apertura({ profesorMode }) {
         <span style={{ display: 'block', color: 'var(--text-dim)', opacity: 0.65, marginTop: '0.2rem', fontSize: '0.76rem' }}>
           Artículo de divulgación — propuesta programática dirigida a público amplio, no demostración formal
         </span>
+      </div>
       </div>
     </div>
   )
