@@ -34,6 +34,19 @@ body {
   flex-direction: column;
 }
 
+/* Mobile: allow body & root to scroll for the cards view */
+@media (max-width: 767px) {
+  body {
+    overflow: auto;
+    height: auto;
+    min-height: 100svh;
+  }
+  #root {
+    height: auto;
+    min-height: 100svh;
+  }
+}
+
 /* ======== SLIDE: full 16:9 viewport, NEVER scroll ======== */
 .section-slide {
   width: 100%;
@@ -167,4 +180,85 @@ canvas.viz { width: 100% !important; height: 100% !important; display: block; }
 @keyframes stFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
+}
+
+/* ======== MOBILE SLIDE OVERRIDES ======== */
+/* When a slide is rendered inside the mobile fullscreen viewer,
+   override the desktop "no scroll / fixed viewport" rules so that
+   the content stacks vertically and the user can scroll.           */
+
+.mobile-slide-view body,
+.mobile-slide-view #root {
+  overflow: visible;
+  height: auto;
+}
+
+/* Override .section-slide: allow auto height & scroll */
+.mobile-slide-content .section-slide {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 1rem 0.8rem !important;
+  gap: 0.8rem !important;
+  align-items: stretch !important;
+}
+
+/* Force any direct flex-row children to stack vertically */
+.mobile-slide-content .section-slide > div {
+  max-width: 100% !important;
+}
+.mobile-slide-content .section-slide > div[style*="flex-direction: row"],
+.mobile-slide-content .section-slide > div[style*="flex-direction:row"] {
+  flex-direction: column !important;
+}
+
+/* Canvas / Three.js / SVG elements: constrained to viewport width */
+.mobile-slide-content canvas,
+.mobile-slide-content svg {
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 200px;
+}
+
+/* Titles & subtitles: smaller on mobile */
+.mobile-slide-content .section-title {
+  font-size: clamp(1.1rem, 5vw, 1.6rem) !important;
+  text-align: center;
+}
+.mobile-slide-content .section-subtitle {
+  font-size: clamp(0.7rem, 3.5vw, 1rem) !important;
+  text-align: center;
+}
+.mobile-slide-content .quote {
+  font-size: clamp(0.7rem, 3vw, 0.9rem) !important;
+}
+
+/* ST cards: full width, smaller text */
+.mobile-slide-content .st-card {
+  font-size: clamp(0.6rem, 2.8vw, 0.8rem) !important;
+  padding: 0.5rem 0.6rem !important;
+}
+
+/* Grids (explicit display:grid) — single column on mobile */
+.mobile-slide-content [style*="grid-template-columns"] {
+  grid-template-columns: 1fr !important;
+}
+
+/* Side-by-side flex containers — stack them */
+.mobile-slide-content [style*="display: flex"][style*="gap"] > * {
+  flex: 1 1 100% !important;
+  min-width: 0 !important;
+}
+
+/* Ensure scrollbar is subtle */
+.mobile-slide-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.mobile-slide-scroll::-webkit-scrollbar { width: 4px; }
+.mobile-slide-scroll::-webkit-scrollbar-track { background: transparent; }
+.mobile-slide-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
 }

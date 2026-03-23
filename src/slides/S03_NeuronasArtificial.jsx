@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
 import STTooltip from '../components/st/STTooltip'
@@ -301,9 +301,86 @@ function ActivationGraph({ transferFn, sum }) {
 }
 
 // ── Main slide ─────────────────────────────────────────────────────────────────
-export default function S03_NeuronasArtificial({ profesorMode }) {
+export default function S03_NeuronasArtificial({ profesorMode, ref }) {
   const [weights, setWeights]     = useState(INIT_WEIGHTS)
   const [transferFn, setTransferFn] = useState('sigmoid')
+
+  // Step-by-step: track visited transfer functions (unlocks next in sequence)
+  const [visitedFns, setVisitedFns] = useState(new Set(['sigmoid']))
+  const fnOrder = ['sigmoid', 'relu', 'threshold']
+
+  const handleFnClick = (key) => {
+    setTransferFn(key)
+    setVisitedFns(prev => {
+      const next = new Set(prev)
+      next.add(key)
+      return next
+    })
+    // Sync stepRef so arrow-key nav stays coherent with clicks
+    const idx = SUB_STEPS.findIndex(s => s?.type === 'fn' && s.key === key)
+    if (idx >= 0 && idx + 1 > stepRef.current) stepRef.current = idx + 1
+  }
+
+  const nextFn = fnOrder.find(k => !visitedFns.has(k)) || null
+
+  // Step-by-step: track visited bio pairs (unlocks next in sequence)
+  const [visitedBio, setVisitedBio] = useState(new Set())
+  const [selectedBio, setSelectedBio] = useState(null)
+
+  const handleBioClick = (label) => {
+    setSelectedBio(s => s === label ? null : label)
+    setVisitedBio(prev => {
+      const next = new Set(prev)
+      next.add(label)
+      return next
+    })
+    // Sync stepRef
+    const idx = SUB_STEPS.findIndex(s => s?.type === 'bio' && s.key === label)
+    if (idx >= 0 && idx + 1 > stepRef.current) stepRef.current = idx + 1
+  }
+
+  const nextBio = BIO_PAIRS.find(b => !visitedBio.has(b.bio))?.bio || null
+
+  // ── Sub-step navigation via arrow keys / remote ──
+  const SUB_STEPS = [
+    null,                                       // step 0: initial state
+    { type: 'fn',  key: 'sigmoid' },
+    { type: 'fn',  key: 'relu' },
+    { type: 'fn',  key: 'threshold' },
+    ...BIO_PAIRS.map(b => ({ type: 'bio', key: b.bio })),
+  ]
+  const stepRef = useRef(0)
+
+  const applyStep = (step) => {
+    if (!step) {
+      // Reset to initial
+      setTransferFn('sigmoid')
+      setSelectedBio(null)
+      return
+    }
+    if (step.type === 'fn') {
+      setTransferFn(step.key)
+      setVisitedFns(prev => { const n = new Set(prev); n.add(step.key); return n })
+    } else if (step.type === 'bio') {
+      setSelectedBio(step.key)
+      setVisitedBio(prev => { const n = new Set(prev); n.add(step.key); return n })
+    }
+  }
+
+  useImperativeHandle(ref, () => ({
+    advanceStep() {
+      if (stepRef.current >= SUB_STEPS.length - 1) return false
+      stepRef.current++
+      applyStep(SUB_STEPS[stepRef.current])
+      return true
+    },
+    retreatStep() {
+      if (stepRef.current <= 0) return false
+      stepRef.current--
+      applyStep(SUB_STEPS[stepRef.current])
+      return true
+    },
+  }))
 
   const sum    = INPUTS.reduce((acc, x, i) => acc + x * weights[i], BIAS)
   const output = TRANSFER_FNS[transferFn].fn(sum)
@@ -386,21 +463,31 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
         {/* Activation graph + selector */}
         <div style={{ flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
           <div style={{ display: 'flex', gap: '0.4rem' }}>
-            {Object.entries(TRANSFER_FNS).map(([key, { label, color: c }]) => (
-              <button
-                key={key}
-                onClick={() => setTransferFn(key)}
-                style={{
-                  flex: 1, padding: '0.4rem 0.2rem', borderRadius: '7px',
-                  border: `1px solid ${transferFn === key ? c : 'var(--border)'}`,
-                  background: transferFn === key ? `${c}22` : 'var(--bg-3)',
-                  color: transferFn === key ? c : 'var(--text-dim)',
-                  fontSize: '0.72rem', cursor: 'pointer', transition: 'all 0.2s',
-                }}
-              >
-                {label}
-              </button>
-            ))}
+            {Object.entries(TRANSFER_FNS).map(([key, { label, color: c }]) => {
+              const active = transferFn === key
+              const done   = visitedFns.has(key) && !active
+              const isNext = key === nextFn
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleFnClick(key)}
+                  style={{
+                    flex: 1, padding: '0.4rem 0.2rem', borderRadius: '7px',
+                    border: `1px solid ${active ? c : done ? c + '66' : isNext ? c + '55' : 'var(--border)'}`,
+                    background: active ? `${c}22` : 'var(--bg-3)',
+                    color: active ? c : done ? c + 'aa' : 'var(--text-dim)',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: isNext && !active ? `0 0 6px ${c}33` : 'none',
+                  }}
+                >
+                  {done && <span style={{ marginRight: '0.2rem', fontSize: '0.6rem' }}>✓</span>}
+                  {isNext && !active && !done && <span style={{ marginRight: '0.2rem', fontSize: '0.6rem' }}>›</span>}
+                  {label}
+                </button>
+              )
+            })}
           </div>
           <div style={{ flex: 1, minHeight: '155px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
             <ActivationGraph transferFn={transferFn} sum={sum} />
@@ -418,21 +505,39 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
           ANALOGÍA BIOLÓGICA — <STTooltip term="idealizacion">lo que se conserva y lo que se pierde</STTooltip>
         </div>
         <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-          {BIO_PAIRS.map(b => (
-            <div key={b.bio} style={{
-              flex: '1 1 130px',
-              background: 'var(--bg-3)', borderRadius: '8px',
-              border: `1px solid ${b.color}33`, borderTop: `3px solid ${b.color}`,
-              padding: '0.45rem 0.6rem',
-            }}>
-              <div style={{ fontSize: '0.7rem', color: b.color, fontWeight: 600 }}>{b.bio}</div>
-              <div style={{ fontSize: '0.6rem', color: '#555', marginBottom: '0.28rem' }}>{b.bio_sub}</div>
-              <div style={{ borderTop: `1px solid ${b.color}22`, paddingTop: '0.25rem' }}>
-                <div style={{ fontSize: '0.68rem', color: 'var(--text)', fontFamily: 'monospace' }}>→ {b.art}</div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>{b.art_sub}</div>
+          {BIO_PAIRS.map((b) => {
+            const active = selectedBio === b.bio
+            const done   = visitedBio.has(b.bio)
+            const isNext = b.bio === nextBio
+            return (
+              <div key={b.bio}
+                onClick={() => handleBioClick(b.bio)}
+                style={{
+                  flex: '1 1 130px',
+                  background: active ? `${b.color}11` : 'var(--bg-3)',
+                  borderRadius: '8px',
+                  border: `1px solid ${active ? b.color + '88' : done ? b.color + '44' : b.color + '33'}`,
+                  borderTop: `3px solid ${b.color}`,
+                  padding: '0.45rem 0.6rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.25s',
+                  boxShadow: isNext && !active ? `0 0 6px ${b.color}33` : 'none',
+                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  {done && !active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
+                  {isNext && !active && !done && <span style={{ fontSize: '0.6rem', color: b.color }}>›</span>}
+                  <span style={{ fontSize: '0.7rem', color: b.color, fontWeight: 600 }}>{b.bio}</span>
+                </div>
+                <div style={{ fontSize: '0.6rem', color: '#555', marginBottom: '0.28rem' }}>{b.bio_sub}</div>
+                {(active || done) && (
+                  <div style={{ borderTop: `1px solid ${b.color}22`, paddingTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text)', fontFamily: 'monospace' }}>→ {b.art}</div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>{b.art_sub}</div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

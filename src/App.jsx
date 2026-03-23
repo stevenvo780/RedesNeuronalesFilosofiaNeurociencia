@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Radio, Tv2, BotMessageSquare } from 'lucide-react'
 import AIPanel from './components/AIPanel'
@@ -44,6 +44,14 @@ export default function App() {
   const [navVisible, setNavVisible] = useState(true)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
 
+  // Ref for slide sub-step navigation (advanceStep / retreatStep)
+  const slideRef = useRef(null)
+  const prevSlide = useRef(current)
+  if (prevSlide.current !== current) {
+    slideRef.current = null   // reset before child mounts
+    prevSlide.current = current
+  }
+
   // Responsive breakpoint
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)')
@@ -62,14 +70,26 @@ export default function App() {
       switch (e.key) {
         case 'ArrowRight':
         case 'ArrowDown':
+        case 'PageDown':
         case ' ':
           e.preventDefault()
+          if (slideRef.current?.advanceStep?.()) break
           goTo(current + 1)
           break
         case 'ArrowLeft':
         case 'ArrowUp':
+        case 'PageUp':
           e.preventDefault()
+          if (slideRef.current?.retreatStep?.()) break
           goTo(current - 1)
+          break
+        case 'F5':
+          e.preventDefault()
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.()
+          } else {
+            document.exitFullscreen?.()
+          }
           break
         case 'p':
         case 'P':
@@ -233,7 +253,7 @@ export default function App() {
               transition={{ duration: 0.35, ease: "easeInOut" }}
               style={{ width: '100%', minHeight: '100%', position: 'absolute', inset: 0 }}
             >
-              <Component profesorMode={profesorMode} />
+              <Component ref={slideRef} profesorMode={profesorMode} />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -255,7 +275,10 @@ export default function App() {
         }}>
           {/* Prev */}
           <button
-            onClick={() => goTo(current - 1)}
+            onClick={() => {
+              if (slideRef.current?.retreatStep?.()) return
+              goTo(current - 1)
+            }}
             disabled={current === 0}
             style={arrowBtnStyle(current === 0)}
           >
@@ -287,7 +310,10 @@ export default function App() {
 
           {/* Next */}
           <button
-            onClick={() => goTo(current + 1)}
+            onClick={() => {
+              if (slideRef.current?.advanceStep?.()) return
+              goTo(current + 1)
+            }}
             disabled={current === SLIDES.length - 1}
             style={arrowBtnStyle(current === SLIDES.length - 1)}
           >

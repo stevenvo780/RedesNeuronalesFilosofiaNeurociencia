@@ -1,5 +1,5 @@
 import STFloatingButton from "../components/st/STFloatingButton"
-import { useRef, useState, useEffect, Suspense } from 'react'
+import { useRef, useState, useEffect, useImperativeHandle, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
@@ -342,8 +342,51 @@ const FLOW_STEPS = [
   { label: '④ Liberación sináptica', color: '#eab308', desc: 'Flash en terminales' },
 ]
 
-export default function S02_NeuronasReal({ profesorMode }) {
+export default function S02_NeuronasReal({ profesorMode, ref }) {
   const [selected, setSelected] = useState(null)
+  // Step-by-step: track which parts have been visited (unlocks next in sequence)
+  const [visited, setVisited] = useState(new Set())
+  const partOrder = PARTS.map(p => p.id)
+
+  // ── Sub-step navigation via arrow keys / remote ──
+  const STEP_IDS = [null, ...partOrder]          // [null, 'dendrita', 'soma', 'axon', 'sinapsis']
+  const stepRef = useRef(0)                       // 0 = initial (nothing selected via nav)
+
+  useImperativeHandle(ref, () => ({
+    advanceStep() {
+      if (stepRef.current >= STEP_IDS.length - 1) return false
+      stepRef.current++
+      const id = STEP_IDS[stepRef.current]
+      if (id) {
+        setSelected(id)
+        setVisited(prev => { const n = new Set(prev); n.add(id); return n })
+      }
+      return true
+    },
+    retreatStep() {
+      if (stepRef.current <= 0) return false
+      stepRef.current--
+      const id = STEP_IDS[stepRef.current]
+      setSelected(id)   // null when step 0
+      return true
+    },
+  }))
+
+  const handlePartClick = (id) => {
+    setSelected(s => s === id ? null : id)
+    setVisited(prev => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+    // Sync stepRef so arrow-key nav stays coherent with clicks
+    const idx = STEP_IDS.indexOf(id)
+    if (idx > stepRef.current) stepRef.current = idx
+  }
+
+  // Next suggested step in sequence
+  const nextStep = partOrder.find(id => !visited.has(id)) || null
+
   const info = PARTS.find(p => p.id === selected)
 
   return (
@@ -396,27 +439,36 @@ export default function S02_NeuronasReal({ profesorMode }) {
         ))}
       </div>
 
-      {/* Part selector buttons */}
+      {/* Part selector buttons — sequential unlock */}
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {PARTS.map(p => (
-          <button
-            key={p.id}
-            onClick={() => setSelected(s => s === p.id ? null : p.id)}
-            style={{
-              padding: '0.6rem 1.2rem',
-              borderRadius: '8px',
-              border: `1px solid ${selected === p.id ? p.color : 'var(--border)'}`,
-              background: selected === p.id ? `${p.color}22` : 'var(--bg-3)',
-              color: selected === p.id ? p.color : 'var(--text-dim)',
-              fontSize: '0.95rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-          >
-            {p.label}
-          </button>
-        ))}
+        {PARTS.map((p) => {
+          const active = selected === p.id
+          const done   = visited.has(p.id)
+          const isNext = p.id === nextStep
+          return (
+            <button
+              key={p.id}
+              onClick={() => handlePartClick(p.id)}
+              style={{
+                padding: '0.6rem 1.2rem',
+                borderRadius: '8px',
+                border: `1px solid ${active ? p.color : done ? p.color + '66' : isNext ? p.color + '55' : 'var(--border)'}`,
+                background: active ? `${p.color}22` : 'var(--bg-3)',
+                color: active ? p.color : done ? p.color + 'aa' : 'var(--text-dim)',
+                fontSize: '0.95rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.25s',
+                position: 'relative',
+                boxShadow: isNext && !active ? `0 0 8px ${p.color}33` : 'none',
+              }}
+            >
+              {done && !active && <span style={{ marginRight: '0.3rem', fontSize: '0.7rem' }}>✓</span>}
+              {isNext && !active && !done && <span style={{ marginRight: '0.3rem', fontSize: '0.7rem' }}>›</span>}
+              {p.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Info panel */}
