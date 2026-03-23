@@ -1,346 +1,686 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import * as tf from '@tensorflow/tfjs'
+import { motion, AnimatePresence } from 'framer-motion'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
 
-// ── Digit patterns 5×5 (0..9) ─────────────────────────────────────────────────
-const DIGIT_PATTERNS = [
-  [0,1,1,1,0, 1,0,0,0,1, 1,0,0,0,1, 1,0,0,0,1, 0,1,1,1,0], // 0
-  [0,0,1,0,0, 0,1,1,0,0, 0,0,1,0,0, 0,0,1,0,0, 0,1,1,1,0], // 1
-  [0,1,1,1,0, 0,0,0,0,1, 0,0,1,1,0, 0,1,0,0,0, 1,1,1,1,1], // 2
-  [1,1,1,1,0, 0,0,0,0,1, 0,1,1,1,0, 0,0,0,0,1, 1,1,1,1,0], // 3
-  [1,0,0,0,1, 1,0,0,0,1, 1,1,1,1,1, 0,0,0,0,1, 0,0,0,0,1], // 4
-  [1,1,1,1,1, 1,0,0,0,0, 1,1,1,1,0, 0,0,0,0,1, 1,1,1,1,0], // 5
-  [0,1,1,1,0, 1,0,0,0,0, 1,1,1,1,0, 1,0,0,0,1, 0,1,1,1,0], // 6
-  [1,1,1,1,1, 0,0,0,0,1, 0,0,0,1,0, 0,0,1,0,0, 0,1,0,0,0], // 7
-  [0,1,1,1,0, 1,0,0,0,1, 0,1,1,1,0, 1,0,0,0,1, 0,1,1,1,0], // 8
-  [0,1,1,1,0, 1,0,0,0,1, 0,1,1,1,1, 0,0,0,0,1, 0,1,1,1,0], // 9
+// ── Animal data ────────────────────────────────────────────────────────────────
+const FEATURES = [
+  { key: 'pelo',     label: 'Pelo / Pelaje',  icon: '🧶' },
+  { key: 'plumas',   label: 'Plumas',         icon: '🪶' },
+  { key: 'escamas',  label: 'Escamas',        icon: '🐍' },
+  { key: 'patas4',   label: '4 Patas',        icon: '🦵' },
+  { key: 'vuela',    label: 'Vuela',          icon: '🦋' },
+  { key: 'nada',     label: 'Nada / Acuático',icon: '💧' },
+  { key: 'caliente', label: 'Sangre caliente',icon: '🌡️' },
+  { key: 'nocturno', label: 'Nocturno',       icon: '🌙' },
 ]
-const GRID = 5
-const N_IN = GRID * GRID // 25
 
-// Add noise to a pattern (flip bits randomly)
-function addNoise(pattern, p = 0.12) {
-  return pattern.map(v => Math.random() < p ? 1 - v : v)
+const ANIMALS = [
+  { name: 'Gato',       emoji: '🐱', color: '#a78bfa', features: [1,0,0,1,0,0,1,1] },
+  { name: 'Águila',     emoji: '🦅', color: '#06b6d4', features: [0,1,0,0,1,0,1,0] },
+  { name: 'Pez',        emoji: '🐟', color: '#22c55e', features: [0,0,1,0,0,1,0,0] },
+  { name: 'Serpiente',  emoji: '🐍', color: '#eab308', features: [0,0,1,0,0,0,0,1] },
+  { name: 'Rana',       emoji: '🐸', color: '#10b981', features: [0,0,0,1,0,1,0,1] },
+  { name: 'Murciélago', emoji: '🦇', color: '#f97316', features: [1,0,0,0,1,0,1,1] },
+]
+
+const N_FEAT = 8
+const N_CLASS = 6
+
+function addNoise(arr, p = 0.10) {
+  return arr.map(v => Math.random() < p ? 1 - v : v)
 }
 
-// Generate training dataset
-function buildDataset(repeats = 60) {
+function buildDataset(repeats = 80) {
   const X = [], y = []
-  for (let d = 0; d < 10; d++) {
+  for (let c = 0; c < N_CLASS; c++) {
     for (let r = 0; r < repeats; r++) {
-      X.push(addNoise(DIGIT_PATTERNS[d], 0.10))
-      y.push(d)
+      X.push(addNoise(ANIMALS[c].features, 0.12))
+      const oneHot = Array(N_CLASS).fill(0)
+      oneHot[c] = 1
+      y.push(oneHot)
     }
+  }
+  // Shuffle
+  for (let i = X.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [X[i], X[j]] = [X[j], X[i]];
+    [y[i], y[j]] = [y[j], y[i]];
   }
   return { X, y }
 }
 
-// ── Digit Network (trained locally) ──────────────────────────────────────────
-function useDigitNet() {
-  const modelRef    = useRef(null)
-  const [ready,     setReady]     = useState(false)
-  const [trainAcc,  setTrainAcc]  = useState(0)
-  const [trainEpoch,setTrainEpoch]= useState(0)
+// ── Training hook ──────────────────────────────────────────────────────────────
+function useAnimalNet() {
+  const modelRef = useRef(null)
+  const stopRef = useRef(false)
+  const [ready, setReady] = useState(false)
+  const [epoch, setEpoch] = useState(0)
+  const [maxEpoch] = useState(100)
+  const [acc, setAcc] = useState(0)
+  const [lossHist, setLossHist] = useState([])
+  const [accHist, setAccHist] = useState([])
+  const [hiddenActs, setHiddenActs] = useState(null)
+  const [training, setTraining] = useState(false)
 
-  useEffect(() => {
-    tf.ready().then(async () => {
-      const model = tf.sequential()
-      model.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: [N_IN] }))
-      model.add(tf.layers.dense({ units: 24, activation: 'relu' }))
-      model.add(tf.layers.dense({ units: 10, activation: 'softmax' }))
-      model.compile({ optimizer: tf.train.adam(0.01), loss: 'sparseCategoricalCrossentropy', metrics: ['accuracy'] })
+  const train = useCallback(async () => {
+    stopRef.current = false
+    setReady(false)
+    setEpoch(0)
+    setAcc(0)
+    setLossHist([])
+    setAccHist([])
+    setHiddenActs(null)
+    setTraining(true)
 
-      const { X, y } = buildDataset(60)
-      const xs = tf.tensor2d(X)
-      const ys = tf.tensor1d(y, 'int32')
+    await tf.ready()
 
-      // Train in chunks to allow React to breathe
-      const EPOCHS = 120
-      const CHUNK  = 20
-      for (let e = 0; e < EPOCHS; e += CHUNK) {
-        const res = await model.fit(xs, ys, {
-          epochs: Math.min(CHUNK, EPOCHS - e),
-          batchSize: 64,
-          shuffle: true,
-          validationSplit: 0.1,
-        })
-        const acc = res.history.acc?.slice(-1)[0] ?? res.history.accuracy?.slice(-1)[0] ?? 0
-        setTrainAcc(acc)
-        setTrainEpoch(e + Math.min(CHUNK, EPOCHS - e))
-        await new Promise(r => setTimeout(r, 0))
-      }
+    // Dispose previous model
+    if (modelRef.current) { try { modelRef.current.dispose() } catch (_) {} }
 
-      xs.dispose(); ys.dispose()
-      modelRef.current = model
-      setReady(true)
+    const model = tf.sequential()
+    model.add(tf.layers.dense({ units: 12, activation: 'relu', inputShape: [N_FEAT] }))
+    model.add(tf.layers.dense({ units: 8, activation: 'relu' }))
+    model.add(tf.layers.dense({ units: N_CLASS, activation: 'softmax' }))
+    model.compile({
+      optimizer: tf.train.adam(0.015),
+      loss: 'categoricalCrossentropy',
+      metrics: ['accuracy'],
     })
 
-    return () => { try { modelRef.current?.dispose() } catch (_) {} }
+    const { X, y } = buildDataset(80)
+    const xs = tf.tensor2d(X)
+    const ys = tf.tensor2d(y)
+
+    const TOTAL = 100
+    for (let e = 0; e < TOTAL; e++) {
+      if (stopRef.current) break
+      const res = await model.fit(xs, ys, {
+        epochs: 1,
+        batchSize: 32,
+        shuffle: true,
+      })
+      const curAcc = res.history.accuracy?.[0] ?? res.history.acc?.[0] ?? 0
+      const curLoss = res.history.loss?.[0] ?? 0
+      setEpoch(e + 1)
+      setAcc(curAcc)
+      setLossHist(prev => [...prev, curLoss])
+      setAccHist(prev => [...prev, curAcc])
+
+      // Extract hidden activations for visualization every 5 epochs
+      if ((e + 1) % 3 === 0 || e === TOTAL - 1) {
+        tf.tidy(() => {
+          const sampleIn = tf.tensor2d([ANIMALS[0].features])
+          // Get activations from each layer
+          const h1Model = tf.model({ inputs: model.input, outputs: model.layers[0].output })
+          const h2Model = tf.model({ inputs: model.input, outputs: model.layers[1].output })
+          const h1 = h1Model.predict(sampleIn).dataSync()
+          const h2 = h2Model.predict(sampleIn).dataSync()
+          const out = model.predict(sampleIn).dataSync()
+          setHiddenActs({ h1: Array.from(h1), h2: Array.from(h2), out: Array.from(out) })
+        })
+      }
+
+      // Let React breathe
+      await new Promise(r => setTimeout(r, 30))
+    }
+
+    xs.dispose()
+    ys.dispose()
+    modelRef.current = model
+    setReady(true)
+    setTraining(false)
   }, [])
 
-  const predict = useCallback((pattern) => {
+  // Start training on mount
+  useEffect(() => {
+    train()
+    return () => {
+      stopRef.current = true
+      try { modelRef.current?.dispose() } catch (_) {}
+    }
+  }, [])
+
+  const predict = useCallback((features) => {
     const model = modelRef.current
     if (!model || !ready) return null
     return tf.tidy(() => {
-      const xs = tf.tensor2d([pattern])
-      const probs = model.predict(xs).dataSync()
-      return Array.from(probs)
+      const inp = tf.tensor2d([features])
+      // Also get hidden acts for live viz
+      const h1Model = tf.model({ inputs: model.input, outputs: model.layers[0].output })
+      const h2Model = tf.model({ inputs: model.input, outputs: model.layers[1].output })
+      const h1 = Array.from(h1Model.predict(inp).dataSync())
+      const h2 = Array.from(h2Model.predict(inp).dataSync())
+      const probs = Array.from(model.predict(inp).dataSync())
+      setHiddenActs({ h1, h2, out: probs })
+      return probs
     })
   }, [ready])
 
-  return { ready, trainAcc, trainEpoch, predict }
+  const restart = useCallback(() => {
+    stopRef.current = true
+    setTimeout(() => train(), 100)
+  }, [train])
+
+  return { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training }
 }
 
-// ── Draw pad ─────────────────────────────────────────────────────────────────
-function DrawPad({ pixels, setPixels }) {
-  const CELL = 38
-  const isDrawingRef = useRef(false)
-  const [drawMode, setDrawMode] = useState(1) // 1=draw, 0=erase
-
-  const handleCell = (i, erase = false) => {
-    setPixels(prev => {
-      const next = [...prev]
-      next[i] = erase ? 0 : drawMode
-      return next
-    })
-  }
-
-  const onMouseDown = (i, e) => {
-    e.preventDefault()
-    isDrawingRef.current = true
-    const erasing = e.button === 2
-    setDrawMode(erasing ? 0 : 1)
-    handleCell(i, erasing)
-  }
-  const onMouseEnter = (i, e) => {
-    if (!isDrawingRef.current) return
-    handleCell(i, drawMode === 0)
-  }
+// ── Animated Network Canvas ────────────────────────────────────────────────────
+function NetworkCanvas({ features, hiddenActs, width = 340, height = 280 }) {
+  const ref = useRef(null)
 
   useEffect(() => {
-    const up = () => { isDrawingRef.current = false }
-    window.addEventListener('mouseup', up)
-    return () => window.removeEventListener('mouseup', up)
-  }, [])
+    const canvas = ref.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const W = canvas.width = width
+    const H = canvas.height = height
+    ctx.clearRect(0, 0, W, H)
+
+    // Layer positions
+    const layers = [
+      { n: 8,  x: 35,  vals: features, color: '#7c6dfa', label: 'entrada' },
+      { n: 12, x: 125, vals: hiddenActs?.h1, color: '#06b6d4', label: 'oculta 1' },
+      { n: 8,  x: 215, vals: hiddenActs?.h2, color: '#a78bfa', label: 'oculta 2' },
+      { n: 6,  x: 305, vals: hiddenActs?.out, color: '#22c55e', label: 'salida' },
+    ]
+
+    // Compute node Y positions
+    const nodePositions = layers.map(l => {
+      const spacing = Math.min(28, (H - 40) / (l.n + 1))
+      const startY = (H - (l.n - 1) * spacing) / 2
+      return Array.from({ length: l.n }, (_, i) => ({ x: l.x, y: startY + i * spacing }))
+    })
+
+    // Draw connections (lighter)
+    for (let li = 0; li < layers.length - 1; li++) {
+      const from = nodePositions[li]
+      const to = nodePositions[li + 1]
+      const fromVals = layers[li].vals
+      const toVals = layers[li + 1].vals
+      for (let f = 0; f < from.length; f++) {
+        const fv = fromVals ? Math.abs(fromVals[f]) : 0.3
+        for (let t = 0; t < to.length; t++) {
+          const tv = toVals ? Math.abs(toVals[t]) : 0.3
+          const strength = Math.min(1, (fv + tv) / 2)
+          if (strength < 0.05) continue
+          ctx.beginPath()
+          ctx.moveTo(from[f].x, from[f].y)
+          ctx.lineTo(to[t].x, to[t].y)
+          ctx.strokeStyle = `rgba(124,109,250,${strength * 0.18})`
+          ctx.lineWidth = 0.3 + strength * 1.2
+          ctx.stroke()
+        }
+      }
+    }
+
+    // Draw nodes
+    layers.forEach((l, li) => {
+      nodePositions[li].forEach((pos, ni) => {
+        const val = l.vals ? Math.min(1, Math.abs(l.vals[ni])) : 0
+        const r = 5 + val * 5
+
+        // Glow
+        if (val > 0.3) {
+          ctx.beginPath()
+          ctx.arc(pos.x, pos.y, r + 4, 0, Math.PI * 2)
+          ctx.fillStyle = `${l.color}22`
+          ctx.fill()
+        }
+
+        ctx.beginPath()
+        ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2)
+        ctx.fillStyle = val > 0.01 ? l.color + (Math.round(40 + val * 215).toString(16).padStart(2, '0')) : '#1a1a2e'
+        ctx.fill()
+        ctx.strokeStyle = l.color + '66'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      })
+    })
+
+    // Labels
+    ctx.font = '9px monospace'
+    ctx.textAlign = 'center'
+    layers.forEach((l, li) => {
+      ctx.fillStyle = l.color + 'aa'
+      ctx.fillText(l.label, l.x, H - 4)
+    })
+
+  }, [features, hiddenActs, width, height])
+
+  return <canvas ref={ref} width={width} height={height} style={{ width, height }} />
+}
+
+// ── Sparkline (mini chart) ────────────────────────────────────────────────────
+function Sparkline({ data, color, width = 160, height = 36, label }) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas || data.length < 2) return
+    const ctx = canvas.getContext('2d')
+    const W = canvas.width = width
+    const H = canvas.height = height
+    ctx.clearRect(0, 0, W, H)
+
+    const max = Math.max(...data, 0.001)
+    const min = Math.min(...data, 0)
+
+    ctx.beginPath()
+    data.forEach((v, i) => {
+      const x = (i / (data.length - 1)) * W
+      const y = H - ((v - min) / (max - min + 0.001)) * (H - 4) - 2
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+    })
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+
+    // Fill under
+    ctx.lineTo(W, H)
+    ctx.lineTo(0, H)
+    ctx.closePath()
+    ctx.fillStyle = color + '15'
+    ctx.fill()
+  }, [data, color, width, height])
 
   return (
-    <div>
-      <div
-        style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID}, ${CELL}px)`, gap: '2px', userSelect: 'none' }}
-        onContextMenu={e => e.preventDefault()}
-      >
-        {pixels.map((v, i) => (
-          <div
-            key={i}
-            onMouseDown={e => onMouseDown(i, e)}
-            onMouseEnter={e => onMouseEnter(i, e)}
-            style={{
-              width: CELL, height: CELL,
-              borderRadius: '4px',
-              background: v ? `rgba(124,109,250,${0.4 + v * 0.6})` : '#1a1a2a',
-              border: `1px solid ${v ? '#7c6dfa55' : '#2a2a3a'}`,
-              cursor: 'crosshair',
-              transition: 'background 0.05s',
-            }}
-          />
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', justifyContent: 'center' }}>
-        <button
-          onClick={() => setPixels(Array(N_IN).fill(0))}
-          style={{ padding: '0.3rem 0.8rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '0.72rem', cursor: 'pointer' }}
-        >
-          ↺ Limpiar
-        </button>
-        {[0,1,2,3,4,5,6,7,8,9].map(d => (
-          <button
-            key={d}
-            onClick={() => setPixels([...DIGIT_PATTERNS[d]])}
-            style={{ width: '24px', height: '24px', borderRadius: '3px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '0.7rem', cursor: 'pointer' }}
-          >
-            {d}
-          </button>
-        ))}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+      <canvas ref={ref} width={width} height={height} style={{ width, height, borderRadius: '4px', background: '#0a0a16' }} />
+      {label && <span style={{ fontSize: '0.6rem', color: color, fontFamily: 'monospace' }}>{label}</span>}
     </div>
   )
 }
 
-// ── Probability bars ─────────────────────────────────────────────────────────
-function ProbBars({ probs }) {
-  if (!probs) return (
-    <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem', padding: '1rem', textAlign: 'center' }}>
-      Dibuja un dígito para clasificar
-    </div>
-  )
-  const maxIdx = probs.indexOf(Math.max(...probs))
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {probs.map((p, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '0.72rem', color: i === maxIdx ? 'var(--accent-2)' : 'var(--text-dim)', fontWeight: i === maxIdx ? 700 : 400, fontFamily: 'monospace', width: '14px', textAlign: 'center' }}>{i}</span>
-          <div style={{ flex: 1, height: '12px', background: '#1a1a2a', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%',
-              width: `${p * 100}%`,
-              background: i === maxIdx ? 'linear-gradient(90deg,#7c6dfa,#a78bfa)' : '#333355',
-              borderRadius: '3px',
-              transition: 'width 0.2s',
-            }} />
-          </div>
-          <span style={{ fontSize: '0.65rem', color: i === maxIdx ? '#a78bfa' : '#555', fontFamily: 'monospace', width: '38px' }}>
-            {(p * 100).toFixed(1)}%
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ── Slide ─────────────────────────────────────────────────────────────────────
+// ── Apps Row ───────────────────────────────────────────────────────────────────
 const APPS = [
-  { label: 'Reconocimiento de dígitos', icon: '🔢', desc: 'MNIST — escrito a mano' },
-  { label: 'Tasas cambiarias',           icon: '📈', desc: 'Predicción de mercados' },
-  { label: 'Células precancerosas',      icon: '🔬', desc: 'Detección en Papanicolau' },
-  { label: 'Espejos de telescopio',      icon: '🔭', desc: 'Optimización óptica' },
+  {
+    label: 'Dígitos manuscritos', icon: '🔢', desc: 'MNIST',
+    funciona: 'Clasifica con >98% de precisión usando backprop.',
+    explica: 'No revela por qué los humanos reconocemos el "3". Correlaciona píxeles sin comprender forma.',
+    color: '#7c6dfa',
+  },
+  {
+    label: 'Tasas cambiarias', icon: '📈', desc: 'Mercados',
+    funciona: 'Predice tendencias de corto plazo mejor que regresión lineal.',
+    explica: 'No modela causas económicas reales. Aprende correlaciones sin mecanismo.',
+    color: '#22c55e',
+  },
+  {
+    label: 'Células precancerosas', icon: '🔬', desc: 'Papanicolau',
+    funciona: 'Detecta patrones morfológicos con alta sensibilidad clínica.',
+    explica: 'No entiende biología celular. Representaciones internas opacas al médico.',
+    color: '#06b6d4',
+  },
+  {
+    label: 'Espejos de telescopio', icon: '🔭', desc: 'Óptica',
+    funciona: 'Optimiza formas del espejo que maximizan resolución.',
+    explica: 'No deduce leyes físicas. Opera como caja negra dentro del pipeline óptico.',
+    color: '#f59e0b',
+  },
 ]
 
+// ── Main Slide ─────────────────────────────────────────────────────────────────
 export default function S07_AlcancesYCritica({ profesorMode }) {
-  const { ready, trainAcc, trainEpoch, predict } = useDigitNet()
-  const [pixels, setPixels]   = useState(Array(N_IN).fill(0))
-  const [probs, setProbs]     = useState(null)
+  const { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training } = useAnimalNet()
+  const [features, setFeatures] = useState([1,0,0,1,0,0,1,1]) // default: gato
+  const [probs, setProbs] = useState(null)
+  const [selectedPreset, setSelectedPreset] = useState(0)
+  const [activeApp, setActiveApp] = useState(null)
 
-  // Run inference whenever pixels change
+  // Predict when features change or model ready
   useEffect(() => {
     if (!ready) return
-    const p = predict(pixels)
+    const p = predict(features)
     if (p) setProbs(p)
-  }, [pixels, ready, predict])
+  }, [features, ready, predict])
 
-  const predictedDigit = probs ? probs.indexOf(Math.max(...probs)) : null
-  const confidence     = probs ? Math.max(...probs) : 0
+  const toggleFeature = (idx) => {
+    setFeatures(prev => {
+      const next = [...prev]
+      next[idx] = next[idx] ? 0 : 1
+      return next
+    })
+    setSelectedPreset(-1)
+  }
+
+  const selectAnimal = (idx) => {
+    setFeatures([...ANIMALS[idx].features])
+    setSelectedPreset(idx)
+  }
+
+  const bestIdx = probs ? probs.indexOf(Math.max(...probs)) : -1
+  const confidence = probs ? Math.max(...probs) : 0
 
   return (
-    <div className="section-slide" style={{ gap: '1.5rem' }}>
+    <div className="section-slide" style={{ gap: '0.8rem', padding: '0.5rem 1rem' }}>
+      {/* Title */}
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">Alcances + Primera crítica</div>
-        <div className="section-subtitle">Funciona. Pero ¿<STTooltip term="modelo">explica</STTooltip>?</div>
-      </div>
-
-      <div className="quote" style={{ maxWidth: '900px' }}>
-        "Funciona. Reconoce dígitos, predice tasas cambiarias, detecta células precancerosas.
-        Pero ¿está <em>explicando</em> cómo aprende el <STTooltip term="cerebro">cerebro</STTooltip>, o simplemente funciona como herramienta?"
-      </div>
-
-      {/* Apps */}
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1100px', width: '100%' }}>
-        {APPS.map(a => (
-          <div key={a.label} style={{ flex: '1 1 220px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem 1.5rem' }}>
-            <div style={{ fontSize: '1.6rem', marginBottom: '0.4rem' }}>{a.icon}</div>
-            <div style={{ fontSize: '1.05rem', color: 'var(--text-h)', fontWeight: 600 }}>{a.label}</div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>{a.desc}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Live digit classifier */}
-      <div style={{
-        display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center',
-        width: '100%', maxWidth: '1100px',
-        background: 'var(--bg-3)', border: '1px solid var(--border)',
-        borderRadius: '16px', padding: '2rem',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.15)'
-      }}>
-        {/* Training status */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-            <STTooltip term="neurona_artificial">Red Artificial</STTooltip> TF.js local — {ready ? `entrenada · acc: ${(trainAcc * 100).toFixed(1)}%` : `entrenando... época ${trainEpoch}/120`}
-          </span>
-          <div style={{ width: '150px', height: '8px', background: '#1a1a2a', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(trainEpoch / 120) * 100}%`, background: ready ? '#22c55e' : '#7c6dfa', transition: 'width 0.3s' }} />
-          </div>
+        <div className="section-title" style={{ fontSize: '1.6rem' }}>Alcances + Primera Crítica</div>
+        <div className="section-subtitle" style={{ fontSize: '0.95rem' }}>
+          Funciona. Pero ¿<STTooltip term="modelo">explica</STTooltip>?
         </div>
+      </div>
 
-        {/* DrawPad */}
-        <div>
-          <div style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.8rem' }}>
-            Dibuja un dígito (clic + arrastre) · clíck derecho = borrar
-          </div>
-          {/* Aumentamos el tamaño de las celdas */}
-          <div style={{ transform: 'scale(1.2)', transformOrigin: 'top left' }}>
-             <DrawPad pixels={pixels} setPixels={setPixels} />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: '320px', flex: 1, marginLeft: '3rem' }}>
-          {/* Prediction */}
-          <div style={{
-            background: ready ? 'rgba(124,109,250,0.12)' : 'rgba(255,255,255,0.04)',
-            border: `2px solid ${ready ? 'var(--accent)' : 'var(--border)'}`,
-            borderRadius: '12px', padding: '1rem 2rem', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.4rem' }}>clasificación</div>
-            <div style={{ fontSize: '5rem', fontWeight: 700, color: 'var(--accent-2)', lineHeight: 1 }}>
-              {ready && predictedDigit !== null ? predictedDigit : '?'}
-            </div>
-            {ready && (
-              <div style={{ fontSize: '0.9rem', color: confidence > 0.7 ? '#22c55e' : '#eab308', fontFamily: 'monospace', marginTop: '0.5rem' }}>
-                confianza: {(confidence * 100).toFixed(1)}%
+      {/* Apps row — expandable funciona/explica */}
+      <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1100px', width: '100%', alignItems: 'start' }}>
+        {APPS.map((a, i) => {
+          const isOpen = activeApp === i
+          return (
+            <motion.div
+              key={a.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.08 }}
+              onClick={() => setActiveApp(isOpen ? null : i)}
+              whileHover={{ scale: 1.02 }}
+              style={{
+                flex: '1 1 180px',
+                background: isOpen ? `rgba(${hexRgb(a.color)},0.08)` : 'var(--bg-3)',
+                border: `1px solid ${isOpen ? a.color + '88' : 'var(--border)'}`,
+                borderTop: `3px solid ${a.color}`,
+                borderRadius: '10px',
+                padding: '0.6rem 0.9rem',
+                cursor: 'pointer',
+                transition: 'background 0.2s, border-color 0.2s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.2rem' }}>{a.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.82rem', color: isOpen ? a.color : 'var(--text-h)', fontWeight: 600 }}>{a.label}</div>
+                  <div style={{ fontSize: '0.67rem', color: 'var(--text-dim)' }}>{a.desc}</div>
+                </div>
+                <motion.span animate={{ rotate: isOpen ? 180 : 0 }} style={{ fontSize: '0.55rem', color: a.color }}>▼</motion.span>
               </div>
-            )}
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ maxHeight: 0, opacity: 0 }}
+                    animate={{ maxHeight: 160, opacity: 1 }}
+                    exit={{ maxHeight: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div style={{ paddingTop: '0.55rem', marginTop: '0.45rem', borderTop: `1px solid ${a.color}33`, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <div>
+                        <span style={{ fontSize: '0.6rem', color: '#22c55e', fontFamily: 'monospace' }}>FUNCIONA ✓</span>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text)', lineHeight: 1.45, margin: '0.1rem 0 0' }}>{a.funciona}</p>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.6rem', color: '#ef4444', fontFamily: 'monospace' }}>NO EXPLICA ✗</span>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', lineHeight: 1.45, margin: '0.1rem 0 0', fontStyle: 'italic' }}>{a.explica}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      {/* Main interactive area */}
+      <div style={{
+        display: 'flex', gap: '1rem', width: '100%', maxWidth: '1150px',
+        background: 'var(--bg-3)', border: '1px solid var(--border)',
+        borderRadius: '14px', padding: '1rem 1.2rem',
+      }}>
+        {/* LEFT: Feature toggles */}
+        <div style={{ flex: '0 0 210px', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.2rem', letterSpacing: '0.08em' }}>
+            RASGOS DE ENTRADA
           </div>
+          {FEATURES.map((f, i) => (
+            <motion.div
+              key={f.key}
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 + i * 0.04 }}
+              onClick={() => toggleFeature(i)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.3rem 0.5rem',
+                borderRadius: '6px',
+                background: features[i] ? 'rgba(124,109,250,0.15)' : 'transparent',
+                border: `1px solid ${features[i] ? '#7c6dfa55' : 'transparent'}`,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{
+                width: '28px', height: '16px', borderRadius: '8px',
+                background: features[i] ? '#7c6dfa' : '#2a2a3a',
+                position: 'relative', transition: 'background 0.2s',
+              }}>
+                <div style={{
+                  width: '12px', height: '12px', borderRadius: '50%',
+                  background: '#fff',
+                  position: 'absolute', top: '2px',
+                  left: features[i] ? '14px' : '2px',
+                  transition: 'left 0.2s',
+                }} />
+              </div>
+              <span style={{ fontSize: '0.92rem' }}>{f.icon}</span>
+              <span style={{ fontSize: '0.78rem', color: features[i] ? 'var(--text-h)' : 'var(--text-dim)' }}>
+                {f.label}
+              </span>
+            </motion.div>
+          ))}
+          {/* Animal presets */}
+          <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginTop: '0.4rem', letterSpacing: '0.06em' }}>
+            PRESETS
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+            {ANIMALS.map((a, i) => (
+              <motion.button
+                key={a.name}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => selectAnimal(i)}
+                style={{
+                  padding: '0.25rem 0.5rem', borderRadius: '6px',
+                  border: selectedPreset === i ? `1px solid ${a.color}` : '1px solid var(--border)',
+                  background: selectedPreset === i ? a.color + '22' : 'transparent',
+                  color: selectedPreset === i ? a.color : 'var(--text-dim)',
+                  fontSize: '0.72rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '3px',
+                }}
+              >
+                <span>{a.emoji}</span> {a.name}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* CENTER: Animated network */}
+        <div style={{
+          flex: '1 1 340px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          minWidth: '280px',
+        }}>
+          <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.3rem' }}>
+            RED NEURONAL 8→12→8→6
+          </div>
+          <motion.div
+            animate={{ opacity: training ? [0.6, 1, 0.6] : 1 }}
+            transition={{ repeat: training ? Infinity : 0, duration: 1.5 }}
+          >
+            <NetworkCanvas features={features} hiddenActs={hiddenActs} width={340} height={260} />
+          </motion.div>
+        </div>
+
+        {/* RIGHT: Prediction */}
+        <div style={{ flex: '0 0 250px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
+            PREDICCIÓN
+          </div>
+
+          {/* Best prediction card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={bestIdx}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              style={{
+                background: ready && bestIdx >= 0 ? ANIMALS[bestIdx].color + '18' : 'rgba(255,255,255,0.03)',
+                border: `2px solid ${ready && bestIdx >= 0 ? ANIMALS[bestIdx].color + '66' : 'var(--border)'}`,
+                borderRadius: '12px',
+                padding: '0.8rem 1rem',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '2.2rem', lineHeight: 1 }}>
+                {ready && bestIdx >= 0 ? ANIMALS[bestIdx].emoji : '❓'}
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: ready && bestIdx >= 0 ? ANIMALS[bestIdx].color : 'var(--text-dim)', marginTop: '0.3rem' }}>
+                {ready && bestIdx >= 0 ? ANIMALS[bestIdx].name : training ? 'Entrenando…' : '—'}
+              </div>
+              {ready && probs && (
+                <div style={{ fontSize: '0.75rem', color: confidence > 0.7 ? '#22c55e' : '#eab308', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+                  {(confidence * 100).toFixed(1)}% confianza
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Probability bars */}
-          <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginBottom: '0.2rem', fontFamily: 'monospace' }}>
-            distribución de <STTooltip term="representacion_distribuida">probabilidades</STTooltip>:
-          </div>
-          <div style={{ transform: 'scale(1.1)', transformOrigin: 'top left' }}>
-            <ProbBars probs={ready ? probs : null} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {ANIMALS.map((a, i) => {
+              const p = probs ? probs[i] : 0
+              const isBest = i === bestIdx && ready
+              return (
+                <div key={a.name} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontSize: '0.85rem', width: '20px', textAlign: 'center' }}>{a.emoji}</span>
+                  <div style={{ flex: 1, height: '10px', background: '#111122', borderRadius: '3px', overflow: 'hidden' }}>
+                    <motion.div
+                      animate={{ width: `${(ready ? p : 0) * 100}%` }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        height: '100%',
+                        background: isBest ? `linear-gradient(90deg, ${a.color}, ${a.color}cc)` : '#333355',
+                        borderRadius: '3px',
+                      }}
+                    />
+                  </div>
+                  <span style={{
+                    fontSize: '0.6rem', fontFamily: 'monospace', width: '34px', textAlign: 'right',
+                    color: isBest ? a.color : '#555',
+                  }}>
+                    {ready ? (p * 100).toFixed(0) + '%' : '—'}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
+      {/* Training controls bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', maxWidth: '1150px',
+        background: 'var(--bg-3)', border: '1px solid var(--border)',
+        borderRadius: '10px', padding: '0.5rem 1rem',
+      }}>
+        {/* Epoch / status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '180px' }}>
+          <motion.div
+            animate={training ? { rotate: 360 } : {}}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+            style={{ fontSize: '1rem' }}
+          >
+            {training ? '⚙️' : '✅'}
+          </motion.div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-h)', fontFamily: 'monospace' }}>
+              {ready ? `Entrenada — ${(acc * 100).toFixed(1)}% acc` : `Época ${epoch}/${maxEpoch}`}
+            </div>
+            {/* Progress bar */}
+            <div style={{ width: '140px', height: '5px', background: '#111122', borderRadius: '3px', marginTop: '2px', overflow: 'hidden' }}>
+              <motion.div
+                animate={{ width: `${(epoch / maxEpoch) * 100}%` }}
+                transition={{ duration: 0.2 }}
+                style={{ height: '100%', background: ready ? '#22c55e' : '#7c6dfa', borderRadius: '3px' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Sparklines */}
+        <div style={{ display: 'flex', gap: '0.8rem', flex: 1, justifyContent: 'center' }}>
+          <Sparkline data={lossHist} color="#ef4444" width={140} height={32} label={`loss: ${lossHist.length ? lossHist[lossHist.length-1].toFixed(3) : '—'}`} />
+          <Sparkline data={accHist} color="#22c55e" width={140} height={32} label={`acc: ${accHist.length ? (accHist[accHist.length-1]*100).toFixed(1)+'%' : '—'}`} />
+        </div>
+
+        {/* Restart button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={restart}
+          disabled={training}
+          style={{
+            padding: '0.45rem 1rem',
+            borderRadius: '8px',
+            border: '1px solid #7c6dfa55',
+            background: training ? '#1a1a2e' : 'rgba(124,109,250,0.15)',
+            color: training ? 'var(--text-dim)' : '#a78bfa',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            cursor: training ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+          }}
+        >
+          🔄 {training ? 'Entrenando…' : 'Reiniciar'}
+        </motion.button>
+      </div>
+
+      {/* Daugman closure */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        style={{
+          width: '100%', maxWidth: '1150px',
+          background: 'rgba(6,182,212,0.05)',
+          border: '1px solid rgba(6,182,212,0.25)',
+          borderLeft: '4px solid #06b6d4',
+          borderRadius: '0 10px 10px 0',
+          padding: '0.8rem 1.5rem',
+        }}
+      >
+        <p style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>
+          <strong style={{ color: '#06b6d4' }}>Daugman (1992):</strong>{' '}
+          Cada época interpreta el cerebro con su tecnología dominante. La red <em>funciona</em> — clasifica
+          animales por rasgos — pero ¿<em>describe el mecanismo real</em> del cerebro, o es nuestra mejor herramienta
+          actual para <STTooltip term="modelo">imitarlo</STTooltip>?
+        </p>
+      </motion.div>
+
+      {/* Badges + floating */}
+      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
         <STModalBadge symbol="O" content="EPISTEMOLOGICAL_GAP" title="Brecha Epistemológica" />
       </div>
 
       <STFloatingButton />
 
-      {/* Cierre con Daugman */}
-      <div style={{
-        width: '100%',
-        maxWidth: '1100px',
-        background: 'rgba(6,182,212,0.05)',
-        border: '1px solid rgba(6,182,212,0.25)',
-        borderLeft: '4px solid #06b6d4',
-        borderRadius: '0 12px 12px 0',
-        padding: '1.25rem 2rem',
-      }}>
-        <div style={{ fontSize: '0.75rem', color: '#06b6d4', fontFamily: 'monospace', marginBottom: '0.6rem', letterSpacing: '0.08em' }}>
-          CIERRE CON DAUGMAN — METÁFORA TECNOLÓGICA
-        </div>
-        <p style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.7, margin: 0 }}>
-          Daugman (1992) nos advirtió: cada época interpreta el cerebro con su tecnología dominante —
-          hidráulica, relojería, telégrafo, <span style={{ color: '#06b6d4' }}>computadora</span>.
-          La red neuronal <em>funciona</em>, pero eso no la hace diferente de las metáforas anteriores;
-          la hace <span style={{ color: 'var(--accent-2)' }}>más potente</span>.
-          El éxito predictivo — reconocer dígitos, predecir mercados — no cierra la pregunta ontológica:{' '}
-          <em>¿describe el mecanismo real del cerebro, o es nuestra mejor herramienta actual para imitarlo?</em>
-        </p>
-      </div>
-
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '1.05rem', lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--yellow)' }}>Punto de quiebre filosófico:</strong>{' '}
-          <span style={{ color: 'var(--text)' }}>
-            La <STTooltip term="modelo">red</STTooltip> que clasificó tu dígito fue entrenada completamente en tu navegador usando perceptrones multicapa.
-            Arquitectura: 25→32→24→10, softmax, Adam lr=0.01, 120 épocas.
-            La pregunta ST subyacente: ¿El éxito funcional justifica la realidad de los procesos? ¿Esta red "reconoce" números o simplemente encadena operaciones lineales sobre arreglos multidimensionales?
-          </span>
+        <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '0.9rem', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--yellow)' }}>Arquitectura:</strong>{' '}
+          8 rasgos → 12 ReLU → 8 ReLU → 6 softmax. Adam lr=0.015, 100 épocas, batch 32.
+          Dato clave: la red clasifica animales por rasgos binarios, <em>no por imagen</em>.
+          Eso es exactamente lo que Hinton defendía: representaciones distribuidas de propiedades,
+          no patrones de píxeles. La pregunta ST: ¿una red que clasifica "gato" por 8 bits
+          realmente <em>reconoce</em> un gato?
         </div>
       )}
     </div>
   )
+}
+
+function hexRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '124,109,250'
 }
