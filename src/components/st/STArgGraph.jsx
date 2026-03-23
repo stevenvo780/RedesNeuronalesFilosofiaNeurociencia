@@ -6,7 +6,9 @@ export default function STArgGraph() {
   const svgRef = useRef(null)
 
   useEffect(() => {
-    const svg = d3.select(svgRef.current)
+    const svgEl = svgRef.current
+    if (!svgEl) return
+    const svg = d3.select(svgEl)
     svg.selectAll('*').remove()
 
     const VB_W = 900, VB_H = 80
@@ -29,19 +31,19 @@ export default function STArgGraph() {
       .attr('orient', 'auto')
       .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', '#7c6dfa')
 
-    // Edges
+    // Edges — use requestAnimationFrame for staggered fade-in instead of d3 transitions
     ST_ARGUMENTO.edges.forEach((e, idx) => {
       const s = nodeMap[e.source], t = nodeMap[e.target]
-      svg.append('line')
+      const line = svg.append('line')
         .attr('x1', s.cx + s.hw + 3).attr('y1', s.cy)
         .attr('x2', t.cx - t.hw - 3).attr('y2', t.cy)
         .attr('stroke', '#7c6dfa').attr('stroke-width', 1.5)
         .attr('marker-end', 'url(#st-arrow)')
         .attr('opacity', 0)
-        .transition().duration(400).delay(idx * 200).attr('opacity', 0.9)
+      setTimeout(() => { line.attr('opacity', 0.9) }, idx * 200 + 100)
     })
 
-    // Nodes
+    // Nodes — stagger with setTimeout for reliability
     const g = svg.selectAll('g.node').data(nodes).enter().append('g')
       .attr('class', 'node')
       .attr('transform', d => `translate(${d.cx},${d.cy})`)
@@ -59,7 +61,15 @@ export default function STArgGraph() {
         .text(d.label)
     })
 
-    g.transition().duration(300).delay((_, i) => i * 150).attr('opacity', 1)
+    g.each(function(_, i) {
+      const el = d3.select(this)
+      setTimeout(() => { el.attr('opacity', 1) }, i * 150 + 50)
+    })
+
+    return () => {
+      // Cancel any pending d3 transitions on cleanup to prevent ghost state
+      svg.selectAll('*').interrupt()
+    }
   }, [])
 
   return (

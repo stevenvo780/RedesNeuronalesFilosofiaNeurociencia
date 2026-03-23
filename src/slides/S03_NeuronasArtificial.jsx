@@ -38,12 +38,20 @@ function NeuronDiagram({ inputs, weights, sum, output, transferFn }) {
     let id
     const BW = 570, BH = 195  // base viewbox
     const PERIOD = 2.8
+    let cW = 0, cH = 0
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth || BW
+      const nh = Math.round(nw * BH / BW)
+      if (nw !== cW || nh !== cH) { cW = nw; cH = nh; canvas.width = cW; canvas.height = cH }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
 
     function draw(ts) {
+      if (!cW || !cH) { id = requestAnimationFrame(draw); return }
       const { inputs, weights, sum, output, transferFn } = propsRef.current
-      const W = canvas.offsetWidth || BW
-      const H = Math.round(W * BH / BW)
-      canvas.width = W; canvas.height = H
+      const W = cW, H = cH
       const s = W / BW
 
       const ctx = canvas.getContext('2d')
@@ -210,7 +218,7 @@ function NeuronDiagram({ inputs, weights, sum, output, transferFn }) {
     }
 
     id = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(id)
+    return () => { cancelAnimationFrame(id); ro.disconnect() }
   }, [])
 
   return <canvas ref={ref} style={{ width: '100%', display: 'block' }} />

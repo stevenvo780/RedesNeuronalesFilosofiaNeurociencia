@@ -48,11 +48,19 @@ function GradNetCanvas({ gradMags, activations, weights, mode, activeStep }) {
     const canvas = canvasRef.current
     if (!canvas) return
     let raf
+    let W = 0, H = 0
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth
+      const nh = canvas.offsetHeight
+      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
 
     const draw = () => {
+      if (!W || !H) { raf = requestAnimationFrame(draw); return }
       const ctx = canvas.getContext('2d')
-      const W = canvas.width = canvas.offsetWidth
-      const H = canvas.height = canvas.offsetHeight
       ctx.clearRect(0, 0, W, H)
 
       const layers = [2, 8, 8, 1]
@@ -161,7 +169,7 @@ function GradNetCanvas({ gradMags, activations, weights, mode, activeStep }) {
     }
 
     draw()
-    return () => cancelAnimationFrame(raf)
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [gradMags, activations, weights, mode, activeStep])
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />

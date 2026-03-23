@@ -204,11 +204,20 @@ function ComplexityCurve() {
     const canvas = ref.current
     if (!canvas) return
     let raf
+    let W = 0, H = 0
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth * 2
+      const nh = canvas.offsetHeight * 2
+      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
 
     const draw = () => {
+      if (!W || !H) { raf = requestAnimationFrame(draw); return }
       const ctx = canvas.getContext('2d')
-      const W = canvas.width = canvas.offsetWidth * 2
-      const H = canvas.height = canvas.offsetHeight * 2
+      ctx.save()
       ctx.scale(2, 2)
       const w = W / 2, h = H / 2
       ctx.clearRect(0, 0, w, h)
@@ -317,11 +326,12 @@ function ComplexityCurve() {
         ctx.fillText('zona intratable', pad.l + 0.77 * pw, pad.t + 16)
       }
 
+      ctx.restore()
       raf = requestAnimationFrame(draw)
     }
 
     raf = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(raf)
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [])
 
   return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }} />

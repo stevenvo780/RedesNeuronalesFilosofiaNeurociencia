@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Radio, Tv2, BotMessageSquare } from 'lucide-react'
 import AIPanel from './components/AIPanel'
+import MobileLayout from './components/MobileLayout'
 import S00_Intro from './slides/S00_Intro'
 import S01_Apertura from './slides/S01_Apertura'
 import S02_NeuronasReal from './slides/S02_NeuronasReal'
@@ -41,6 +42,15 @@ export default function App() {
   const [profesorMode, setProfesorMode] = useState(false)
   const [aiVisible, setAiVisible] = useState(false)
   const [navVisible, setNavVisible] = useState(true)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+
+  // Responsive breakpoint
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)')
+    const handler = (e) => setIsMobile(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
 
   const goTo = useCallback((idx) => {
     if (idx >= 0 && idx < SLIDES.length) setCurrent(idx)
@@ -86,6 +96,11 @@ export default function App() {
   }, [current, goTo])
 
   const { Component } = SLIDES[current]
+
+  // Mobile layout — completely separate view
+  if (isMobile) {
+    return <MobileLayout slides={SLIDES} profesorMode={profesorMode} />
+  }
 
   return (
     <div style={{ display: 'flex', height: '100svh', overflow: 'hidden', background: 'var(--bg)' }}>

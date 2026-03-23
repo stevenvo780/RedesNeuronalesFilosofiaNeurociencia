@@ -31,7 +31,7 @@ ${slideCtx}
 ${HINTON_CONTEXT}`
 }
 
-export default function AIPanel({ visible, onClose, currentSlide }) {
+export default function AIPanel({ visible, onClose, currentSlide, mobile }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: '¿Tienes preguntas sobre el texto de Hinton o la presentación?' }
   ])
@@ -83,18 +83,24 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
 
   return (
     <div style={{
-      position: 'fixed',
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: '340px',
+      ...(mobile ? {
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+      } : {
+        position: 'fixed',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: '340px',
+      }),
       background: 'rgba(17, 17, 24, 0.75)',
       backdropFilter: 'blur(16px)',
-      borderLeft: '1px solid var(--border)',
+      borderLeft: mobile ? 'none' : '1px solid var(--border)',
       display: 'flex',
       flexDirection: 'column',
-      zIndex: 200,
-      boxShadow: '-8px 0 32px rgba(0,0,0,0.5)',
+      zIndex: mobile ? 0 : 200,
+      boxShadow: mobile ? 'none' : '-8px 0 32px rgba(0,0,0,0.5)',
     }}>
       {/* Header */}
       <div style={{

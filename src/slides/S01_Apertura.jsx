@@ -122,7 +122,7 @@ function NetworkBackground() {
   )
 }
 
-const WORDS = ['El', 'cerebro...', 'es', 'una', 'computadora...', 'notable.']
+const WORDS = ['La', 'máquina...', 'que', 'aprende...', 'a', 'ser...', 'cerebro.']
 
 export default function S01_Apertura({ profesorMode }) {
   const wordsRef = useRef([])
@@ -179,7 +179,7 @@ export default function S01_Apertura({ profesorMode }) {
               key={i}
               ref={el => wordsRef.current[i] = el}
               style={{
-                color: w.includes('...') || w === 'notable.' ? 'var(--accent-2)' : 'var(--text-h)',
+                color: w.includes('...') || w === 'cerebro.' ? 'var(--accent-2)' : 'var(--text-h)',
               }}
             >
               {w}
@@ -189,18 +189,20 @@ export default function S01_Apertura({ profesorMode }) {
         <div
           ref={questionRef}
           style={{
-            marginTop: '1.5rem',
-            fontSize: 'clamp(0.9rem, 2vw, 1.15rem)',
-            color: 'var(--text-dim)',
+            marginTop: '1.8rem',
+            fontSize: 'clamp(1.2rem, 3vw, 1.65rem)',
+            color: 'var(--text)',
             fontStyle: 'italic',
+            letterSpacing: '0.03em',
+            textShadow: '0 0 24px rgba(124,109,250,0.35)',
           }}
         >
-          ¿Es eso una descripción o una apuesta?
+          ¿Es eso una <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>descripción</span> o una <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>apuesta</span>?
         </div>
       </div>
 
       {/* Mapa argumental ST */}
-      <div ref={betRef} style={{ width: '100%' }}>
+      <div ref={betRef} style={{ width: '100%', zIndex: 1, position: 'relative' }}>
         <STArgGraph />
       </div>
 

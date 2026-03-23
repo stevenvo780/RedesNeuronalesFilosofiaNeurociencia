@@ -4,6 +4,62 @@ import { useNeuralNet } from '../hooks/useNeuralNet'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
 
+// ── Subtle neural background ───────────────────────────────────────────────────
+function NeuralBg() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current; if (!canvas) return
+    let id
+    const N = 55
+    let W = 0, H = 0
+    const setSize = () => {
+      const nw = canvas.offsetWidth, nh = canvas.offsetHeight
+      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
+    const nodes = Array.from({ length: N }, () => ({
+      x: Math.random(), y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.00035, vy: (Math.random() - 0.5) * 0.00035,
+      r: 1.2 + Math.random() * 1.8, ph: Math.random() * Math.PI * 2,
+    }))
+    let startT = null
+    function draw(ts) {
+      if (!W || !H) { id = requestAnimationFrame(draw); return }
+      if (!startT) startT = ts
+      const t = (ts - startT) * 0.001
+      const cyc = (Math.sin(t * 0.05) + 1) / 2
+      const cr = Math.round(124 - cyc * 40), cg = Math.round(109 + cyc * 70), cb = Math.round(250 - cyc * 28)
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = 'rgba(1,1,14,0.14)'; ctx.fillRect(0, 0, W, H)
+      nodes.forEach(n => { n.x = ((n.x + n.vx) + 1) % 1; n.y = ((n.y + n.vy) + 1) % 1 })
+      for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+        const dx = (nodes[i].x - nodes[j].x) * W, dy = (nodes[i].y - nodes[j].y) * H
+        const d = Math.sqrt(dx * dx + dy * dy)
+        if (d < 180) {
+          ctx.beginPath()
+          ctx.moveTo(nodes[i].x * W, nodes[i].y * H); ctx.lineTo(nodes[j].x * W, nodes[j].y * H)
+          ctx.strokeStyle = `rgba(${cr},${cg},${cb},${(1 - d / 180) * 0.06})`; ctx.lineWidth = 0.5; ctx.stroke()
+        }
+      }
+      nodes.forEach((n, i) => {
+        const pulse = 0.5 + 0.5 * Math.sin(t * (0.6 + (i % 11) * 0.08) + n.ph)
+        const x = n.x * W, y = n.y * H, r = n.r * (0.7 + 0.5 * pulse)
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 6)
+        g.addColorStop(0, `rgba(${cr},${cg},${cb},${0.10 * pulse})`); g.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.beginPath(); ctx.arc(x, y, r * 6, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${Math.min(255, cr + 55)},${Math.min(255, cg + 45)},${cb},${0.45 + pulse * 0.45})`
+        ctx.fill()
+      })
+      id = requestAnimationFrame(draw)
+    }
+    id = requestAnimationFrame(draw)
+    return () => { cancelAnimationFrame(id); ro.disconnect() }
+  }, [])
+  return <canvas ref={ref} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />
+}
+
 const LAYER_COLORS = ['#06b6d4', '#7c6dfa', '#a78bfa', '#22c55e']
 const LAYER_LABELS = ['Entrada (2)', 'Oculta 1 (8)', 'Oculta 2 (8)', 'Salida (1)']
 const LAYER_DESCS  = [
@@ -192,7 +248,9 @@ export default function S04_Arquitectura({ profesorMode }) {
   }, [activations, weights, showW, animPhase])
 
   return (
-    <div className="section-slide" style={{ gap: '1.5rem' }}>
+    <div className="section-slide" style={{ gap: '1.5rem', position: 'relative' }}>
+      <NeuralBg />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', width: '100%' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Arquitectura de tres capas</div>
         <div className="section-subtitle">Red TF.js en vivio — Propagación hacia adelante</div>
@@ -312,6 +370,7 @@ export default function S04_Arquitectura({ profesorMode }) {
           secuencialmente, lo que funda el concepto de <STTooltip term="representacion_distribuida">representación distribuida iterada</STTooltip>.
         </div>
       )}
+      </div>
     </div>
   )
 }

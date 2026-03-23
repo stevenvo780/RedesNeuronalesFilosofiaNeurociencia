@@ -3,83 +3,244 @@ import STFloatingButton from '../components/st/STFloatingButton'
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
-// Visualización: campos receptivos sintéticos — red vs. biológico
-function ReceptiveFieldCanvas({ type }) {
-  const ref = useRef(null)
+// ── Pre-compute deterministic dendrite branches ───────────────────────────────
+function buildBranches(cx, cy, W, H) {
+  const branches = []
+  const rootAngles = [
+    -Math.PI * 0.5, -Math.PI * 0.72, -Math.PI * 0.28,
+    Math.PI * 0.78, Math.PI * 0.55, Math.PI,
+    -Math.PI * 0.1, Math.PI * 0.1,
+  ]
+  function addBranch(x, y, angle, len, depth, seed) {
+    if (depth === 0 || len < 4) return
+    const ex = x + Math.cos(angle) * len
+    const ey = y + Math.sin(angle) * len
+    branches.push({ x1: x, y1: y, x2: ex, y2: ey, depth, angle, seed })
+    const spread = 0.38 + ((seed * 7919) % 100) / 100 * 0.3
+    addBranch(ex, ey, angle - spread, len * 0.62, depth - 1, (seed * 31 + 17) % 997)
+    addBranch(ex, ey, angle + spread, len * 0.62, depth - 1, (seed * 53 + 29) % 997)
+  }
+  const baseLen = Math.min(W, H) * 0.18
+  rootAngles.forEach((a, i) => addBranch(cx, cy, a, baseLen, 3, i * 13 + 7))
+  return branches
+}
 
+// ── Biological neuron canvas ───────────────────────────────────────────────────
+function BioNeuronCanvas() {
+  const ref = useRef(null)
   useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    let id
-    const cells = 6
-    const angle = type === 'bio' ? Math.PI / 4 : Math.PI / 4 + 0.12
-    const sx = type === 'bio' ? 0.08 : 0.09
-    const sy = type === 'bio' ? 0.25 : 0.26
-    const scale = type === 'bio' ? 1.0 : 0.92
-    const baseColor = type === 'bio' ? [34, 197, 94] : [124, 109, 250]
+    const canvas = ref.current; if (!canvas) return
+    let id, branches = null
+    let W = 0, H = 0
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth || 300
+      const nh = canvas.offsetHeight || 220
+      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H; branches = null }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
 
     function draw(ts) {
-      const W = canvas.width  = canvas.offsetWidth || 200
-      const H = canvas.height = canvas.offsetHeight || 160
+      if (!W || !H) { id = requestAnimationFrame(draw); return }
       const t = ts * 0.001
       const ctx = canvas.getContext('2d')
 
-      ctx.fillStyle = '#04040e'
-      ctx.fillRect(0, 0, W, H)
+      ctx.fillStyle = '#04040e'; ctx.fillRect(0, 0, W, H)
 
-      const cxC = W / 2, cyC = H / 2
+      const cx = W * 0.5, cy = H * 0.42
+      if (!branches) branches = buildBranches(cx, cy, W, H)
 
-      for (let i = 0; i < cells; i++) {
-        for (let j = 0; j < cells; j++) {
-          const x = W * 0.15 + (i / (cells - 1)) * W * 0.7
-          const y = H * 0.18 + (j / (cells - 1)) * H * 0.65
-          const dx = (x - cxC) / (W * 0.4)
-          const dy = (y - cyC) / (H * 0.4)
-          const rx = dx * Math.cos(angle) + dy * Math.sin(angle)
-          const ry = -dx * Math.sin(angle) + dy * Math.cos(angle)
-          const val = Math.exp(-(rx * rx / sx + ry * ry / sy)) * scale
-          // animated shimmer
-          const shimmer = 1.0 + 0.12 * Math.sin(t * 1.4 + i * 0.7 + j * 0.5)
-          const v = Math.min(1, val * shimmer)
-          const size = Math.max(2, (W / cells) * 0.38)
-          const [r, g, b] = baseColor
-
-          // outer glow for active cells
-          if (v > 0.3) {
-            const grd = ctx.createRadialGradient(x, y, 0, x, y, size * 2.2)
-            grd.addColorStop(0, `rgba(${r},${g},${b},${v * 0.35})`)
-            grd.addColorStop(1, 'rgba(0,0,0,0)')
-            ctx.beginPath(); ctx.arc(x, y, size * 2.2, 0, Math.PI * 2)
-            ctx.fillStyle = grd; ctx.fill()
-          }
-
-          ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(${r},${g},${b},${0.1 + v * 0.9})`
-          if (v > 0.6) { ctx.shadowColor = `rgb(${r},${g},${b})`; ctx.shadowBlur = 8 * v }
-          ctx.fill(); ctx.shadowBlur = 0
+      // ── Dendrites ──
+      branches.forEach(b => {
+        const wave = 0.07 * Math.sin(t * 0.9 + b.seed * 0.4)
+        const mx = (b.x1 + b.x2) / 2 + Math.sin(b.angle + Math.PI / 2) * wave * 30
+        const my = (b.y1 + b.y2) / 2 + Math.cos(b.angle + Math.PI / 2) * wave * 30
+        const glow = 0.5 + 0.35 * Math.sin(t * 1.1 + b.seed * 0.3)
+        const alpha = (0.15 + b.depth * 0.12) * glow
+        ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.quadraticCurveTo(mx, my, b.x2, b.y2)
+        ctx.strokeStyle = `rgba(34,197,94,${alpha})`
+        ctx.lineWidth = b.depth * 0.9; ctx.stroke()
+        // synaptic knob at leaf
+        if (b.depth === 1) {
+          const kPulse = 0.5 + 0.5 * Math.sin(t * 1.8 + b.seed)
+          ctx.beginPath(); ctx.arc(b.x2, b.y2, 2.8, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(34,197,94,${0.5 + kPulse * 0.5})`
+          ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 7 * kPulse; ctx.fill(); ctx.shadowBlur = 0
         }
+      })
+
+      // ── Soma outer glow ──
+      const somaPulse = 0.7 + 0.3 * Math.sin(t * 1.4)
+      const somaR = Math.min(W, H) * 0.095
+      const grd0 = ctx.createRadialGradient(cx, cy, 0, cx, cy, somaR * 2.8)
+      grd0.addColorStop(0, `rgba(34,197,94,${0.18 * somaPulse})`); grd0.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.beginPath(); ctx.arc(cx, cy, somaR * 2.8, 0, Math.PI * 2); ctx.fillStyle = grd0; ctx.fill()
+
+      // ── Soma ──
+      ctx.beginPath(); ctx.arc(cx, cy, somaR, 0, Math.PI * 2)
+      const sGrd = ctx.createRadialGradient(cx - somaR * 0.3, cy - somaR * 0.3, 0, cx, cy, somaR)
+      sGrd.addColorStop(0, `rgba(120,255,160,${somaPulse})`)
+      sGrd.addColorStop(0.5, `rgba(34,197,94,${0.75 * somaPulse})`)
+      sGrd.addColorStop(1, 'rgba(8,55,28,0.6)')
+      ctx.fillStyle = sGrd; ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 18 * somaPulse
+      ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1.5; ctx.stroke()
+      // nucleus
+      ctx.beginPath(); ctx.arc(cx, cy, somaR * 0.42, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(10,80,40,0.7)'; ctx.fill()
+
+      // ── Axon ──
+      const axY0 = cy + somaR, axY1 = H - 22
+      ctx.beginPath(); ctx.moveTo(cx, axY0); ctx.lineTo(cx, axY1)
+      ctx.strokeStyle = 'rgba(34,197,94,0.5)'; ctx.lineWidth = 3.5; ctx.stroke()
+
+      // Myelin sheaths
+      for (let m = 0; m < 4; m++) {
+        const my = axY0 + (axY1 - axY0) * (m + 0.5) / 4.5
+        ctx.beginPath(); ctx.ellipse(cx, my, 8, 16, 0, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(200,230,215,0.14)'; ctx.fill()
+        ctx.strokeStyle = 'rgba(200,230,215,0.1)'; ctx.lineWidth = 0.8; ctx.stroke()
       }
 
-      // orientation line
-      const lc = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${0.5 + 0.2*Math.sin(t*0.8)})`
-      ctx.strokeStyle = lc; ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.moveTo(cxC - Math.cos(angle)*W*0.28, cyC - Math.sin(angle)*H*0.28)
-      ctx.lineTo(cxC + Math.cos(angle)*W*0.28, cyC + Math.sin(angle)*H*0.28)
-      ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([])
+      // Action potential
+      const apP = (t * 0.38) % 1
+      const apY = axY0 + (axY1 - axY0) * apP
+      const apA = Math.sin(apP * Math.PI) * 0.95
+      if (apA > 0.05) {
+        const apG = ctx.createRadialGradient(cx, apY, 0, cx, apY, 14)
+        apG.addColorStop(0, `rgba(140,255,160,${apA})`); apG.addColorStop(0.4, `rgba(34,197,94,${apA * 0.5})`); apG.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.beginPath(); ctx.arc(cx, apY, 14, 0, Math.PI * 2); ctx.fillStyle = apG; ctx.fill()
+      }
 
-      ctx.fillStyle = type === 'bio' ? '#22c55e' : '#7c6dfa'
-      ctx.font = '10px monospace'; ctx.textAlign = 'center'
-      ctx.fillText(type === 'bio' ? 'neurona real (área 7a)' : 'unidad entrenada (red)', W / 2, H - 6)
+      // Axon terminals
+      for (let k = -1; k <= 1; k++) {
+        const tx = cx + k * 20, ty = axY1 + 14
+        ctx.beginPath(); ctx.moveTo(cx, axY1); ctx.lineTo(tx, ty)
+        ctx.strokeStyle = 'rgba(34,197,94,0.45)'; ctx.lineWidth = 2; ctx.stroke()
+        const tP = 0.5 + 0.45 * Math.sin(t * 2 + k * 1.2)
+        ctx.beginPath(); ctx.arc(tx, ty, 4, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(34,197,94,${tP})`
+        ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 8 * tP; ctx.fill(); ctx.shadowBlur = 0
+      }
 
+      ctx.fillStyle = '#22c55e'; ctx.font = '9px monospace'; ctx.textAlign = 'center'
+      ctx.fillText('neurona biológica · área 7a', W / 2, H - 5)
       id = requestAnimationFrame(draw)
     }
-
     id = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(id)
-  }, [type])
-
+    return () => { cancelAnimationFrame(id); ro.disconnect() }
+  }, [])
   return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
+}
+
+// ── Artificial unit canvas ─────────────────────────────────────────────────────
+function ArtNeuronCanvas() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current; if (!canvas) return
+    let id
+    let W = 0, H = 0
+    const W_VALS = [0.8, -0.45, 0.6, -0.3, 0.9]
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth || 300
+      const nh = canvas.offsetHeight || 220
+      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
+
+    function draw(ts) {
+      if (!W || !H) { id = requestAnimationFrame(draw); return }
+      const t = ts * 0.001
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#04040e'; ctx.fillRect(0, 0, W, H)
+
+      const iX = W * 0.18, sX = W * 0.54, oX = W * 0.86
+      const n = 5
+      const iYs = Array.from({ length: n }, (_, i) => H * 0.15 + i * (H * 0.7 / (n - 1)))
+      const cY = H * 0.5
+
+      // ── Input→Σ connections + pulses ──
+      iYs.forEach((iy, i) => {
+        const w = W_VALS[i]
+        const wc = w > 0 ? '#7c6dfa' : '#ef4444'
+        ctx.beginPath(); ctx.moveTo(iX + 13, iy); ctx.lineTo(sX - 22, cY)
+        ctx.strokeStyle = w > 0 ? `rgba(124,109,250,${0.1 + Math.abs(w) * 0.25})` : `rgba(239,68,68,${0.1 + Math.abs(w) * 0.25})`
+        ctx.lineWidth = Math.max(0.5, Math.abs(w) * 3); ctx.stroke()
+
+        const pOff = i * 0.2, pT = ((t * 0.45) + pOff) % 1
+        const pA = Math.sin(pT * Math.PI) * 0.9
+        if (pA > 0.06) {
+          const px = (iX + 13) + ((sX - 22) - (iX + 13)) * pT
+          const py = iy + (cY - iy) * pT
+          const g = ctx.createRadialGradient(px, py, 0, px, py, 8)
+          g.addColorStop(0, `${w > 0 ? 'rgba(167,139,250,' : 'rgba(255,90,90,'}${pA})`)
+          g.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+        }
+
+        // input node
+        ctx.beginPath(); ctx.arc(iX, iy, 13, 0, Math.PI * 2)
+        ctx.fillStyle = '#080818'; ctx.strokeStyle = `${wc}66`; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke()
+        ctx.fillStyle = wc; ctx.font = `bold ${Math.round(W * 0.028)}px monospace`; ctx.textAlign = 'center'
+        ctx.fillText(`x${i + 1}`, iX, iy + 4)
+
+        // weight label
+        const mlx = ((iX + 13) + (sX - 22)) * 0.5
+        const mly = iy + (cY - iy) * 0.5
+        ctx.fillStyle = `${wc}bb`; ctx.font = `${Math.round(W * 0.024)}px monospace`
+        ctx.fillText((w > 0 ? '+' : '') + w.toFixed(1), mlx + (i % 2 === 0 ? -8 : 8), mly - 2)
+      })
+
+      // ── Σ → output connection ──
+      const opT = ((t * 0.45) + 0.65) % 1
+      const opA = Math.sin(opT * Math.PI) * 0.9
+      ctx.beginPath(); ctx.moveTo(sX + 22, cY); ctx.lineTo(oX - 16, cY)
+      ctx.strokeStyle = 'rgba(124,109,250,0.45)'; ctx.lineWidth = 2.8; ctx.stroke()
+      if (opA > 0.06) {
+        const px = (sX + 22) + ((oX - 16) - (sX + 22)) * opT
+        const g = ctx.createRadialGradient(px, cY, 0, px, cY, 9)
+        g.addColorStop(0, `rgba(190,170,255,${opA})`); g.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.beginPath(); ctx.arc(px, cY, 9, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+      }
+
+      // ── Σ node (central unit) ──
+      const uP = 0.6 + 0.4 * Math.sin(t * 1.4)
+      const hG = ctx.createRadialGradient(sX, cY, 0, sX, cY, 34)
+      hG.addColorStop(0, `rgba(124,109,250,${0.35 * uP})`); hG.addColorStop(1, 'rgba(124,109,250,0.02)')
+      ctx.beginPath(); ctx.arc(sX, cY, 34, 0, Math.PI * 2); ctx.fillStyle = hG; ctx.fill()
+      ctx.beginPath(); ctx.arc(sX, cY, 22, 0, Math.PI * 2)
+      ctx.fillStyle = '#0d0d28'
+      ctx.strokeStyle = `rgba(124,109,250,${0.5 + uP * 0.5})`; ctx.lineWidth = 2.5
+      ctx.shadowColor = '#7c6dfa'; ctx.shadowBlur = 16 * uP; ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0
+      ctx.fillStyle = `rgba(167,139,250,${0.7 + uP * 0.3})`
+      ctx.font = `bold ${Math.round(W * 0.055)}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText('Σ', sX, cY - 2)
+      ctx.fillStyle = '#7c6dfa'; ctx.font = `${Math.round(W * 0.028)}px monospace`
+      ctx.fillText('f(·)', sX, cY + 13)
+
+      // ── Output node ──
+      const oP = 0.5 + 0.5 * Math.sin(t * 1.4 + 0.9)
+      ctx.beginPath(); ctx.arc(oX, cY, 16, 0, Math.PI * 2)
+      ctx.fillStyle = '#0b0b1f'
+      ctx.strokeStyle = `rgba(124,109,250,${0.4 + oP * 0.6})`; ctx.lineWidth = 2
+      ctx.shadowColor = '#7c6dfa'; ctx.shadowBlur = 12 * oP; ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0
+      ctx.fillStyle = '#a78bfa'; ctx.font = `bold ${Math.round(W * 0.038)}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText('ŷ', oX, cY + 4)
+
+      ctx.fillStyle = '#7c6dfa'; ctx.font = '9px monospace'; ctx.textAlign = 'center'
+      ctx.fillText('unidad entrenada (red)', W / 2, H - 5)
+      id = requestAnimationFrame(draw)
+    }
+    id = requestAnimationFrame(draw)
+    return () => { cancelAnimationFrame(id); ro.disconnect() }
+  }, [])
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
+}
+
+function ReceptiveFieldCanvas({ type }) {
+  return type === 'bio' ? <BioNeuronCanvas /> : <ArtNeuronCanvas />
 }
 
 export default function S12b_Convergencia({ profesorMode }) {

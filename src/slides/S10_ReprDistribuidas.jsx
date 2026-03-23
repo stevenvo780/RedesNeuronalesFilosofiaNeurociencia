@@ -38,12 +38,20 @@ function ReprDiagram({ type }) {
     const canvas = ref.current
     if (!canvas) return
     let id, startTime = null
+    let W = 0, H = 0
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth || 300
+      const nh = canvas.offsetHeight || 70
+      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
 
     function draw(ts) {
+      if (!W || !H) { id = requestAnimationFrame(draw); return }
       if (!startTime) startTime = ts
       const t = (ts - startTime) * 0.001
-      const W = canvas.width  = canvas.offsetWidth  || 300
-      const H = canvas.height = canvas.offsetHeight || 70
       const ctx = canvas.getContext('2d')
       ctx.clearRect(0, 0, W, H)
 
@@ -79,7 +87,7 @@ function ReprDiagram({ type }) {
     }
 
     id = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(id)
+    return () => { cancelAnimationFrame(id); ro.disconnect() }
   }, [type])
 
   return <canvas ref={ref} style={{ width: '100%', height: '70px', display: 'block' }} />

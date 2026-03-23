@@ -44,10 +44,18 @@ function CosmicEye({ targetX, anesthetized }) {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+    let cW = 0, cH = 0
+
+    const setSize = () => {
+      const nw = canvas.offsetWidth, nh = canvas.offsetHeight
+      if (nw !== cW || nh !== cH) { cW = nw; cH = nh; canvas.width = cW; canvas.height = cH }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
 
     function draw(timestamp) {
-      const W = canvas.width  = canvas.offsetWidth
-      const H = canvas.height = canvas.offsetHeight
+      if (!cW || !cH) { requestAnimationFrame(draw); return }
+      const W = cW, H = cH
       const ctx = canvas.getContext('2d')
       const t = timestamp * 0.001
 
@@ -209,11 +217,12 @@ function CosmicEye({ targetX, anesthetized }) {
         }
 
         // ── Eyelid top shadow ──
-        const topShadow = ctx.createLinearGradient(eyeCX, eyeCY - scleraH, eyeCX, eyeCY - scleraH * 0.4)
+        const topShadow = ctx.createLinearGradient(eyeCX, eyeCY - scleraH, eyeCX, eyeCY - scleraH * 0.2)
         topShadow.addColorStop(0, 'rgba(1,1,10,0.7)')
+        topShadow.addColorStop(0.7, 'rgba(1,1,10,0.1)')
         topShadow.addColorStop(1, 'rgba(1,1,10,0)')
         ctx.fillStyle = topShadow
-        ctx.fillRect(eyeCX - scleraW, eyeCY - scleraH * 2, scleraW * 2, scleraH * 1.5)
+        ctx.fillRect(eyeCX - scleraW, eyeCY - scleraH, scleraW * 2, scleraH)
 
       ctx.restore()  // end sclera clip
 
@@ -231,7 +240,7 @@ function CosmicEye({ targetX, anesthetized }) {
     }
 
     animRef.current = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(animRef.current)
+    return () => { cancelAnimationFrame(animRef.current); ro.disconnect() }
   }, []) // single persistent loop — targetX is read via ref
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
