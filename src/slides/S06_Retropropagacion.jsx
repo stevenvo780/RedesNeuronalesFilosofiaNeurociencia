@@ -211,6 +211,12 @@ export default function S06_Retropropagacion({ profesorMode }) {
   const [mode, setMode]           = useState('forward')
   const [activeStep, setActiveStep] = useState(null)
 
+  // Auto-start on slide mount, run indefinitely
+  useEffect(() => {
+    start()
+    return () => stop()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="section-slide" style={{ gap: '1.5rem' }}>
       <div style={{ textAlign: 'center' }}>

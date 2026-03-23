@@ -5,7 +5,7 @@ import {
   Hash, TrendingUp, Microscope, Telescope,
   Layers, Wind, Footprints, Leaf, Droplets, Thermometer, Moon,
   HelpCircle, LoaderCircle, CheckCircle2, RefreshCw, ChevronDown,
-  Plus, Minus, SlidersHorizontal, Settings2, X,
+  Plus, Minus, SlidersHorizontal, Settings2, X, Maximize2, Minimize2,
 } from 'lucide-react'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
@@ -420,6 +420,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   const [selectedPreset, setSelectedPreset] = useState(0)
   const [activeApp, setActiveApp] = useState(null)
   const [showArchModal, setShowArchModal] = useState(false)
+  const [showNetFullscreen, setShowNetFullscreen] = useState(false)
 
   // ── Architecture controls ─────────────────
   const addLayer = () => {
@@ -440,6 +441,15 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
     const p = predict(features)
     if (p) setProbs(p)
   }, [features, ready, predict])
+
+  // ESC to close fullscreen network
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') setShowNetFullscreen(false) }
+    if (showNetFullscreen) {
+      window.addEventListener('keydown', onKey)
+      return () => window.removeEventListener('keydown', onKey)
+    }
+  }, [showNetFullscreen])
 
   const toggleFeature = (idx) => {
     setFeatures(prev => {
@@ -618,6 +628,17 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                 color: '#a78bfa', fontSize: '0.58rem', fontFamily: 'monospace', cursor: 'pointer',
               }}>
               <Settings2 size={11} strokeWidth={2} /> Arquitectura
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+              onClick={() => setShowNetFullscreen(true)}
+              title="Ver red en pantalla completa"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '3px',
+                padding: '2px 8px', borderRadius: '5px',
+                border: '1px solid #06b6d444', background: 'rgba(6,182,212,0.1)',
+                color: '#67e8f9', fontSize: '0.58rem', fontFamily: 'monospace', cursor: 'pointer',
+              }}>
+              <Maximize2 size={11} strokeWidth={2} /> Maximizar
             </motion.button>
           </div>
           <motion.div
@@ -868,6 +889,72 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                 }}>
                 <RefreshCw size={14} strokeWidth={2} /> {training ? 'Entrenando…' : 'Entrenar con esta arquitectura'}
               </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fullscreen Network Modal */}
+      <AnimatePresence>
+        {showNetFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowNetFullscreen(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              zIndex: 1100, gap: '0.5rem',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                background: '#08081a', border: '1px solid #7c6dfa44', borderRadius: '18px',
+                padding: '1rem 1.5rem', maxWidth: '95vw', maxHeight: '92vh',
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Maximize2 size={15} strokeWidth={2} color="#06b6d4" />
+                  <span style={{ fontSize: '0.8rem', color: '#67e8f9', fontWeight: 700, fontFamily: 'monospace' }}>
+                    RED NEURONAL {N_FEAT}→{hiddenLayers.join('→')}→{N_CLASS}
+                  </span>
+                  {ready && (
+                    <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#22c55e', marginLeft: '0.5rem' }}>
+                      {(acc * 100).toFixed(1)}% acc — Época {epoch}/{maxEpoch}
+                    </span>
+                  )}
+                </div>
+                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowNetFullscreen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', display: 'flex' }}>
+                  <Minimize2 size={18} strokeWidth={2} />
+                </motion.button>
+              </div>
+
+              {/* Large Network Canvas */}
+              <NetworkCanvas
+                features={features} hiddenActs={hiddenActs}
+                layerConfig={hiddenLayers}
+                width={Math.min(1600, Math.round(window.innerWidth * 0.88))}
+                height={Math.min(800, Math.round(window.innerHeight * 0.72))}
+                modelRef={modelRef}
+              />
+
+              {/* Compact info bar */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                fontSize: '0.6rem', fontFamily: 'monospace', color: 'var(--text-dim)',
+              }}>
+                <span style={{ color: '#7c6dfa' }}>Capas: {hiddenLayers.join(', ')}</span>
+                <span>•</span>
+                <span>Hover sobre nodos para ver activaciones</span>
+                <span>•</span>
+                <span style={{ color: '#67e8f9', cursor: 'pointer' }} onClick={() => setShowNetFullscreen(false)}>ESC para cerrar</span>
+              </div>
             </motion.div>
           </motion.div>
         )}
