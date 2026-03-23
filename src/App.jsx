@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Radio, Tv2, BotMessageSquare } from 'lucide-react'
 import AIPanel from './components/AIPanel'
+import S00_Intro from './slides/S00_Intro'
 import S01_Apertura from './slides/S01_Apertura'
 import S02_NeuronasReal from './slides/S02_NeuronasReal'
 import S03_NeuronasArtificial from './slides/S03_NeuronasArtificial'
@@ -18,6 +19,7 @@ import S12b_Convergencia from './slides/S12b_Convergencia'
 import S13_CierreArgumental from './slides/S13_CierreArgumental'
 
 const SLIDES = [
+  { id: 's00', label: 'Intro', time: '—', Component: S00_Intro },
   { id: 's01', label: 'Apertura', time: '1 min', Component: S01_Apertura },
   { id: 's02', label: 'Neurona real', time: '1.5 min', Component: S02_NeuronasReal },
   { id: 's03', label: 'Neurona artificial', time: '1.5 min', Component: S03_NeuronasArtificial },

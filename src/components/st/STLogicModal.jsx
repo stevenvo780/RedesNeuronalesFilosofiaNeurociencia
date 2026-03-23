@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle, HelpCircle, ChevronDown } from 'lucide-react'
 import { ST_ARGUMENTO, ST_ONTOLOGIA, ST_PRESUPUESTOS, ST_CRITICA, HINTON_CONTEXT } from '../../data/st_results'
 
 const ST_DATA = {
@@ -7,6 +8,136 @@ const ST_DATA = {
   ontologia: ST_ONTOLOGIA,
   presupuestos: ST_PRESUPUESTOS,
   critica: ST_CRITICA,
+}
+
+/* ── Per-tab help content ── */
+const TAB_HELP = {
+  explorer: {
+    title: '¿Qué muestra el Explorador?',
+    body: 'Cadenas de derivación validadas del argumento global de Hinton (02_Argumento_Global). Cada fórmula fue verificada con st v2.6.0. Las "contingentes" son empíricas — su verdad depende del mundo, no de la lógica pura.',
+  },
+  evaluator: {
+    title: '¿Cómo usar el Evaluador?',
+    body: 'Tabla de verdad interactiva. Cada botón es un presupuesto de Hinton. Cámbialos entre V/F y evalúa fórmulas con →, ∧, ∨, ¬. Útil para explorar qué pasa si rechazamos un supuesto: ¿se sostiene el argumento?',
+  },
+  chains: {
+    title: '¿Qué son las Cadenas?',
+    body: 'Presupuestos expandidos con validación en lógica epistémica S5 (lo que el agente sabe o cree necesariamente) y modal K (necesidad □ / posibilidad ◇). Revela los supuestos ocultos que el texto da por sentado.',
+  },
+  tensions: {
+    title: '¿Qué son las Tensiones?',
+    body: 'Cada par mapea un presupuesto de Hinton contra una objeción formal. La tensión surge porque ambos son lógicamente posibles pero incompatibles. El texto no las resuelve — son puntos donde el argumento necesita más defensa.',
+  },
+}
+
+/* ── Collapsible help banner per tab ── */
+function HelpBanner({ tab }) {
+  const [open, setOpen] = useState(false)
+  const help = TAB_HELP[tab]
+  if (!help) return null
+
+  return (
+    <div style={{ marginBottom: '0.6rem' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '0.35rem',
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--accent-2)', fontSize: '0.7rem', fontFamily: 'monospace',
+          padding: '0.2rem 0', opacity: 0.85,
+        }}
+      >
+        <HelpCircle size={13} strokeWidth={1.8} />
+        <span>{help.title}</span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ display: 'flex', alignItems: 'center' }}
+        >
+          <ChevronDown size={12} />
+        </motion.span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{
+              marginTop: '0.35rem', padding: '0.6rem 0.8rem',
+              background: 'rgba(124,109,250,0.08)', border: '1px solid rgba(124,109,250,0.2)',
+              borderRadius: '6px', fontSize: '0.72rem', color: 'var(--text)', lineHeight: 1.55,
+            }}>
+              {help.body}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ── General ST explainer (top of modal) ── */
+function STExplainer() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={{ marginBottom: '0.8rem' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
+          background: open ? 'rgba(124,109,250,0.06)' : 'transparent',
+          border: '1px solid rgba(124,109,250,0.15)', borderRadius: '6px',
+          padding: '0.45rem 0.7rem', cursor: 'pointer', color: 'var(--accent-2)',
+          fontSize: '0.72rem', fontFamily: 'monospace', transition: 'background 0.2s',
+        }}
+      >
+        <HelpCircle size={14} strokeWidth={1.8} />
+        <span style={{ flex: 1, textAlign: 'left' }}>¿Qué es ST y cómo interpretar esto?</span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ display: 'flex', alignItems: 'center' }}
+        >
+          <ChevronDown size={13} />
+        </motion.span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{
+              marginTop: '0.4rem', padding: '0.7rem 0.9rem',
+              background: 'rgba(124,109,250,0.06)', border: '1px solid rgba(124,109,250,0.18)',
+              borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text)', lineHeight: 1.6,
+            }}>
+              <strong style={{ color: 'var(--accent-2)', display: 'block', marginBottom: '0.3rem' }}>
+                ST — Semantic Theory / Motor de Lógica Formal
+              </strong>
+              ST toma el texto de Hinton (1992) y valida su estructura argumentativa usando tres sistemas lógicos:
+              <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem', listStyle: 'disc' }}>
+                <li><strong style={{ color: 'var(--green)' }}>Proposicional</strong> — ¿Las conclusiones se siguen de las premisas?</li>
+                <li><strong style={{ color: 'var(--cyan)' }}>Epistémica S5</strong> — ¿Qué sabe o cree necesariamente el agente?</li>
+                <li><strong style={{ color: 'var(--accent-2)' }}>Modal K</strong> — ¿Qué es necesario (□) vs. posible (◇)?</li>
+              </ul>
+              <div style={{ marginTop: '0.45rem', fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                Usa las pestañas para explorar derivaciones, evaluar fórmulas, ver cadenas de presupuestos y tensiones filosóficas.
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 }
 
 // Mini ST evaluator for propositional logic
@@ -53,7 +184,7 @@ export default function STLogicModal({ isOpen, onClose, context }) {
     <div className="st-modal-overlay" onClick={onClose}>
       <div className="st-modal-content" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-h)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Microscope size={18} strokeWidth={1.8} color="var(--accent)" /> ST · Motor de Lógica Formal
@@ -64,6 +195,9 @@ export default function STLogicModal({ isOpen, onClose, context }) {
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} strokeWidth={1.8} /></button>
         </div>
+
+        {/* General ST explainer */}
+        <STExplainer />
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -85,6 +219,9 @@ export default function STLogicModal({ isOpen, onClose, context }) {
             ><t.Icon size={13} strokeWidth={1.8} />{t.label}</button>
           ))}
         </div>
+
+        {/* Per-tab help */}
+        <HelpBanner tab={tab} />
 
         {/* Explorer tab */}
         {tab === 'explorer' && (

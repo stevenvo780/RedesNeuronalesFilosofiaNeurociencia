@@ -60,8 +60,10 @@ function buildDataset(repeats = 80) {
 // ── Training hook ──────────────────────────────────────────────────────────────
 function useAnimalNet() {
   const modelRef = useRef(null)
-  const stopRef = useRef(false)
-  const [ready, setReady] = useState(false)
+  const stopRef  = useRef(false)
+  const speedRef = useRef(200)
+  const [speed, setSpeed]   = useState(200)
+  const [ready, setReady]   = useState(false)
   const [epoch, setEpoch] = useState(0)
   const [maxEpoch] = useState(100)
   const [acc, setAcc] = useState(0)
@@ -128,8 +130,8 @@ function useAnimalNet() {
         })
       }
 
-      // Let React breathe
-      await new Promise(r => setTimeout(r, 30))
+      // Let React breathe (speed-controlled delay)
+      await new Promise(r => setTimeout(r, speedRef.current))
     }
 
     xs.dispose()
@@ -169,7 +171,12 @@ function useAnimalNet() {
     setTimeout(() => train(), 100)
   }, [train])
 
-  return { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training }
+  const updateSpeed = useCallback((v) => {
+    speedRef.current = v
+    setSpeed(v)
+  }, [])
+
+  return { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed }
 }
 
 // ── Animated Network Canvas ────────────────────────────────────────────────────
@@ -329,7 +336,7 @@ const APPS = [
 
 // ── Main Slide ─────────────────────────────────────────────────────────────────
 export default function S07_AlcancesYCritica({ profesorMode }) {
-  const { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training } = useAnimalNet()
+  const { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed } = useAnimalNet()
   const [features, setFeatures] = useState([1,0,0,1,0,0,1,1]) // default: gato
   const [probs, setProbs] = useState(null)
   const [selectedPreset, setSelectedPreset] = useState(0)
@@ -614,6 +621,21 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
               />
             </div>
           </div>
+        </div>
+
+        {/* Speed control */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>rápido</span>
+          <input
+            type="range" min={20} max={600} step={10}
+            value={speed}
+            onChange={e => updateSpeed(Number(e.target.value))}
+            style={{ width: '90px', accentColor: '#7c6dfa', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>lento</span>
+          <span style={{ fontSize: '0.6rem', color: '#7c6dfa', fontFamily: 'monospace', width: '42px' }}>
+            {speed}ms
+          </span>
         </div>
 
         {/* Sparklines */}

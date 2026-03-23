@@ -21,14 +21,19 @@ function gaussian(i, center, sigma = 3) {
 
 // ── Cosmic Eye Canvas ──────────────────────────────────────────────────────────
 function CosmicEye({ targetX, anesthetized }) {
-  const canvasRef  = useRef(null)
-  const animRef    = useRef(null)
-  const currentX   = useRef(targetX)
-  const prevAnesth = useRef(anesthetized.size)
-  const flashRef   = useRef(0)
+  const canvasRef    = useRef(null)
+  const animRef      = useRef(null)
+  const irisXRef     = useRef(null)   // smooth iris X (absolute px, set on first frame)
+  const targetXRef   = useRef(targetX)
+  const prevAnesth   = useRef(anesthetized.size)
+  const flashRef     = useRef(0)
+  const startTimeRef = useRef(null)
 
+  // Keep targetX in a ref so the animation loop always has latest value
+  useEffect(() => { targetXRef.current = targetX }, [targetX])
+
+  // Flash on anesthesia change
   useEffect(() => {
-    // Flash when anesthesia changes
     if (anesthetized.size !== prevAnesth.current) {
       flashRef.current = 1
       prevAnesth.current = anesthetized.size
@@ -45,18 +50,37 @@ function CosmicEye({ targetX, anesthetized }) {
       const ctx = canvas.getContext('2d')
       const t = timestamp * 0.001
 
-      // Smooth tracking toward targetX
-      const tx = (0.12 + (targetX / N_UNITS) * 0.76) * W
-      currentX.current += (tx - currentX.current) * 0.06
-      const eyeX = currentX.current
-      const eyeY = H * 0.5
+      // Entry animation (fade + scale in over 1.4 s)
+      if (!startTimeRef.current) startTimeRef.current = timestamp
+      const elapsed = (timestamp - startTimeRef.current) * 0.001
+      const entry   = Math.min(1, elapsed / 1.4)
+
+      // ── Fixed eye center (sclera never moves) ──
+      const eyeCX = W * 0.5
+      const eyeCY = H * 0.5
+
+      // ── Iris tracking (only iris/pupil move inside the sclera) ──
+      const scleraW  = W * 0.44
+      const maxTravel = scleraW * 0.30          // how far iris center can travel from eye center
+      const targetIrisX = eyeCX + (targetXRef.current / N_UNITS - 0.5) * 2 * maxTravel
+      if (irisXRef.current === null) irisXRef.current = targetIrisX
+      irisXRef.current += (targetIrisX - irisXRef.current) * 0.06
+      const irisX = irisXRef.current
+      const irisY = eyeCY
 
       // Decay flash
       if (flashRef.current > 0) flashRef.current = Math.max(0, flashRef.current - 0.04)
 
-      // ── Background: deep space ──
+      // Apply entry scale/opacity from center
+      ctx.save()
+      ctx.globalAlpha = entry
+      ctx.translate(eyeCX, eyeCY)
+      ctx.scale(0.72 + entry * 0.28, 0.72 + entry * 0.28)
+      ctx.translate(-eyeCX, -eyeCY)
+
+      // ── Background ──
       ctx.fillStyle = '#01010a'
-      ctx.fillRect(0, 0, W, H)
+      ctx.fillRect(eyeCX - W, eyeCY - H, W * 3, H * 3) // fill more than canvas to cover scale
 
       // Stars
       STARS.forEach(s => {
@@ -67,141 +91,147 @@ function CosmicEye({ targetX, anesthetized }) {
         ctx.fill()
       })
 
-      // ── Outer sclera glow ──
-      const scleraW = W * 0.44
       const scleraH = H * 0.38
-      const outerGlow = ctx.createRadialGradient(eyeX, eyeY, scleraH * 0.6, eyeX, eyeY, scleraH * 2)
+
+      // ── Outer sclera glow (fixed at eye center) ──
+      const outerGlow = ctx.createRadialGradient(eyeCX, eyeCY, scleraH * 0.6, eyeCX, eyeCY, scleraH * 2)
       outerGlow.addColorStop(0, `rgba(140,160,255,${0.12 + flashRef.current * 0.15})`)
       outerGlow.addColorStop(1, 'rgba(140,160,255,0)')
       ctx.beginPath()
-      ctx.ellipse(eyeX, eyeY, scleraW * 1.6, scleraH * 1.6, 0, 0, Math.PI * 2)
+      ctx.ellipse(eyeCX, eyeCY, scleraW * 1.6, scleraH * 1.6, 0, 0, Math.PI * 2)
       ctx.fillStyle = outerGlow
       ctx.fill()
 
-      // ── Sclera ──
-      const scleraGrad = ctx.createRadialGradient(eyeX, eyeY - scleraH * 0.3, scleraH * 0.1, eyeX, eyeY, scleraH)
-      scleraGrad.addColorStop(0, 'rgba(240,242,255,0.95)')
+      // ── Sclera (fixed) ──
+      const scleraGrad = ctx.createRadialGradient(eyeCX, eyeCY - scleraH * 0.3, scleraH * 0.1, eyeCX, eyeCY, scleraH)
+      scleraGrad.addColorStop(0,   'rgba(240,242,255,0.95)')
       scleraGrad.addColorStop(0.8, 'rgba(210,215,245,0.92)')
-      scleraGrad.addColorStop(1, 'rgba(160,165,210,0.85)')
+      scleraGrad.addColorStop(1,   'rgba(160,165,210,0.85)')
       ctx.beginPath()
-      ctx.ellipse(eyeX, eyeY, scleraW, scleraH, 0, 0, Math.PI * 2)
+      ctx.ellipse(eyeCX, eyeCY, scleraW, scleraH, 0, 0, Math.PI * 2)
       ctx.fillStyle = scleraGrad
       ctx.fill()
 
-      // ── Iris base ──
-      const irisR = H * 0.27
-      const irisGrad = ctx.createRadialGradient(eyeX, eyeY, 0, eyeX, eyeY, irisR)
-      irisGrad.addColorStop(0,    '#0d0825')
-      irisGrad.addColorStop(0.25, '#1a1060')
-      irisGrad.addColorStop(0.55, '#1e3a8a')
-      irisGrad.addColorStop(0.78, '#7c3aed')
-      irisGrad.addColorStop(0.92, '#4f1d96')
-      irisGrad.addColorStop(1,    '#1e1b4b')
-      ctx.beginPath()
-      ctx.arc(eyeX, eyeY, irisR, 0, Math.PI * 2)
-      ctx.fillStyle = irisGrad
-      ctx.fill()
-
-      // ── Iris radial fibers ──
-      const nFibers = 32
-      for (let k = 0; k < nFibers; k++) {
-        const angle = (k / nFibers) * Math.PI * 2 + t * 0.08
-        const brightness = 0.08 + 0.06 * Math.sin(k * 2.3 + t * 0.4)
-        ctx.beginPath()
-        ctx.moveTo(eyeX + Math.cos(angle) * irisR * 0.28, eyeY + Math.sin(angle) * irisR * 0.28)
-        ctx.lineTo(eyeX + Math.cos(angle) * irisR * 0.96, eyeY + Math.sin(angle) * irisR * 0.96)
-        ctx.strokeStyle = `rgba(147,112,219,${brightness})`
-        ctx.lineWidth = 0.5
-        ctx.stroke()
-      }
-
-      // ── Iris ring highlight ──
-      ctx.beginPath()
-      ctx.arc(eyeX, eyeY, irisR * 0.88, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(99,102,241,0.25)'
-      ctx.lineWidth = 2
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(eyeX, eyeY, irisR * 0.55, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(139,92,246,0.18)'
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-
-      // ── Nebula wisps ──
-      for (let k = 0; k < 4; k++) {
-        const a = (k / 4) * Math.PI * 2 + t * 0.12
-        const rx = eyeX + Math.cos(a) * irisR * 0.45
-        const ry = eyeY + Math.sin(a) * irisR * 0.45
-        const wisp = ctx.createRadialGradient(rx, ry, 0, rx, ry, irisR * 0.4)
-        wisp.addColorStop(0, `rgba(139,92,246,${0.12 + 0.05 * Math.sin(t + k)})`)
-        wisp.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.beginPath()
-        ctx.arc(rx, ry, irisR * 0.4, 0, Math.PI * 2)
-        ctx.fillStyle = wisp
-        ctx.fill()
-      }
-
-      // ── Pupil ──
-      const pupilR = irisR * (0.44 + 0.06 * Math.sin(t * 1.2))
-      const pupilGrad = ctx.createRadialGradient(eyeX, eyeY, 0, eyeX, eyeY, pupilR)
-      pupilGrad.addColorStop(0, '#000005')
-      pupilGrad.addColorStop(0.7, '#05020f')
-      pupilGrad.addColorStop(1, '#0a0520')
-      ctx.beginPath()
-      ctx.arc(eyeX, eyeY, pupilR, 0, Math.PI * 2)
-      ctx.fillStyle = pupilGrad
-      ctx.fill()
-
-      // Pupil depth ring
-      ctx.beginPath()
-      ctx.arc(eyeX, eyeY, pupilR * 0.7, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(80,0,120,0.3)'
-      ctx.lineWidth = 1
-      ctx.stroke()
-
-      // Specular highlight
-      ctx.beginPath()
-      ctx.arc(eyeX - pupilR * 0.35, eyeY - pupilR * 0.35, pupilR * 0.22, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(255,255,255,0.18)'
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(eyeX + pupilR * 0.22, eyeY - pupilR * 0.18, pupilR * 0.09, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(200,180,255,0.12)'
-      ctx.fill()
-
-      // ── Flash on anesthesia ──
-      if (flashRef.current > 0) {
-        ctx.beginPath()
-        ctx.arc(eyeX, eyeY, irisR * 1.4, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(239,68,68,${flashRef.current * 0.15})`
-        ctx.fill()
-      }
-
-      // ── Eyelid clip ──
-      // Top eyelid shadow
-      const topShadow = ctx.createLinearGradient(eyeX, eyeY - scleraH, eyeX, eyeY - scleraH * 0.4)
-      topShadow.addColorStop(0, 'rgba(1,1,10,0.7)')
-      topShadow.addColorStop(1, 'rgba(1,1,10,0)')
+      // Clip everything below to the sclera ellipse
       ctx.save()
       ctx.beginPath()
-      ctx.ellipse(eyeX, eyeY, scleraW, scleraH, 0, 0, Math.PI * 2)
+      ctx.ellipse(eyeCX, eyeCY, scleraW, scleraH, 0, 0, Math.PI * 2)
       ctx.clip()
-      ctx.fillStyle = topShadow
-      ctx.fillRect(eyeX - scleraW, eyeY - scleraH * 2, scleraW * 2, scleraH * 1.5)
-      ctx.restore()
+
+        // ── Iris base (follows irisX) ──
+        const irisR = H * 0.27
+        const irisGrad = ctx.createRadialGradient(irisX, irisY, 0, irisX, irisY, irisR)
+        irisGrad.addColorStop(0,    '#0d0825')
+        irisGrad.addColorStop(0.25, '#1a1060')
+        irisGrad.addColorStop(0.55, '#1e3a8a')
+        irisGrad.addColorStop(0.78, '#7c3aed')
+        irisGrad.addColorStop(0.92, '#4f1d96')
+        irisGrad.addColorStop(1,    '#1e1b4b')
+        ctx.beginPath()
+        ctx.arc(irisX, irisY, irisR, 0, Math.PI * 2)
+        ctx.fillStyle = irisGrad
+        ctx.fill()
+
+        // ── Iris radial fibers ──
+        const nFibers = 32
+        for (let k = 0; k < nFibers; k++) {
+          const angle = (k / nFibers) * Math.PI * 2 + t * 0.08
+          const brightness = 0.08 + 0.06 * Math.sin(k * 2.3 + t * 0.4)
+          ctx.beginPath()
+          ctx.moveTo(irisX + Math.cos(angle) * irisR * 0.28, irisY + Math.sin(angle) * irisR * 0.28)
+          ctx.lineTo(irisX + Math.cos(angle) * irisR * 0.96, irisY + Math.sin(angle) * irisR * 0.96)
+          ctx.strokeStyle = `rgba(147,112,219,${brightness})`
+          ctx.lineWidth = 0.5
+          ctx.stroke()
+        }
+
+        // ── Iris ring highlights ──
+        ctx.beginPath()
+        ctx.arc(irisX, irisY, irisR * 0.88, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(99,102,241,0.25)'
+        ctx.lineWidth = 2
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.arc(irisX, irisY, irisR * 0.55, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(139,92,246,0.18)'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+
+        // ── Nebula wisps ──
+        for (let k = 0; k < 4; k++) {
+          const a  = (k / 4) * Math.PI * 2 + t * 0.12
+          const rx = irisX + Math.cos(a) * irisR * 0.45
+          const ry = irisY + Math.sin(a) * irisR * 0.45
+          const wisp = ctx.createRadialGradient(rx, ry, 0, rx, ry, irisR * 0.4)
+          wisp.addColorStop(0, `rgba(139,92,246,${0.12 + 0.05 * Math.sin(t + k)})`)
+          wisp.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.beginPath()
+          ctx.arc(rx, ry, irisR * 0.4, 0, Math.PI * 2)
+          ctx.fillStyle = wisp
+          ctx.fill()
+        }
+
+        // ── Pupil (follows irisX) ──
+        const pupilR = irisR * (0.44 + 0.06 * Math.sin(t * 1.2))
+        const pupilGrad = ctx.createRadialGradient(irisX, irisY, 0, irisX, irisY, pupilR)
+        pupilGrad.addColorStop(0,   '#000005')
+        pupilGrad.addColorStop(0.7, '#05020f')
+        pupilGrad.addColorStop(1,   '#0a0520')
+        ctx.beginPath()
+        ctx.arc(irisX, irisY, pupilR, 0, Math.PI * 2)
+        ctx.fillStyle = pupilGrad
+        ctx.fill()
+
+        // Pupil depth ring
+        ctx.beginPath()
+        ctx.arc(irisX, irisY, pupilR * 0.7, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(80,0,120,0.3)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+
+        // Specular highlights
+        ctx.beginPath()
+        ctx.arc(irisX - pupilR * 0.35, irisY - pupilR * 0.35, pupilR * 0.22, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(irisX + pupilR * 0.22, irisY - pupilR * 0.18, pupilR * 0.09, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(200,180,255,0.12)'
+        ctx.fill()
+
+        // ── Flash on anesthesia ──
+        if (flashRef.current > 0) {
+          ctx.beginPath()
+          ctx.arc(irisX, irisY, irisR * 1.4, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(239,68,68,${flashRef.current * 0.15})`
+          ctx.fill()
+        }
+
+        // ── Eyelid top shadow ──
+        const topShadow = ctx.createLinearGradient(eyeCX, eyeCY - scleraH, eyeCX, eyeCY - scleraH * 0.4)
+        topShadow.addColorStop(0, 'rgba(1,1,10,0.7)')
+        topShadow.addColorStop(1, 'rgba(1,1,10,0)')
+        ctx.fillStyle = topShadow
+        ctx.fillRect(eyeCX - scleraW, eyeCY - scleraH * 2, scleraW * 2, scleraH * 1.5)
+
+      ctx.restore()  // end sclera clip
 
       // ── Label ──
       ctx.fillStyle = 'rgba(147,112,219,0.7)'
       ctx.font = '9px monospace'
       ctx.textAlign = 'center'
-      ctx.fillText(`posición = promedio de la población (unidad ${targetX.toFixed(1)})`, W / 2, H - 5)
+      ctx.fillText(
+        `posición = promedio de la población (unidad ${targetXRef.current.toFixed(1)})`,
+        W / 2, H - 5
+      )
 
+      ctx.restore()  // end entry scale
       animRef.current = requestAnimationFrame(draw)
     }
 
     animRef.current = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(animRef.current)
-  }, [targetX]) // re-init only if targetX changes enough (smooth tracking handles the rest)
+  }, []) // single persistent loop — targetX is read via ref
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
 }

@@ -1,4 +1,5 @@
 export const SECTIONS = [
+  { id: 0,  key: 's00', title: 'Intro — animación cerebro',         duration: 0,    color: '#7c6dfa' },
   { id: 1,  key: 's01', title: 'Apertura filosófica',             duration: 60,   color: '#7c6dfa' },
   { id: 2,  key: 's02', title: 'La neurona real',                  duration: 90,   color: '#06b6d4' },
   { id: 3,  key: 's03', title: 'La neurona artificial',            duration: 90,   color: '#06b6d4' },
