@@ -21,17 +21,20 @@ function gaussian(i, center, sigma = 3) {
 }
 
 // ── Cosmic Eye Canvas ──────────────────────────────────────────────────────────
-function CosmicEye({ targetX, anesthetized }) {
+function CosmicEye({ targetX, anesthetized, allLost }) {
   const canvasRef    = useRef(null)
   const animRef      = useRef(null)
   const irisXRef     = useRef(null)   // smooth iris X (absolute px, set on first frame)
   const targetXRef   = useRef(targetX)
   const prevAnesth   = useRef(anesthetized.size)
   const flashRef     = useRef(0)
+  const allLostRef   = useRef(allLost)
+  const jitterRef    = useRef(0)
   const startTimeRef = useRef(null)
 
-  // Keep targetX in a ref so the animation loop always has latest value
+  // Keep targetX and allLost in refs so the animation loop always has latest values
   useEffect(() => { targetXRef.current = targetX }, [targetX])
+  useEffect(() => { allLostRef.current = allLost }, [allLost])
 
   // Flash on anesthesia change
   useEffect(() => {
@@ -73,7 +76,14 @@ function CosmicEye({ targetX, anesthetized }) {
       const maxTravel = scleraW * 0.30          // how far iris center can travel from eye center
       const targetIrisX = eyeCX + (targetXRef.current / N_UNITS - 0.5) * 2 * maxTravel
       if (irisXRef.current === null) irisXRef.current = targetIrisX
-      irisXRef.current += (targetIrisX - irisXRef.current) * 0.06
+      if (allLostRef.current) {
+        // Erratic random-walk jitter — no population signal to anchor position
+        jitterRef.current = jitterRef.current * 0.75 + (Math.random() - 0.5) * 22
+        irisXRef.current = eyeCX + Math.max(-maxTravel, Math.min(maxTravel, jitterRef.current))
+      } else {
+        jitterRef.current = 0
+        irisXRef.current += (targetIrisX - irisXRef.current) * 0.06
+      }
       const irisX = irisXRef.current
       const irisY = eyeCY
 
@@ -130,12 +140,21 @@ function CosmicEye({ targetX, anesthetized }) {
         // ── Iris base (follows irisX) ──
         const irisR = H * 0.27
         const irisGrad = ctx.createRadialGradient(irisX, irisY, 0, irisX, irisY, irisR)
-        irisGrad.addColorStop(0,    '#0d0825')
-        irisGrad.addColorStop(0.25, '#1a1060')
-        irisGrad.addColorStop(0.55, '#1e3a8a')
-        irisGrad.addColorStop(0.78, '#7c3aed')
-        irisGrad.addColorStop(0.92, '#4f1d96')
-        irisGrad.addColorStop(1,    '#1e1b4b')
+        if (allLostRef.current) {
+          // Desaturated — no population signal
+          irisGrad.addColorStop(0,    '#080808')
+          irisGrad.addColorStop(0.3,  '#181818')
+          irisGrad.addColorStop(0.6,  '#252525')
+          irisGrad.addColorStop(0.85, '#141414')
+          irisGrad.addColorStop(1,    '#0a0a0a')
+        } else {
+          irisGrad.addColorStop(0,    '#0d0825')
+          irisGrad.addColorStop(0.25, '#1a1060')
+          irisGrad.addColorStop(0.55, '#1e3a8a')
+          irisGrad.addColorStop(0.78, '#7c3aed')
+          irisGrad.addColorStop(0.92, '#4f1d96')
+          irisGrad.addColorStop(1,    '#1e1b4b')
+        }
         ctx.beginPath()
         ctx.arc(irisX, irisY, irisR, 0, Math.PI * 2)
         ctx.fillStyle = irisGrad
@@ -149,7 +168,9 @@ function CosmicEye({ targetX, anesthetized }) {
           ctx.beginPath()
           ctx.moveTo(irisX + Math.cos(angle) * irisR * 0.28, irisY + Math.sin(angle) * irisR * 0.28)
           ctx.lineTo(irisX + Math.cos(angle) * irisR * 0.96, irisY + Math.sin(angle) * irisR * 0.96)
-          ctx.strokeStyle = `rgba(147,112,219,${brightness})`
+          ctx.strokeStyle = allLostRef.current
+            ? `rgba(50,50,50,${brightness * 0.4})`
+            : `rgba(147,112,219,${brightness})`
           ctx.lineWidth = 0.5
           ctx.stroke()
         }
@@ -208,6 +229,27 @@ function CosmicEye({ targetX, anesthetized }) {
         ctx.fillStyle = 'rgba(200,180,255,0.12)'
         ctx.fill()
 
+        // ── Signal lost overlay ──
+        if (allLostRef.current) {
+          const flicker = Math.random() > 0.35
+          if (flicker) {
+            ctx.fillStyle = `rgba(239,68,68,${0.25 + Math.random() * 0.45})`
+            ctx.font = `bold ${11 + Math.floor(Math.random() * 3)}px monospace`
+            ctx.textAlign = 'center'
+            ctx.fillText('SIN SEÑAL', irisX, irisY + 4)
+          }
+          // Noise scanlines
+          for (let ns = 0; ns < 6; ns++) {
+            const ny = irisY - irisR + Math.random() * irisR * 2
+            ctx.beginPath()
+            ctx.moveTo(irisX - irisR * (0.4 + Math.random() * 0.5), ny)
+            ctx.lineTo(irisX + irisR * (0.4 + Math.random() * 0.5), ny)
+            ctx.strokeStyle = `rgba(239,68,68,${Math.random() * 0.2})`
+            ctx.lineWidth = 0.5
+            ctx.stroke()
+          }
+        }
+
         // ── Flash on anesthesia ──
         if (flashRef.current > 0) {
           ctx.beginPath()
@@ -227,11 +269,13 @@ function CosmicEye({ targetX, anesthetized }) {
       ctx.restore()  // end sclera clip
 
       // ── Label ──
-      ctx.fillStyle = 'rgba(147,112,219,0.7)'
+      ctx.fillStyle = allLostRef.current ? 'rgba(239,68,68,0.7)' : 'rgba(147,112,219,0.7)'
       ctx.font = '9px monospace'
       ctx.textAlign = 'center'
       ctx.fillText(
-        `posición = promedio de la población (unidad ${targetXRef.current.toFixed(1)})`,
+        allLostRef.current
+          ? 'señal poblacional = indefinida — 0 neuronas activas'
+          : `posición = promedio de la población (unidad ${targetXRef.current.toFixed(1)})`,
         W / 2, H - 5
       )
 
@@ -365,6 +409,7 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
       totalWeight += act
     }
   })
+  const allLost          = totalWeight === 0 && anesthetized.size > 0
   const populationCenter = totalWeight > 0 ? weightedSum / totalWeight : center
   const displacement     = Math.abs(populationCenter - center).toFixed(2)
 
@@ -475,10 +520,13 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#ef4444', fontFamily: 'monospace', marginBottom: '0.15rem' }}>
                       {anesthetized.size} neurona{anesthetized.size > 1 ? 's' : ''} anestesiada{anesthetized.size > 1 ? 's' : ''}
+                      {allLost && <span style={{ marginLeft: '0.5rem', background: 'rgba(239,68,68,0.2)', padding: '1px 6px', borderRadius: '3px' }}>SEÑAL PERDIDA</span>}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.4 }}>
-                      Centro promedio: <span style={{ color: '#22c55e', fontFamily: 'monospace' }}>{populationCenter.toFixed(2)}</span>{' '}
-                      (desplazado {displacement} unidades)
+                      {allLost
+                        ? <span style={{ color: '#ef4444' }}>Sin neuronas activas — el promedio poblacional no está definido. El ojo pierde anclaje.</span>
+                        : <>Centro promedio: <span style={{ color: '#22c55e', fontFamily: 'monospace' }}>{populationCenter.toFixed(2)}</span>{' '}(desplazado {displacement} unidades)</>
+                      }
                     </div>
                   </div>
                   <button
@@ -537,7 +585,7 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
             overflow: 'hidden',
             boxShadow: '0 0 20px rgba(99,102,241,0.15), inset 0 0 40px rgba(0,0,0,0.8)',
           }}>
-            <CosmicEye targetX={populationCenter} anesthetized={anesthetized} />
+            <CosmicEye targetX={populationCenter} anesthetized={anesthetized} allLost={allLost} />
           </div>
           <div style={{ fontSize: '0.7rem', color: 'rgba(147,112,219,0.5)', textAlign: 'center', fontFamily: 'monospace' }}>
             la posición del iris = promedio ponderado de activaciones activas

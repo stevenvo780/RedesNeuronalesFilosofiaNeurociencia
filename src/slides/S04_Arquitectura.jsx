@@ -169,13 +169,13 @@ export default function S04_Arquitectura({ profesorMode }) {
         for (let j = 0; j < displayTo; j++) {
           const y2 = nodeY(H, displayTo, j)
           const w = wMat?.[i]?.[j] ?? 0
-          const alpha = showW ? Math.min(Math.abs(w) * 0.9, 0.75) : 0.12
+          const alpha = showW ? Math.max(0.18, Math.min(Math.abs(w) * 1.2, 0.9)) : 0.18
           const isActive = animPhase >= l + 1
 
           ctx.strokeStyle = isActive
-            ? `rgba(255,220,50,${alpha + 0.15})`
+            ? `rgba(255,220,50,${Math.max(0.35, alpha)})`
             : w > 0 ? `rgba(124,109,250,${alpha})` : `rgba(239,68,68,${alpha})`
-          ctx.lineWidth = showW ? Math.abs(w) * 1.8 + 0.4 : 0.8
+          ctx.lineWidth = showW ? Math.max(0.8, Math.abs(w) * 2.8) : 1.0
           ctx.beginPath()
           ctx.moveTo(lx[l], y1)
           ctx.lineTo(lx[l + 1], y2)
@@ -218,10 +218,10 @@ export default function S04_Arquitectura({ profesorMode }) {
         ctx.stroke()
 
         // Activation value label
-        ctx.fillStyle = norm > 0.45 ? '#fff' : '#aaa'
-        ctx.font = '7.5px monospace'
+        ctx.fillStyle = norm > 0.5 ? '#ffffff' : (norm > 0.15 ? '#dddddd' : '#888888')
+        ctx.font = 'bold 9px monospace'
         ctx.textAlign = 'center'
-        ctx.fillText(norm.toFixed(2), x, y + 2.5)
+        ctx.fillText(norm.toFixed(2), x, y + 3)
       }
 
       // Layer header
@@ -230,6 +230,37 @@ export default function S04_Arquitectura({ profesorMode }) {
       ctx.textAlign = 'center'
       ctx.fillText(LAYER_LABELS[l] ?? `L${l}`, lx[l], 13)
     })
+
+    // ── Weight value labels on strongest connections (when showW) ──
+    if (showW) {
+      layerSizes.slice(0, -1).forEach((fromSize, l) => {
+        const toSize = layerSizes[l + 1]
+        const displayFrom = Math.min(fromSize, 10)
+        const displayTo   = Math.min(toSize, 10)
+        const wMat = weights[l]?.matrix
+        if (!wMat) return
+        // Find top-3 connections by |w|
+        const conns = []
+        for (let i = 0; i < displayFrom; i++)
+          for (let j = 0; j < displayTo; j++) {
+            const w = wMat[i]?.[j] ?? 0
+            if (Math.abs(w) > 0.3) conns.push({ i, j, w })
+          }
+        conns.sort((a, b) => Math.abs(b.w) - Math.abs(a.w))
+        conns.slice(0, 3).forEach(({ i, j, w }) => {
+          const x1 = lx[l],     y1 = nodeY(H, displayFrom, i)
+          const x2 = lx[l + 1], y2 = nodeY(H, displayTo, j)
+          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2
+          ctx.save()
+          ctx.font = 'bold 8px monospace'
+          ctx.textAlign = 'center'
+          ctx.fillStyle = w > 0 ? 'rgba(167,139,250,0.95)' : 'rgba(248,113,113,0.95)'
+          ctx.shadowColor = '#000'; ctx.shadowBlur = 3
+          ctx.fillText(w.toFixed(2), mx, my - 2)
+          ctx.restore()
+        })
+      })
+    }
 
     // ── Direction arrow ──
     ctx.strokeStyle = '#ffffff22'
@@ -314,6 +345,21 @@ export default function S04_Arquitectura({ profesorMode }) {
         <div style={{ position: 'absolute', top: 10, right: 15, fontSize: '0.9rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
           época {epoch}
         </div>
+      </div>
+
+      {/* Weight color legend */}
+      <div style={{ display: 'flex', gap: '1.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', fontSize: '0.78rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+        {[
+          { color: 'rgba(124,109,250,0.9)', label: 'peso positivo' },
+          { color: 'rgba(239,68,68,0.9)',   label: 'peso negativo' },
+          { color: 'rgba(255,220,50,0.9)',   label: 'señal propagándose' },
+        ].map(({ color, label }) => (
+          <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ display: 'inline-block', width: 22, height: 3, background: color, borderRadius: 2 }} />
+            {label}
+          </span>
+        ))}
+        <span style={{ color: 'var(--text-dim)' }}>grosor de línea = magnitud del peso</span>
       </div>
 
       {/* Layer descriptions */}
