@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Microscope } from 'lucide-react'
 import { ST_CRITICA } from '../../data/st_results'
 import STLogicModal from './STLogicModal'
 
@@ -13,7 +14,9 @@ export default function STTensionPanel({ tensions = ST_CRITICA.tensions, showCon
             ST · 06_Critica_Ontologica
           </div>
           <div style={{ fontSize: '0.5rem', color: 'var(--accent-2)', fontFamily: 'monospace' }}>
-            🔬 click para explorar
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Microscope size={12} strokeWidth={1.8} /> click para explorar
+            </span>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>

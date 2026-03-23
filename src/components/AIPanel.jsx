@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Zap, SendHorizontal } from 'lucide-react'
 import { HINTON_CONTEXT } from '../data/st_results'
 
 const ENDPOINT = 'https://ollama.humanizar-dev.cloud/api/chat/completions'
@@ -126,7 +127,7 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
               padding: '0.2rem 0.5rem',
             }}
           >
-            ⚡ rápidas
+            <Zap size={12} strokeWidth={1.8} /> rápidas
           </button>
           <button
             onClick={onClose}
@@ -241,7 +242,7 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
             opacity: loading || !input.trim() ? 0.5 : 1,
           }}
         >
-          →
+          <SendHorizontal size={16} strokeWidth={1.8} />
         </button>
       </div>
     </div>

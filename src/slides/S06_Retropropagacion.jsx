@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Play, Pause, ArrowRight, ArrowLeft } from 'lucide-react'
 import { BlockMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
@@ -246,9 +247,12 @@ export default function S06_Retropropagacion({ profesorMode }) {
                 border: `1px solid ${mode === m ? (m === 'forward' ? '#22c55e' : '#ef4444') : 'var(--border)'}`,
                 background: mode === m ? (m === 'forward' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)') : 'var(--bg-3)',
                 color: mode === m ? (m === 'forward' ? '#22c55e' : '#ef4444') : 'var(--text-dim)',
-                fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600
+                fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
               }}>
-                {m === 'forward' ? '→ Forward Pass' : '← Backprop Pass'}
+                {m === 'forward'
+                  ? <><ArrowRight size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward Pass</>
+                  : <><ArrowLeft  size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop Pass</>}
               </button>
             ))}
           </div>
@@ -267,9 +271,12 @@ export default function S06_Retropropagacion({ profesorMode }) {
               border: `2px solid ${training ? '#ef4444' : 'var(--accent)'}`,
               background: training ? 'rgba(239,68,68,0.12)' : 'rgba(124,109,250,0.12)',
               color: training ? '#ef4444' : 'var(--accent-2)',
-              fontSize: '1rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s'
+              fontSize: '1rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center',
             }}>
-              {training ? '⏸ Pausar Flujo' : '▶ Entrenar (ver gradientes en vivo)'}
+              {training
+                ? <><Pause size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar Flujo</>
+                : <><Play  size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar (ver gradientes en vivo)</>}
             </button>
           </div>
 

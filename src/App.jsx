@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeft, ChevronRight, Radio, Tv2, BotMessageSquare } from 'lucide-react'
 import AIPanel from './components/AIPanel'
 import S01_Apertura from './slides/S01_Apertura'
 import S02_NeuronasReal from './slides/S02_NeuronasReal'
@@ -168,9 +169,11 @@ export default function App() {
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '0.45rem',
               }}
             >
-              {profesorMode ? '◉ Modo profesor' : '○ Modo público'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(P)</span>
+              <Radio size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+              {profesorMode ? 'Modo profesor' : 'Modo público'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(P)</span>
             </button>
             <button
               onClick={() => setAiVisible(v => !v)}
@@ -184,9 +187,11 @@ export default function App() {
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '0.45rem',
               }}
             >
-              {aiVisible ? '◉ IA activa' : '○ Panel IA'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(A)</span>
+              <BotMessageSquare size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+              {aiVisible ? 'IA activa' : 'Panel IA'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(A)</span>
             </button>
           </div>
         </nav>
@@ -237,7 +242,7 @@ export default function App() {
             disabled={current === 0}
             style={arrowBtnStyle(current === 0)}
           >
-            ← anterior
+            <ChevronLeft size={16} strokeWidth={2} style={{ marginRight: '0.25rem' }} /> anterior
           </button>
 
           {/* Progress dots */}
@@ -269,7 +274,7 @@ export default function App() {
             disabled={current === SLIDES.length - 1}
             style={arrowBtnStyle(current === SLIDES.length - 1)}
           >
-            siguiente →
+            siguiente <ChevronRight size={16} strokeWidth={2} style={{ marginLeft: '0.25rem' }} />
           </button>
         </div>
 
@@ -299,12 +304,15 @@ export default function App() {
 
 function arrowBtnStyle(disabled) {
   return {
+    padding: '0.3rem 0.9rem',
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
     background: 'none',
-    border: 'none',
-    color: disabled ? 'var(--border)' : 'var(--text-dim)',
-    fontSize: '0.72rem',
-    cursor: disabled ? 'default' : 'pointer',
-    fontFamily: 'monospace',
-    padding: '0.25rem 0.5rem',
+    color: disabled ? 'var(--text-dim)' : 'var(--text)',
+    fontSize: '0.8rem',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.4 : 1,
+    display: 'flex', alignItems: 'center', gap: '0.25rem',
+    transition: 'all 0.15s',
   }
 }

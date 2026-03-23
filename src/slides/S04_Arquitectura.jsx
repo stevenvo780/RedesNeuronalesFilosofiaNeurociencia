@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Play } from 'lucide-react'
 import { useNeuralNet } from '../hooks/useNeuralNet'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
@@ -190,10 +191,10 @@ export default function S04_Arquitectura({ profesorMode }) {
             border: '1px solid #22c55e', background: 'rgba(34,197,94,0.12)',
             color: '#22c55e', fontSize: '0.95rem', cursor: 'pointer',
             fontWeight: 600,
-            transition: 'all 0.2s',
+            transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.4rem',
           }}
         >
-          ▶ Propagación Forward
+          <Play size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Propagación Forward
         </button>
 
         <label style={{ fontSize: '0.95rem', color: 'var(--text-dim)', display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: '1rem' }}>

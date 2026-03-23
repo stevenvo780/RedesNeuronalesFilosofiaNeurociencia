@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { Play, Pause, SkipForward, RotateCcw } from 'lucide-react'
 import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
@@ -289,16 +290,18 @@ export default function S05_Entrenamiento({ profesorMode }) {
             background: net.training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
             color: net.training ? '#ef4444' : 'var(--accent-2)',
             fontSize: '1.1rem', cursor: 'pointer', fontWeight: 600,
-            transition: 'all 0.2s',
+            transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem',
           }}
         >
-          {net.training ? '⏸ Pausar Entrenamiento' : '▶ Iniciar Entrenamiento'}
+          {net.training
+            ? <><Pause size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar Entrenamiento</>
+            : <><Play  size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> Iniciar Entrenamiento</>}
         </button>
-        <button onClick={net.step} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '1rem', cursor: 'pointer' }}>
-          → 1 época manual
+        <button onClick={net.step} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <SkipForward size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> 1 época manual
         </button>
-        <button onClick={net.reset} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>
-          ↺ Reiniciar Pesos
+        <button onClick={net.reset} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <RotateCcw size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Reiniciar Pesos
         </button>
       </div>
 

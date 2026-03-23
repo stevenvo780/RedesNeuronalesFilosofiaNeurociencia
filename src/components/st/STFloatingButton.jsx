@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { FlaskConical } from 'lucide-react'
 import STLogicModal from './STLogicModal'
 
 const QUOTES = [
@@ -51,9 +52,9 @@ export default function STFloatingButton() {
         <motion.span
           animate={{ rotate: [0, -10, 10, -5, 0] }}
           transition={{ repeat: Infinity, duration: 3, repeatDelay: 4 }}
-          style={{ fontSize: '0.9rem' }}
+          style={{ display: 'flex', alignItems: 'center' }}
         >
-          ⚗️
+          <FlaskConical size={14} strokeWidth={1.8} />
         </motion.span>
         <span>Supuestos</span>
         <AnimatePresence>

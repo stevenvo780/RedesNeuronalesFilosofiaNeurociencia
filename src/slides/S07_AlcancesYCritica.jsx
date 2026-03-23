@@ -1,20 +1,25 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import * as tf from '@tensorflow/tfjs'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Hash, TrendingUp, Microscope, Telescope,
+  Layers, Wind, Footprints, Leaf, Droplets, Thermometer, Moon,
+  HelpCircle, LoaderCircle, CheckCircle2, RefreshCw, ChevronDown,
+} from 'lucide-react'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
 
 // ── Animal data ────────────────────────────────────────────────────────────────
 const FEATURES = [
-  { key: 'pelo',     label: 'Pelo / Pelaje',  icon: '🧶' },
-  { key: 'plumas',   label: 'Plumas',         icon: '🪶' },
-  { key: 'escamas',  label: 'Escamas',        icon: '🐍' },
-  { key: 'patas4',   label: '4 Patas',        icon: '🦵' },
-  { key: 'vuela',    label: 'Vuela',          icon: '🦋' },
-  { key: 'nada',     label: 'Nada / Acuático',icon: '💧' },
-  { key: 'caliente', label: 'Sangre caliente',icon: '🌡️' },
-  { key: 'nocturno', label: 'Nocturno',       icon: '🌙' },
+  { key: 'pelo',     label: 'Pelo / Pelaje',   Icon: Layers      },
+  { key: 'plumas',   label: 'Plumas',           Icon: Wind        },
+  { key: 'escamas',  label: 'Escamas',          Icon: Leaf        },
+  { key: 'patas4',   label: '4 Patas',          Icon: Footprints  },
+  { key: 'vuela',    label: 'Vuela',            Icon: Wind        },
+  { key: 'nada',     label: 'Nada / Acuático',  Icon: Droplets    },
+  { key: 'caliente', label: 'Sangre caliente',  Icon: Thermometer },
+  { key: 'nocturno', label: 'Nocturno',         Icon: Moon        },
 ]
 
 const ANIMALS = [
@@ -297,25 +302,25 @@ function Sparkline({ data, color, width = 160, height = 36, label }) {
 // ── Apps Row ───────────────────────────────────────────────────────────────────
 const APPS = [
   {
-    label: 'Dígitos manuscritos', icon: '🔢', desc: 'MNIST',
+    label: 'Dígitos manuscritos', Icon: Hash, desc: 'MNIST',
     funciona: 'Clasifica con >98% de precisión usando backprop.',
     explica: 'No revela por qué los humanos reconocemos el "3". Correlaciona píxeles sin comprender forma.',
     color: '#7c6dfa',
   },
   {
-    label: 'Tasas cambiarias', icon: '📈', desc: 'Mercados',
+    label: 'Tasas cambiarias', Icon: TrendingUp, desc: 'Mercados',
     funciona: 'Predice tendencias de corto plazo mejor que regresión lineal.',
     explica: 'No modela causas económicas reales. Aprende correlaciones sin mecanismo.',
     color: '#22c55e',
   },
   {
-    label: 'Células precancerosas', icon: '🔬', desc: 'Papanicolau',
+    label: 'Células precancerosas', Icon: Microscope, desc: 'Papanicolau',
     funciona: 'Detecta patrones morfológicos con alta sensibilidad clínica.',
     explica: 'No entiende biología celular. Representaciones internas opacas al médico.',
     color: '#06b6d4',
   },
   {
-    label: 'Espejos de telescopio', icon: '🔭', desc: 'Óptica',
+    label: 'Espejos de telescopio', Icon: Telescope, desc: 'Óptica',
     funciona: 'Optimiza formas del espejo que maximizan resolución.',
     explica: 'No deduce leyes físicas. Opera como caja negra dentro del pipeline óptico.',
     color: '#f59e0b',
@@ -388,12 +393,12 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.2rem' }}>{a.icon}</span>
+                <span style={{ color: a.color, display: 'flex', alignItems: 'center' }}><a.Icon size={20} strokeWidth={1.8} /></span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.82rem', color: isOpen ? a.color : 'var(--text-h)', fontWeight: 600 }}>{a.label}</div>
                   <div style={{ fontSize: '0.67rem', color: 'var(--text-dim)' }}>{a.desc}</div>
                 </div>
-                <motion.span animate={{ rotate: isOpen ? 180 : 0 }} style={{ fontSize: '0.55rem', color: a.color }}>▼</motion.span>
+                <motion.span animate={{ rotate: isOpen ? 180 : 0 }} style={{ display: 'flex', alignItems: 'center', color: a.color }}><ChevronDown size={14} strokeWidth={2} /></motion.span>
               </div>
               <AnimatePresence>
                 {isOpen && (
@@ -463,7 +468,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                   transition: 'left 0.2s',
                 }} />
               </div>
-              <span style={{ fontSize: '0.92rem' }}>{f.icon}</span>
+              <span style={{ color: features[i] ? 'var(--accent)' : 'var(--text-dim)', display: 'flex', alignItems: 'center' }}><f.Icon size={14} strokeWidth={1.8} /></span>
               <span style={{ fontSize: '0.78rem', color: features[i] ? 'var(--text-h)' : 'var(--text-dim)' }}>
                 {f.label}
               </span>
@@ -534,7 +539,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
               }}
             >
               <div style={{ fontSize: '2.2rem', lineHeight: 1 }}>
-                {ready && bestIdx >= 0 ? ANIMALS[bestIdx].emoji : '❓'}
+                {ready && bestIdx >= 0 ? ANIMALS[bestIdx].emoji : <HelpCircle size={36} strokeWidth={1.5} color="var(--text-dim)" />}
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: ready && bestIdx >= 0 ? ANIMALS[bestIdx].color : 'var(--text-dim)', marginTop: '0.3rem' }}>
                 {ready && bestIdx >= 0 ? ANIMALS[bestIdx].name : training ? 'Entrenando…' : '—'}
@@ -590,9 +595,11 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
           <motion.div
             animate={training ? { rotate: 360 } : {}}
             transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
-            style={{ fontSize: '1rem' }}
+            style={{ display: 'flex', alignItems: 'center', color: training ? '#7c6dfa' : '#22c55e' }}
           >
-            {training ? '⚙️' : '✅'}
+            {training
+              ? <LoaderCircle size={18} strokeWidth={1.8} />
+              : <CheckCircle2 size={18} strokeWidth={1.8} />}
           </motion.div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-h)', fontFamily: 'monospace' }}>
@@ -633,7 +640,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
             display: 'flex', alignItems: 'center', gap: '0.4rem',
           }}
         >
-          🔄 {training ? 'Entrenando…' : 'Reiniciar'}
+          <RefreshCw size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> {training ? 'Entrenando…' : 'Reiniciar'}
         </motion.button>
       </div>
 

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle } from 'lucide-react'
 import { ST_ARGUMENTO, ST_ONTOLOGIA, ST_PRESUPUESTOS, ST_CRITICA, HINTON_CONTEXT } from '../../data/st_results'
 
 const ST_DATA = {
@@ -54,33 +55,34 @@ export default function STLogicModal({ isOpen, onClose, context }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-h)' }}>
-              🔬 ST · Motor de Lógica Formal
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-h)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Microscope size={18} strokeWidth={1.8} color="var(--accent)" /> ST · Motor de Lógica Formal
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
               {context || 'Explorador interactivo de la ontología de Hinton 1992'}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} strokeWidth={1.8} /></button>
         </div>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
           {[
-            { id: 'explorer', label: '⊢ Explorador' },
-            { id: 'evaluator', label: '⊨ Evaluador' },
-            { id: 'chains', label: '→ Cadenas' },
-            { id: 'tensions', label: '⊥ Tensiones' },
+            { id: 'explorer',  label: 'Explorador',  Icon: GitBranch },
+            { id: 'evaluator', label: 'Evaluador',   Icon: Scale },
+            { id: 'chains',    label: 'Cadenas',     Icon: Link2 },
+            { id: 'tensions',  label: 'Tensiones',   Icon: AlertTriangle },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{
                 padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem',
                 fontFamily: 'monospace', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '0.35rem',
                 background: tab === t.id ? 'rgba(124,109,250,0.2)' : 'var(--bg-3)',
                 border: `1px solid ${tab === t.id ? 'var(--accent)' : 'var(--border)'}`,
                 color: tab === t.id ? 'var(--accent-2)' : 'var(--text-dim)',
               }}
-            >{t.label}</button>
+            ><t.Icon size={13} strokeWidth={1.8} />{t.label}</button>
           ))}
         </div>
 
