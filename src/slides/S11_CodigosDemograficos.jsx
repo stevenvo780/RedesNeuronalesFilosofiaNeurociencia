@@ -1,4 +1,4 @@
-import STTensionPanel from "../components/st/STTensionPanel"
+import STFloatingButton from "../components/st/STFloatingButton"
 import STTooltip from "../components/st/STTooltip"
 import { useEffect, useRef, useState } from 'react'
 import STDeriveCard from '../components/st/STDeriveCard'

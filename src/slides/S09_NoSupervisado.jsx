@@ -1,5 +1,5 @@
 import STTooltip from "../components/st/STTooltip"
-import STTensionPanel from "../components/st/STTensionPanel"
+import STFloatingButton from "../components/st/STFloatingButton"
 import { useEffect, useRef, useState } from 'react'
 import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
@@ -8,6 +8,7 @@ const PARADIGMS = [
   { label: 'Supervisado + Retroprop.', instructor: 'Sí', repr: 'Distribuida', uso: 'Clasificación, visión, voz', color: '#7c6dfa' },
   { label: 'Componentes principales', instructor: 'No', repr: 'Distribuida cooperativa', uso: 'Reducción dimensionalidad', color: '#06b6d4' },
   { label: 'Competitivo / Kohonen', instructor: 'No', repr: 'Local (una gana)', uso: 'Mapas, clustering', color: '#22c55e' },
+  { label: 'Hebb (1949) / Oja', instructor: 'No', repr: 'Local hebbiana', uso: 'Biológicamente plausible, LTP', color: '#a78bfa' },
   { label: 'Barlow sparse coding', instructor: 'No', repr: 'Intermedia (sparse)', uso: 'Codificación eficiente', color: '#eab308' },
   { label: 'Refuerzo (RLHF)', instructor: 'Señal recompensa', repr: 'Distribuida', uso: 'LLMs actuales', color: '#f97316' },
 ]
@@ -22,6 +23,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
   const kohRef = useRef(null)
   const pcaRef = useRef(null)
   const compRef = useRef(null)
+  const hebbRef = useRef(null)
   const animFrameRef = useRef(null)
   const kohMapRef = useRef(null)
 
@@ -192,6 +194,112 @@ export default function S09_NoSupervisado({ profesorMode }) {
     return () => cancelAnimationFrame(animFrameRef.current)
   }, [tab])
 
+  // Hebb — synapse strengthening animation
+  useEffect(() => {
+    if (tab !== 'hebb' || !hebbRef.current) return
+    const canvas = hebbRef.current
+    const ctx = canvas.getContext('2d')
+    const W = canvas.width = canvas.offsetWidth
+    const H = canvas.height = canvas.offsetHeight
+
+    let weight = 0.05
+    let phase = 0     // 0=idle, 1=pre fires, 2=post fires, 3=weight update
+    let phaseFrame = 0
+    let eventCount = 0
+
+    function animate() {
+      phaseFrame++
+      if (phaseFrame > 45) {
+        phaseFrame = 0
+        phase = (phase + 1) % 4
+        if (phase === 0) {
+          eventCount++
+          weight = Math.min(weight + 0.18, 1.0)
+        }
+      }
+
+      ctx.clearRect(0, 0, W, H)
+      ctx.fillStyle = '#04040e'
+      ctx.fillRect(0, 0, W, H)
+
+      const preX = W * 0.22, preY = H * 0.5
+      const postX = W * 0.78, postY = H * 0.5
+      const r = Math.min(W, H) * 0.1
+
+      const preActive = phase === 1 || phase === 2
+      const postActive = phase === 2
+
+      // Synapse line — thickness = weight
+      const lineW = 1.5 + weight * 10
+      ctx.beginPath()
+      ctx.moveTo(preX + r, preY)
+      ctx.lineTo(postX - r, postY)
+      ctx.strokeStyle = `rgba(167,139,250,${0.15 + weight * 0.85})`
+      ctx.lineWidth = lineW
+      ctx.stroke()
+
+      // Weight label
+      ctx.fillStyle = '#a78bfa'
+      ctx.font = `bold ${Math.round(11 + weight * 4)}px monospace`
+      ctx.textAlign = 'center'
+      ctx.fillText(`w = ${weight.toFixed(2)}`, W / 2, H / 2 - r - 14)
+
+      // Co-activation flash
+      if (postActive) {
+        ctx.beginPath()
+        ctx.arc(W / 2, H / 2, r * 0.4, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(167,139,250,0.2)'
+        ctx.fill()
+        ctx.fillStyle = '#a78bfa'
+        ctx.font = '10px monospace'
+        ctx.fillText('co-activación!', W / 2, H - r - 24)
+      }
+
+      // PRE neuron
+      ctx.beginPath()
+      ctx.arc(preX, preY, r, 0, Math.PI * 2)
+      ctx.fillStyle = preActive ? 'rgba(6,182,212,0.75)' : 'rgba(6,182,212,0.15)'
+      ctx.fill()
+      ctx.strokeStyle = '#06b6d4'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      ctx.fillStyle = '#fff'
+      ctx.font = '11px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText('PRE', preX, preY + 4)
+
+      // POST neuron
+      ctx.beginPath()
+      ctx.arc(postX, postY, r, 0, Math.PI * 2)
+      ctx.fillStyle = postActive ? 'rgba(34,197,94,0.75)' : 'rgba(34,197,94,0.15)'
+      ctx.fill()
+      ctx.strokeStyle = '#22c55e'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      ctx.fillStyle = '#fff'
+      ctx.font = '11px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText('POST', postX, postY + 4)
+
+      // Event counter
+      ctx.fillStyle = '#6b6b88'
+      ctx.font = '10px monospace'
+      ctx.textAlign = 'right'
+      ctx.fillText(`co-activaciones: ${eventCount}`, W - 8, H - 8)
+
+      // Rule
+      ctx.fillStyle = '#6b6b88'
+      ctx.font = '9px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText('"neuronas que se disparan juntas, se conectan juntas" — Hebb 1949', W / 2, H - 8)
+
+      animFrameRef.current = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => cancelAnimationFrame(animFrameRef.current)
+  }, [tab])
+
   return (
     <div className="section-slide" style={{ gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
@@ -221,6 +329,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
           { id: 'pca', label: '9a — PCA' },
           { id: 'competitive', label: '9b — Competitivo' },
           { id: 'kohonen', label: '9c — Kohonen' },
+          { id: 'hebb', label: '9d — Hebb' },
         ].map(t => (
           <button
             key={t.id}
@@ -253,6 +362,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
         {tab === 'pca' && <canvas ref={pcaRef} style={{ width: '100%', height: '100%' }} />}
         {tab === 'competitive' && <canvas ref={compRef} style={{ width: '100%', height: '100%' }} />}
         {tab === 'kohonen' && <canvas ref={kohRef} style={{ width: '100%', height: '100%' }} />}
+        {tab === 'hebb' && <canvas ref={hebbRef} style={{ width: '100%', height: '100%' }} />}
       </div>
 
       {/* Tab descriptions */}
@@ -260,6 +370,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
         {tab === 'pca' && <><STTooltip term="aprendizaje_hebbiano">Cálculo de Componentes Principales</STTooltip> — Las unidades extraen correlaciones estadísticas dominantes (Linsker y Oja). Altamente <STTooltip term="plausibilidad_biologica">plausible biológicamente</STTooltip>.</>}
         {tab === 'competitive' && <>Redes de Competición Mutua (Winner-Takes-All). Las neuronas no colaboran, compiten. Actúa como un mecanismo implacable de <STTooltip term="representacion">categorización discreta</STTooltip>.</>}
         {tab === 'kohonen' && <>Mapas Auto-organizados (SOM). La geometría topológica importa. Obliga a neuronas vecinas en el perceptrón a codificar <STTooltip term="vector_de_estado">vectores de estado</STTooltip> estructuralmente similares, imitando la corteza cerebral real.</>}
+        {tab === 'hebb' && <><STTooltip term="aprendizaje_hebbiano">Regla de Hebb (1949)</STTooltip> — la sinapsis se fortalece con cada co-activación. Sin señal de error externa. Oja (1982): PCA implementable con reglas hebbianas. La alternativa <STTooltip term="plausibilidad_biologica">biológicamente plausible</STTooltip> a la retropropagación.</>}
       </div>
 
       {/* ST Deriva */}

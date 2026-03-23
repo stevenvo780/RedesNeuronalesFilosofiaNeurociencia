@@ -1,4 +1,4 @@
-import STTensionPanel from "../components/st/STTensionPanel"
+import STFloatingButton from "../components/st/STFloatingButton"
 import { useRef, useState, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
@@ -312,13 +312,7 @@ export default function S02_NeuronasReal({ profesorMode }) {
         </div>
       )}
       
-      <STTensionPanel 
-        title="Reducción Ontológica Neuronal"
-        items={[
-          { label: "Temporalidad Compleja", status: "no", desc: "El timing exacto de los picos de acción electroquímicos se ignora (salvo en SNNs modernas)." },
-          { label: "Plasticidad Sináptica", status: "yes", desc: "El cambio en la 'eficacia' sináptica (pesos matemáticos) se mantiene como matriz central." }
-        ]}
-      />
+      <STFloatingButton />
 
       {/* Key insight */}
       <div className="st-card" style={{ maxWidth: '1000px', width: '100%' }}>

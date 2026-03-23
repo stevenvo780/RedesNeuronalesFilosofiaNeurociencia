@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import * as tf from '@tensorflow/tfjs'
-import STTensionPanel from '../components/st/STTensionPanel'
+import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
 
@@ -306,10 +306,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
         <STModalBadge symbol="O" content="EPISTEMOLOGICAL_GAP" title="Brecha Epistemológica" />
       </div>
 
-      {/* ST Tension Panel */}
-      <div style={{ width: '100%', maxWidth: '1100px' }}>
-        <STTensionPanel />
-      </div>
+      <STFloatingButton />
 
       {/* Cierre con Daugman */}
       <div style={{

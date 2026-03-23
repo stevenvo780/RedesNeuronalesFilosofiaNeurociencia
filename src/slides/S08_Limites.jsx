@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import * as THREE from 'three'
 
 // ── Loss surface generation ───────────────────────────────────────────────────
@@ -214,10 +214,11 @@ const LIMITS = [
 // ── Main slide ────────────────────────────────────────────────────────────────
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
-import STTensionPanel from '../components/st/STTensionPanel'
+import STFloatingButton from '../components/st/STFloatingButton'
 
 export default function S08_Limites({ profesorMode }) {
   const [focusLandscape, setFocusLandscape] = useState(false)
+  const [detailL, setDetailL] = useState(null)
 
   return (
     <div className="section-slide" style={{ gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -241,13 +242,13 @@ export default function S08_Limites({ profesorMode }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.12 }}
-            onClick={() => l.n === 3 && setFocusLandscape(true)}
+            onClick={() => setDetailL(detailL === l.n ? null : l.n)}
             style={{
               background: 'var(--bg-3)',
               border: `1px solid ${l.color}44`,
               borderLeft: `4px solid ${l.color}`,
               borderRadius: '8px', padding: '1rem 1.25rem',
-              cursor: l.n === 3 ? 'pointer' : 'default',
+              cursor: 'pointer',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
@@ -272,7 +273,7 @@ export default function S08_Limites({ profesorMode }) {
           </span>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>arrastrar para rotar (Canvas 3D)</span>
         </div>
-        <div style={{ height: '400px', background: '#04040e' }}>
+        <div style={{ height: '260px', background: '#04040e' }}>
           <Canvas camera={{ position: [0, 8, 12], fov: 40 }} gl={{ antialias: false, powerPreference: "high-performance" }}>
             <Suspense fallback={null}>
               <color attach="background" args={['#04040e']} />
@@ -290,13 +291,7 @@ export default function S08_Limites({ profesorMode }) {
         </div>
       </div>
 
-      <STTensionPanel 
-        title="La Tensión de la Plausibilidad vs. Utilidad"
-        items={[
-          { label: "Cálculo Eficiente", status: "yes", desc: "El algoritmo permite a los agentes artificiales generar mapas abstractos complejos." },
-          { label: "Exactitud Estructural", status: "no", desc: "Las neuronas biológicas no mandan señales idénticas en reversa. Hinton sacrificó realismo por computabilidad heurística." }
-        ]}
-      />
+      <STFloatingButton />
 
       {/* Alternativa biológica: Hebb */}
       <div style={{

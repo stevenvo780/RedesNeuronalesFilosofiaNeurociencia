@@ -1,4 +1,4 @@
-import STTensionPanel from "../components/st/STTensionPanel"
+import STFloatingButton from "../components/st/STFloatingButton"
 import STModalBadge from '../components/st/STModalBadge'
 import { motion } from 'framer-motion'
 
@@ -94,21 +94,7 @@ export default function S13_CierreArgumental({ profesorMode }) {
       </div>
 
       {/* Tensión final */}
-      <STTensionPanel
-        title="La Pregunta que Permanece Abierta"
-        items={[
-          {
-            label: 'Éxito instrumental',
-            status: 'yes',
-            desc: 'Las redes neuronales funcionan y generan predicciones corroborables en dominios específicos. Eso es real e importante.',
-          },
-          {
-            label: 'Explicación neurocientífica',
-            status: 'no',
-            desc: 'Mostrar que un mecanismo funciona no prueba que sea el mecanismo que usa el cerebro. La brecha explicativa subsiste.',
-          },
-        ]}
-      />
+      <STFloatingButton />
 
       {/* Pregunta para la discusión */}
       <motion.div

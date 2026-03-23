@@ -1,5 +1,5 @@
 import STTooltip from "../components/st/STTooltip"
-import STTensionPanel from "../components/st/STTensionPanel"
+import STFloatingButton from "../components/st/STFloatingButton"
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
@@ -129,13 +129,7 @@ export default function S10_ReprDistribuidas({ profesorMode }) {
         "¿Dónde reside el concepto de 'abuela' en la red? ¿En una sola neurona (célula de la abuela) o distribuida holográficamente en mil sinapsis? Hinton y Barlow buscaban el punto medio ontológico."
       </div>
       
-      <STTensionPanel 
-        title="El Debate Representacional"
-        items={[
-          { label: "Postura Localista", status: "no", desc: "Aislar conceptos empíricos en unidades individuales. Frágil ante la muerte celular, incapaz de generalizar." },
-          { label: "Postura Distribuida (Sparse)", status: "yes", desc: "La identidad es un vector de activación esparcido. Robusto, combinatorio, topológicamente denso." }
-        ]}
-      />
+      <STFloatingButton />
 
       {/* Tres tipos de representación */}
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', maxWidth: '1100px', justifyContent: 'center' }}>

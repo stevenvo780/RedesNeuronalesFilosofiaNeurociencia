@@ -36,16 +36,18 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showQuick, setShowQuick] = useState(true)
   const bottomRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function send() {
-    const q = input.trim()
+  async function send(text) {
+    const q = (text ?? input).trim()
     if (!q || loading) return
     setInput('')
+    setShowQuick(false)
     const newMessages = [...messages, { role: 'user', content: q }]
     setMessages(newMessages)
     setLoading(true)
@@ -60,7 +62,7 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
         body: JSON.stringify({
           model: MODEL,
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: buildSystemPrompt(currentSlide) },
             ...newMessages,
           ],
           stream: false,
@@ -95,42 +97,98 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
     }}>
       {/* Header */}
       <div style={{
-        padding: '1.2rem 1.5rem',
+        padding: '0.9rem 1.2rem',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        flexShrink: 0,
       }}>
         <div>
-          <div style={{ fontSize: '1.1rem', color: 'var(--text-h)', fontWeight: 600 }}>
-            IA · qwen2.5-coder:14b
+          <div style={{ fontSize: '1rem', color: 'var(--text-h)', fontWeight: 600 }}>
+            IA · Hinton 1992
           </div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-            Contexto: Hinton 1992 + notas
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+            {currentSlide ? `slide: ${currentSlide.label}` : 'contexto completo'}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '2rem', lineHeight: 1 }}
-        >
-          ×
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowQuick(v => !v)}
+            title="Preguntas rápidas"
+            style={{
+              background: showQuick ? 'rgba(124,109,250,0.2)' : 'none',
+              border: `1px solid ${showQuick ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: '5px',
+              color: showQuick ? 'var(--accent-2)' : 'var(--text-dim)',
+              cursor: 'pointer',
+              fontSize: '0.72rem',
+              padding: '0.2rem 0.5rem',
+            }}
+          >
+            ⚡ rápidas
+          </button>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1.5rem', lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
       </div>
 
+      {/* Quick questions panel */}
+      {showQuick && (
+        <div style={{
+          padding: '0.6rem 0.8rem',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.3rem',
+          flexShrink: 0,
+          background: 'rgba(124,109,250,0.04)',
+        }}>
+          <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.2rem' }}>
+            PREGUNTAS FRECUENTES
+          </div>
+          {QUICK_QUESTIONS.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => send(q)}
+              disabled={loading}
+              style={{
+                background: 'var(--bg-3)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                color: 'var(--text-dim)',
+                fontSize: '0.72rem',
+                padding: '0.35rem 0.6rem',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                textAlign: 'left',
+                lineHeight: 1.4,
+                transition: 'background 0.15s',
+                opacity: loading ? 0.5 : 1,
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="scroll-y" style={{ flex: 1, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="scroll-y" style={{ flex: 1, padding: '0.8rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
         {messages.map((m, i) => (
           <div key={i} style={{
             maxWidth: '90%',
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
             background: m.role === 'user' ? 'rgba(124,109,250,0.2)' : 'var(--bg-3)',
             border: '1px solid var(--border)',
-            borderRadius: '12px',
-            padding: '0.8rem 1.2rem',
-            fontSize: '1rem',
-            lineHeight: 1.5,
+            borderRadius: '10px',
+            padding: '0.65rem 1rem',
+            fontSize: '0.88rem',
+            lineHeight: 1.55,
             color: 'var(--text)',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
           }}>
             {m.content}
           </div>
@@ -141,18 +199,18 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
             background: 'var(--bg-3)',
             border: '1px solid var(--border)',
             borderRadius: '8px',
-            padding: '0.5rem 0.75rem',
-            fontSize: '0.82rem',
+            padding: '0.4rem 0.7rem',
+            fontSize: '0.78rem',
             color: 'var(--text-dim)',
           }}>
-            <span className="fade-in" style={{ animation: 'pulse 1.2s ease infinite' }}>pensando…</span>
+            <span style={{ animation: 'pulse 1.2s ease infinite' }}>pensando…</span>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <div style={{ padding: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.5rem' }}>
+      <div style={{ padding: '0.65rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -170,7 +228,7 @@ export default function AIPanel({ visible, onClose, currentSlide }) {
           }}
         />
         <button
-          onClick={send}
+          onClick={() => send()}
           disabled={loading || !input.trim()}
           style={{
             background: 'rgba(124,109,250,0.8)',

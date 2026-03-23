@@ -161,3 +161,10 @@ canvas.viz { width: 100% !important; height: 100% !important; display: block; }
   box-shadow: 0 20px 60px rgba(124,109,250,0.2);
   animation: fadeUp 0.3s ease;
 }
+
+
+/* ST floating button glow */
+@keyframes stFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
