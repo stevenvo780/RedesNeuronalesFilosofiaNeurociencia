@@ -359,10 +359,10 @@ export default function S09_NoSupervisado({ profesorMode }) {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.6rem', maxWidth: '1000px', width: '100%' }}>
         {[
-          { id: 'pca',         label: '9a — PCA' },
-          { id: 'competitive', label: '9b — Competitivo' },
-          { id: 'kohonen',     label: '9c — Kohonen' },
-          { id: 'hebb',        label: '9d — Hebb' },
+          { id: 'pca',         label: '9a — PCA',        tooltip: 'pca' },
+          { id: 'competitive', label: '9b — Competitivo', tooltip: 'aprendizaje_competitivo' },
+          { id: 'kohonen',     label: '9c — Kohonen',     tooltip: 'kohonen' },
+          { id: 'hebb',        label: '9d — Hebb',        tooltip: 'aprendizaje_hebbiano' },
         ].map(t => (
           <motion.button
             key={t.id}
@@ -376,7 +376,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
               transition: 'background 0.15s, color 0.15s',
             }}
           >
-            {t.label}
+            <STTooltip term={t.tooltip}>{t.label}</STTooltip>
           </motion.button>
         ))}
       </div>

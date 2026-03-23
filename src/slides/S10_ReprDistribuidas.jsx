@@ -121,7 +121,7 @@ function RecurrentNet() {
         const t = (ts - startTime) * 0.001
         const ctx = canvas.getContext('2d')
         ctx.clearRect(0, 0, W, H)
-        ctx.fillStyle = 'var(--bg-3)'; ctx.fillRect(0, 0, W, H)
+        ctx.fillStyle = '#0b0b1e'; ctx.fillRect(0, 0, W, H)
 
         // Edges
         edges.forEach(([a, b], ei) => {

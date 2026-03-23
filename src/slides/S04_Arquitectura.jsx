@@ -28,21 +28,61 @@ export default function S04_Arquitectura({ profesorMode }) {
   const canvasRef   = useRef(null)
   const [sample, setSample]       = useState(0)
   const [showW, setShowW]         = useState(true)
-  const [animPhase, setAnimPhase] = useState(-1)  // -1 = idle, 0..3 = layer highlight
+  const [animPhase, setAnimPhase] = useState(-1)
+  const loopRef = useRef(null)
+
+  // Auto-start training + forward-pass loop on mount
+  useEffect(() => {
+    start()
+    // Start a continuous forward-pass animation loop
+    let phase = 0
+    let sampleIdx = 0
+    loopRef.current = setInterval(() => {
+      setAnimPhase(phase)
+      phase++
+      if (phase > 4) {
+        phase = 0
+        // Rotate sample on each full cycle
+        sampleIdx = (sampleIdx + 1) % 6
+        setSample(sampleIdx)
+      }
+    }, 600)
+    return () => {
+      stop()
+      clearInterval(loopRef.current)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Trigger activations when sample or epoch changes
   useEffect(() => {
     if (data?.X?.[sample]) getActivationsFor(data.X[sample])
   }, [sample, data, epoch]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Animate forward pass
+  // Manual forward pass: restart the loop from current sample
   const runForward = () => {
+    clearInterval(loopRef.current)
     let phase = 0
     setAnimPhase(0)
-    const iv = setInterval(() => {
+    loopRef.current = setInterval(() => {
       phase++
-      if (phase > 3) { clearInterval(iv); setAnimPhase(-1) }
-      else setAnimPhase(phase)
+      if (phase > 3) {
+        clearInterval(loopRef.current)
+        setAnimPhase(-1)
+        // Resume auto-loop after manual pass
+        let autoPhase = 0
+        let autoSample = sample
+        loopRef.current = setInterval(() => {
+          setAnimPhase(autoPhase)
+          autoPhase++
+          if (autoPhase > 4) {
+            autoPhase = 0
+            autoSample = (autoSample + 1) % 6
+            setSample(autoSample)
+          }
+        }, 600)
+      } else {
+        setAnimPhase(phase)
+      }
     }, 500)
   }
 
@@ -188,13 +228,14 @@ export default function S04_Arquitectura({ profesorMode }) {
           onClick={runForward}
           style={{
             padding: '0.5rem 1.2rem', borderRadius: '8px', marginLeft: '1rem',
-            border: '1px solid #22c55e', background: 'rgba(34,197,94,0.12)',
-            color: '#22c55e', fontSize: '0.95rem', cursor: 'pointer',
+            border: `1px solid ${animPhase >= 0 ? '#eab308' : '#22c55e'}`,
+            background: animPhase >= 0 ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)',
+            color: animPhase >= 0 ? '#eab308' : '#22c55e', fontSize: '0.95rem', cursor: 'pointer',
             fontWeight: 600,
             transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.4rem',
           }}
         >
-          <Play size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Propagación Forward
+          <Play size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> {animPhase >= 0 ? `Capa ${Math.min(animPhase + 1, 4)}/4` : 'Propagación Forward'}
         </button>
 
         <label style={{ fontSize: '0.95rem', color: 'var(--text-dim)', display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: '1rem' }}>

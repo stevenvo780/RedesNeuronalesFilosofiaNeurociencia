@@ -5,7 +5,7 @@ import {
   Hash, TrendingUp, Microscope, Telescope,
   Layers, Wind, Footprints, Leaf, Droplets, Thermometer, Moon,
   HelpCircle, LoaderCircle, CheckCircle2, RefreshCw, ChevronDown,
-  Plus, Minus, SlidersHorizontal,
+  Plus, Minus, SlidersHorizontal, Settings2, X,
 } from 'lucide-react'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
@@ -189,10 +189,12 @@ function useAnimalNet(hiddenLayersCfg, totalEpochs) {
   return { ready, epoch, maxEpoch: totalEpochs, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed }
 }
 
-// ── Animated Network Canvas ────────────────────────────────────────────────────
+// ── Animated Network Canvas (interactive — hover shows weights) ─────────────
 const HIDDEN_COLORS = ['#06b6d4','#a78bfa','#f59e0b','#ec4899']
-function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340, height = 280 }) {
+function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340, height = 280, modelRef }) {
   const ref = useRef(null)
+  const [tooltip, setTooltip] = useState(null)
+  const nodesRef = useRef([]) // store node positions for hit-testing
 
   useEffect(() => {
     const canvas = ref.current
@@ -203,8 +205,8 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
     ctx.clearRect(0, 0, W, H)
 
     // Build layers dynamically
-    const totalLayers = 2 + layerConfig.length // input + hidden... + output
-    const padX = 35
+    const totalLayers = 2 + layerConfig.length
+    const padX = 40
     const stepX = (W - padX * 2) / (totalLayers - 1)
     const layers = [
       { n: N_FEAT, vals: features, color: '#7c6dfa', label: 'entrada' },
@@ -217,12 +219,15 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
 
     // Compute node Y positions
     const nodePositions = layers.map(l => {
-      const spacing = Math.min(28, (H - 40) / (l.n + 1))
+      const spacing = Math.min(24, (H - 50) / (l.n + 1))
       const startY = (H - (l.n - 1) * spacing) / 2
       return Array.from({ length: l.n }, (_, i) => ({ x: l.x, y: startY + i * spacing }))
     })
 
-    // Draw connections (lighter)
+    // Store for hit-testing
+    nodesRef.current = { layers, nodePositions }
+
+    // Draw connections
     for (let li = 0; li < layers.length - 1; li++) {
       const from = nodePositions[li]
       const to = nodePositions[li + 1]
@@ -237,8 +242,8 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
           ctx.beginPath()
           ctx.moveTo(from[f].x, from[f].y)
           ctx.lineTo(to[t].x, to[t].y)
-          ctx.strokeStyle = `rgba(124,109,250,${strength * 0.18})`
-          ctx.lineWidth = 0.3 + strength * 1.2
+          ctx.strokeStyle = `rgba(124,109,250,${strength * 0.22})`
+          ctx.lineWidth = 0.4 + strength * 1.5
           ctx.stroke()
         }
       }
@@ -248,12 +253,11 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
     layers.forEach((l, li) => {
       nodePositions[li].forEach((pos, ni) => {
         const val = l.vals ? Math.min(1, Math.abs(l.vals[ni])) : 0
-        const r = 5 + val * 5
+        const r = 6 + val * 6
 
-        // Glow
         if (val > 0.3) {
           ctx.beginPath()
-          ctx.arc(pos.x, pos.y, r + 4, 0, Math.PI * 2)
+          ctx.arc(pos.x, pos.y, r + 5, 0, Math.PI * 2)
           ctx.fillStyle = `${l.color}22`
           ctx.fill()
         }
@@ -263,22 +267,78 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
         ctx.fillStyle = val > 0.01 ? l.color + (Math.round(40 + val * 215).toString(16).padStart(2, '0')) : '#1a1a2e'
         ctx.fill()
         ctx.strokeStyle = l.color + '66'
-        ctx.lineWidth = 1
+        ctx.lineWidth = 1.2
         ctx.stroke()
+
+        // Show activation value inside node
+        if (val > 0.01) {
+          ctx.fillStyle = '#ffffffcc'
+          ctx.font = '7px monospace'
+          ctx.textAlign = 'center'
+          ctx.fillText(val.toFixed(2), pos.x, pos.y + 2.5)
+        }
       })
     })
 
     // Labels
-    ctx.font = '9px monospace'
+    ctx.font = '10px monospace'
     ctx.textAlign = 'center'
-    layers.forEach((l, li) => {
-      ctx.fillStyle = l.color + 'aa'
-      ctx.fillText(l.label, l.x, H - 4)
+    layers.forEach((l) => {
+      ctx.fillStyle = l.color + 'cc'
+      ctx.fillText(l.label, l.x, H - 6)
     })
 
   }, [features, hiddenActs, width, height, layerConfig])
 
-  return <canvas ref={ref} width={width} height={height} style={{ width, height }} />
+  // Mouse hover for tooltip
+  const handleMouseMove = useCallback((e) => {
+    const canvas = ref.current
+    if (!canvas || !nodesRef.current?.layers) return
+    const rect = canvas.getBoundingClientRect()
+    const mx = (e.clientX - rect.left) * (width / rect.width)
+    const my = (e.clientY - rect.top) * (height / rect.height)
+    const { layers, nodePositions } = nodesRef.current
+    // Check nodes
+    for (let li = 0; li < layers.length; li++) {
+      for (let ni = 0; ni < nodePositions[li].length; ni++) {
+        const pos = nodePositions[li][ni]
+        const dx = mx - pos.x, dy = my - pos.y
+        if (dx * dx + dy * dy < 144) { // radius ~12px
+          const val = layers[li].vals?.[ni]
+          const label = `${layers[li].label} [${ni}]`
+          setTooltip({
+            x: e.clientX - ref.current.parentElement.getBoundingClientRect().left,
+            y: e.clientY - ref.current.parentElement.getBoundingClientRect().top - 40,
+            text: `${label}\nact: ${val != null ? val.toFixed(4) : '—'}`,
+          })
+          return
+        }
+      }
+    }
+    setTooltip(null)
+  }, [width, height])
+
+  return (
+    <div style={{ position: 'relative', width, height }}>
+      <canvas ref={ref} width={width} height={height}
+        style={{ width, height, cursor: 'crosshair' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
+      />
+      {tooltip && (
+        <div style={{
+          position: 'absolute', left: tooltip.x, top: tooltip.y,
+          background: '#0d0d1aee', border: '1px solid #7c6dfa55',
+          borderRadius: '6px', padding: '4px 8px',
+          fontSize: '0.6rem', fontFamily: 'monospace', color: '#e2e8f0',
+          pointerEvents: 'none', whiteSpace: 'pre', zIndex: 10,
+          transform: 'translate(-50%, -100%)',
+        }}>
+          {tooltip.text}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Sparkline (mini chart) ────────────────────────────────────────────────────
@@ -359,6 +419,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   const [probs, setProbs] = useState(null)
   const [selectedPreset, setSelectedPreset] = useState(0)
   const [activeApp, setActiveApp] = useState(null)
+  const [showArchModal, setShowArchModal] = useState(false)
 
   // ── Architecture controls ─────────────────
   const addLayer = () => {
@@ -538,94 +599,33 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
           </div>
         </div>
 
-        {/* CENTER: Animated network + architecture controls */}
+        {/* CENTER: Animated network — full width horizontal */}
         <div style={{
-          flex: '1 1 340px',
+          flex: '1 1 auto',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          minWidth: '280px', gap: '0.4rem',
+          minWidth: '280px', gap: '0.3rem',
         }}>
-          <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-            RED NEURONAL {N_FEAT}→{hiddenLayers.join('→')}→{N_CLASS}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', width: '100%', justifyContent: 'center' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+              RED NEURONAL {N_FEAT}→{hiddenLayers.join('→')}→{N_CLASS}
+            </div>
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+              onClick={() => setShowArchModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '3px',
+                padding: '2px 8px', borderRadius: '5px',
+                border: '1px solid #7c6dfa44', background: 'rgba(124,109,250,0.1)',
+                color: '#a78bfa', fontSize: '0.58rem', fontFamily: 'monospace', cursor: 'pointer',
+              }}>
+              <Settings2 size={11} strokeWidth={2} /> Arquitectura
+            </motion.button>
           </div>
           <motion.div
             animate={{ opacity: training ? [0.6, 1, 0.6] : 1 }}
             transition={{ repeat: training ? Infinity : 0, duration: 1.5 }}
           >
-            <NetworkCanvas features={features} hiddenActs={hiddenActs} layerConfig={hiddenLayers} width={360} height={240} />
+            <NetworkCanvas features={features} hiddenActs={hiddenActs} layerConfig={hiddenLayers} width={480} height={320} />
           </motion.div>
-
-          {/* Architecture panel */}
-          <div style={{
-            width: '100%', background: 'rgba(124,109,250,0.06)',
-            border: '1px solid rgba(124,109,250,0.18)', borderRadius: '8px',
-            padding: '0.4rem 0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
-              <SlidersHorizontal size={13} strokeWidth={2} color="#7c6dfa" />
-              <span style={{ fontSize: '0.6rem', color: '#7c6dfa', fontFamily: 'monospace', letterSpacing: '0.06em', fontWeight: 600 }}>ARQUITECTURA</span>
-            </div>
-
-            {hiddenLayers.map((units, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.6rem', color: HIDDEN_COLORS[i % HIDDEN_COLORS.length], fontFamily: 'monospace', width: '56px', flexShrink: 0 }}>
-                  oculta {i + 1}
-                </span>
-                <input
-                  type="range" min={2} max={32} step={1} value={units}
-                  onChange={e => setLayerUnits(i, Number(e.target.value))}
-                  style={{ flex: 1, accentColor: HIDDEN_COLORS[i % HIDDEN_COLORS.length], cursor: 'pointer', height: '14px' }}
-                />
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-h)', fontFamily: 'monospace', width: '24px', textAlign: 'center' }}>
-                  {units}
-                </span>
-                {hiddenLayers.length > 1 && (
-                  <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => removeLayer(i)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444aa', display: 'flex', padding: '2px' }}>
-                    <Minus size={13} strokeWidth={2} />
-                  </motion.button>
-                )}
-              </div>
-            ))}
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.1rem' }}>
-              {hiddenLayers.length < 4 && (
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  onClick={addLayer}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '3px',
-                    padding: '0.2rem 0.5rem', borderRadius: '5px',
-                    border: '1px dashed rgba(124,109,250,0.35)', background: 'transparent',
-                    color: '#7c6dfa', fontSize: '0.6rem', fontFamily: 'monospace', cursor: 'pointer',
-                  }}>
-                  <Plus size={11} strokeWidth={2.5} /> capa
-                </motion.button>
-              )}
-
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>épocas</span>
-                <input
-                  type="range" min={10} max={300} step={10} value={totalEpochs}
-                  onChange={e => setTotalEpochs(Number(e.target.value))}
-                  style={{ width: '60px', accentColor: '#22c55e', cursor: 'pointer', height: '14px' }}
-                />
-                <span style={{ fontSize: '0.6rem', color: '#22c55e', fontFamily: 'monospace', width: '28px' }}>{totalEpochs}</span>
-              </div>
-            </div>
-
-            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}
-              onClick={restart} disabled={training}
-              style={{
-                width: '100%', padding: '0.3rem 0',
-                borderRadius: '6px', border: '1px solid #7c6dfa44',
-                background: training ? '#1a1a2e' : 'rgba(124,109,250,0.12)',
-                color: training ? 'var(--text-dim)' : '#a78bfa',
-                fontSize: '0.68rem', fontWeight: 600, cursor: training ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-              }}>
-              <RefreshCw size={12} strokeWidth={2} /> {training ? 'Entrenando…' : 'Entrenar con esta arquitectura'}
-            </motion.button>
-          </div>
         </div>
 
         {/* RIGHT: Prediction */}
@@ -769,6 +769,109 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
           <RefreshCw size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> {training ? 'Entrenando…' : 'Reiniciar'}
         </motion.button>
       </div>
+
+      {/* Daugman closure */}
+
+      {/* Architecture Modal */}
+      <AnimatePresence>
+        {showArchModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowArchModal(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#0d0d1a', border: '1px solid #7c6dfa55', borderRadius: '16px',
+                padding: '1.5rem 2rem', width: '420px', maxWidth: '90vw',
+                display: 'flex', flexDirection: 'column', gap: '0.8rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <SlidersHorizontal size={16} strokeWidth={2} color="#7c6dfa" />
+                  <span style={{ fontSize: '0.9rem', color: '#a78bfa', fontWeight: 700, fontFamily: 'monospace' }}>ARQUITECTURA DE LA RED</span>
+                </div>
+                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowArchModal(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', display: 'flex' }}>
+                  <X size={18} strokeWidth={2} />
+                </motion.button>
+              </div>
+
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+                {N_FEAT} → {hiddenLayers.join(' → ')} → {N_CLASS}
+              </div>
+
+              {hiddenLayers.map((units, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: HIDDEN_COLORS[i % HIDDEN_COLORS.length], fontFamily: 'monospace', width: '70px', flexShrink: 0 }}>
+                    Oculta {i + 1}
+                  </span>
+                  <input
+                    type="range" min={2} max={32} step={1} value={units}
+                    onChange={e => setLayerUnits(i, Number(e.target.value))}
+                    style={{ flex: 1, accentColor: HIDDEN_COLORS[i % HIDDEN_COLORS.length], cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-h)', fontFamily: 'monospace', width: '30px', textAlign: 'center', fontWeight: 600 }}>
+                    {units}
+                  </span>
+                  {hiddenLayers.length > 1 && (
+                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                      onClick={() => removeLayer(i)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', padding: '2px' }}>
+                      <Minus size={16} strokeWidth={2} />
+                    </motion.button>
+                  )}
+                </div>
+              ))}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                {hiddenLayers.length < 4 && (
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={addLayer}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '0.35rem 0.8rem', borderRadius: '6px',
+                      border: '1px dashed rgba(124,109,250,0.4)', background: 'transparent',
+                      color: '#7c6dfa', fontSize: '0.75rem', fontFamily: 'monospace', cursor: 'pointer',
+                    }}>
+                    <Plus size={14} strokeWidth={2.5} /> Añadir capa
+                  </motion.button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0', borderTop: '1px solid #ffffff11' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>Épocas</span>
+                <input
+                  type="range" min={10} max={300} step={10} value={totalEpochs}
+                  onChange={e => setTotalEpochs(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: '#22c55e', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.8rem', color: '#22c55e', fontFamily: 'monospace', fontWeight: 600, width: '35px' }}>{totalEpochs}</span>
+              </div>
+
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}
+                onClick={() => { restart(); setShowArchModal(false) }} disabled={training}
+                style={{
+                  width: '100%', padding: '0.6rem 0',
+                  borderRadius: '8px', border: '1px solid #7c6dfa55',
+                  background: training ? '#1a1a2e' : 'rgba(124,109,250,0.15)',
+                  color: training ? 'var(--text-dim)' : '#a78bfa',
+                  fontSize: '0.85rem', fontWeight: 600, cursor: training ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                }}>
+                <RefreshCw size={14} strokeWidth={2} /> {training ? 'Entrenando…' : 'Entrenar con esta arquitectura'}
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Daugman closure */}
       <motion.div

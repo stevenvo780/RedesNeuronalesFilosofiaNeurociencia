@@ -53,4 +53,7 @@ export const dictionary = {
   isomorfismo: 'Correspondencia estructural entre dos sistemas. En neurociencia computacional: el grado en que una red artificial refleja la organización del sistema neural real.',
   representacionalismo: 'Postura filosófica que afirma que los estados mentales son fundamentalmente representaciones de estados del mundo, mediadas por estructuras internas del sistema cognitivo.',
   aprendizaje_por_refuerzo: 'Paradigma de aprendizaje en que un agente aprende a maximizar una señal de recompensa mediante ensayo y error. No requiere salida correcta explícita. Base de los modelos RLHF actuales.',
+  pca: 'Análisis de Componentes Principales (PCA): método no supervisado que encuentra las direcciones de máxima varianza en los datos. Oja (1982) demostró que reglas hebbianas locales implementan PCA de forma biológicamente plausible. La red extrae correlaciones estadísticas sin supervisor externo.',
+  aprendizaje_competitivo: 'Paradigma no supervisado en el que varias unidades "compiten" por representar cada patrón de entrada: solo la unidad más activa (la ganadora) actualiza su vector de pesos. Produce representaciones locales — el extremo opuesto a las representaciones distribuidas.',
+  kohonen: 'Red de Kohonen (SOM — Self-Organizing Map): variante del aprendizaje competitivo en la que unidades vecinas en un mapa 2D también se actualizan, preservando la topología del espacio de entrada. Las neuronas cercanas responden a estímulos similares, como en la corteza somatosensorial.',
 }

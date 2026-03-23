@@ -4,6 +4,7 @@ import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Pause, Play } from 'lucide-react'
 
 const N_UNITS = 20
 
@@ -317,6 +318,31 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
   const [center, setCenter]           = useState(10)
   const [anesthetized, setAnesthetized] = useState(new Set())
   const [showInfo, setShowInfo]        = useState(false)
+  const [isPlaying, setIsPlaying]     = useState(true)
+  const scanRafRef  = useRef(null)
+  const scanTimeRef = useRef(0)
+  const lastTsRef   = useRef(null)
+
+  // Auto-scan: oscillate center from side to side
+  useEffect(() => {
+    if (!isPlaying) {
+      cancelAnimationFrame(scanRafRef.current)
+      lastTsRef.current = null
+      return
+    }
+    const MIN = 2, MAX = N_UNITS - 3
+    function tick(ts) {
+      if (lastTsRef.current === null) lastTsRef.current = ts
+      const dt = (ts - lastTsRef.current) * 0.001
+      lastTsRef.current = ts
+      scanTimeRef.current += dt * 0.45
+      const newCenter = Math.round(MIN + (MAX - MIN) * (0.5 + 0.5 * Math.sin(scanTimeRef.current)))
+      setCenter(newCenter)
+      scanRafRef.current = requestAnimationFrame(tick)
+    }
+    scanRafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(scanRafRef.current)
+  }, [isPlaying])
 
   const activations = Array.from({ length: N_UNITS }, (_, i) =>
     anesthetized.has(i) ? 0 : gaussian(i, center)
@@ -357,15 +383,31 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
 
         {/* Left: population chart + controls */}
         <div style={{ flex: '1 1 420px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {/* Slider */}
+          {/* Slider + play/pause */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>
               <span>centro del bump de activación</span>
-              <span style={{ fontFamily: 'monospace', color: 'var(--accent-2)' }}>unidad {center}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontFamily: 'monospace', color: 'var(--accent-2)' }}>unidad {center}</span>
+                <button
+                  onClick={() => setIsPlaying(p => !p)}
+                  title={isPlaying ? 'Pausar escaneo' : 'Iniciar escaneo'}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.25rem',
+                    padding: '2px 8px', borderRadius: '4px', cursor: 'pointer',
+                    border: `1px solid ${isPlaying ? 'rgba(124,109,250,0.5)' : 'var(--border)'}`,
+                    background: isPlaying ? 'rgba(124,109,250,0.12)' : 'var(--bg-3)',
+                    color: isPlaying ? '#a78bfa' : 'var(--text-dim)',
+                    fontSize: '0.65rem', fontFamily: 'monospace',
+                  }}
+                >
+                  {isPlaying ? <><Pause size={10} strokeWidth={2} /> auto</> : <><Play size={10} strokeWidth={2} /> auto</>}
+                </button>
+              </div>
             </div>
             <input
               type="range" min="2" max={N_UNITS - 3} value={center}
-              onChange={e => setCenter(parseInt(e.target.value))}
+              onChange={e => { setIsPlaying(false); setCenter(parseInt(e.target.value)) }}
               style={{ width: '100%', accentColor: 'var(--accent)', marginBottom: '0.4rem' }}
             />
           </div>
