@@ -312,6 +312,47 @@ export default function S02_NeuronasReal({ profesorMode }) {
         </div>
       )}
       
+      {/* Escala: biológica vs. artificial */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '1000px', width: '100%', justifyContent: 'center' }}>
+        {[
+          { label: 'Cerebro humano', color: '#a78bfa', items: ['~86 mil millones de neuronas', '~100 billones de sinapsis', 'geometría 3D compleja', 'dinámica electroquímica', 'plasticidad continua'] },
+          { label: 'Red de Hinton (1992)', color: '#7c6dfa', items: ['~100–1000 unidades', 'miles de pesos (floats)', 'grafo dirigido acíclico', 'aritmética matricial', 'aprendizaje por épocas'] },
+        ].map(col => (
+          <div key={col.label} style={{
+            flex: '1 1 220px',
+            background: 'var(--bg-3)',
+            border: `1px solid ${col.color}44`,
+            borderTop: `3px solid ${col.color}`,
+            borderRadius: '8px',
+            padding: '0.75rem 1rem',
+          }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: col.color, marginBottom: '0.5rem' }}>{col.label}</div>
+            <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+              {col.items.map((it, i) => (
+                <li key={i} style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.55 }}>{it}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div style={{
+          flex: '1 1 220px',
+          background: 'rgba(239,68,68,0.05)',
+          border: '1px solid rgba(239,68,68,0.25)',
+          borderTop: '3px solid #ef4444',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.4rem' }}>Brecha de escala</div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.55, margin: 0 }}>
+            La convergencia de Andersen-Zipser ocurre a pesar de esta diferencia de 8 órdenes de magnitud.
+            ¿Qué significa que emerjan representaciones similares en sistemas tan distintos?
+          </p>
+        </div>
+      </div>
+
       <STFloatingButton />
 
       {/* Key insight */}

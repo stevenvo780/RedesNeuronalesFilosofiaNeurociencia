@@ -233,6 +233,29 @@ export default function S04_Arquitectura({ profesorMode }) {
         ))}
       </div>
 
+      {/* Teorema de Aproximación Universal */}
+      <div style={{
+        maxWidth: '1000px', width: '100%',
+        background: 'rgba(124,109,250,0.06)',
+        border: '1px solid rgba(124,109,250,0.3)',
+        borderLeft: '4px solid #7c6dfa',
+        borderRadius: '0 10px 10px 0',
+        padding: '1rem 1.5rem',
+      }}>
+        <div style={{ fontSize: '0.75rem', color: '#7c6dfa', fontFamily: 'monospace', marginBottom: '0.4rem', letterSpacing: '0.1em' }}>
+          TEOREMA DE APROXIMACIÓN UNIVERSAL — CYBENKO (1989)
+        </div>
+        <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
+          Una red de <em>una sola capa oculta</em> con funciones de activación sigmoide puede aproximar cualquier función continua
+          sobre un dominio compacto con precisión arbitraria — dado suficientes unidades ocultas.
+        </p>
+        <p style={{ fontSize: '0.88rem', color: 'var(--text-dim)', lineHeight: 1.55, margin: 0 }}>
+          <span style={{ color: '#ef4444' }}>Implicación filosófica:</span>{' '}
+          La capacidad de representar <em>cualquier</em> función no explica <em>qué</em> función aprende la red, ni <em>por qué</em>
+          esa función corresponde a algo en el cerebro. El teorema funda el poder expresivo, no el poder explicativo.
+        </p>
+      </div>
+
       <div style={{ display: 'flex', gap: '1rem' }}>
         <STModalBadge symbol="O" content="LAYER_ONTOLOGY" title="Ontología Jerárquica" />
         <STModalBadge symbol="→" content="FWD_PASS" title="Procesamiento Bottom-Up" />
