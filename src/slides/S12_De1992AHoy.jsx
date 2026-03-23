@@ -280,27 +280,48 @@ export default function S12_De1992AHoy({ profesorMode }) {
                     <motion.div
                       key={t.year}
                       initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: globalIdx * 0.06 }}
+                      animate={t.label === 'Hinton'
+                        ? { opacity: 1, y: 0, boxShadow: ['0 0 18px rgba(124,109,250,0.45)', '0 0 38px rgba(124,109,250,0.85)', '0 0 18px rgba(124,109,250,0.45)'] }
+                        : { opacity: 1, y: 0 }
+                      }
+                      transition={t.label === 'Hinton'
+                        ? { opacity: { delay: globalIdx * 0.06 }, y: { delay: globalIdx * 0.06 }, boxShadow: { duration: 2.2, repeat: Infinity, ease: 'easeInOut', delay: 0.6 } }
+                        : { delay: globalIdx * 0.06 }
+                      }
                       onClick={() => setDetailIdx(isOpen ? null : globalIdx)}
                       whileHover={{ scale: 1.025, y: -2 }}
                       style={{
-                        flex: '1 1 0',
+                        flex: t.label === 'Hinton' ? '1.25 1 0' : '1 1 0',
                         backdropFilter: 'blur(12px)',
-                        background: isOpen ? `rgba(${hexRgb(t.color)},0.18)` : 'rgba(8,8,22,0.75)',
-                        borderTop: `4px solid ${t.color}`,
+                        background: t.label === 'Hinton'
+                          ? (isOpen ? 'rgba(124,109,250,0.28)' : 'rgba(124,109,250,0.14)')
+                          : (isOpen ? `rgba(${hexRgb(t.color)},0.18)` : 'rgba(8,8,22,0.75)'),
+                        borderTop: t.label === 'Hinton' ? '4px solid #a78bfa' : `4px solid ${t.color}`,
                         borderRadius: '10px',
-                        border: `1px solid ${isOpen ? t.color + 'bb' : t.color + '40'}`,
-                        padding: '0.75rem 0.9rem',
+                        border: t.label === 'Hinton'
+                          ? `2px solid rgba(167,139,250,${isOpen ? 0.9 : 0.65})`
+                          : `1px solid ${isOpen ? t.color + 'bb' : t.color + '40'}`,
+                        padding: t.label === 'Hinton' ? '0.9rem 1.1rem' : '0.75rem 0.9rem',
                         cursor: 'pointer',
                         transition: 'background 0.2s, border-color 0.2s',
-                        boxShadow: isOpen ? `0 0 22px ${t.color}44` : 'none',
                         opacity: t.era === 'pre' ? 0.75 : 1,
+                        position: 'relative',
                       }}
                     >
-                      <div style={{ fontSize: '1rem', color: t.color, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.02em' }}>{t.year}</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-h)', marginTop: '0.1rem' }}>{t.label}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>{t.event}</div>
+                      {t.label === 'Hinton' && (
+                        <div style={{
+                          position: 'absolute', top: '-1px', right: '0.6rem',
+                          fontSize: '0.58rem', fontFamily: 'monospace', fontWeight: 700,
+                          color: '#0a0a1a', background: '#a78bfa',
+                          padding: '2px 7px', borderRadius: '0 0 6px 6px',
+                          letterSpacing: '0.1em',
+                        }}>
+                          ★ PROTAGONISTA
+                        </div>
+                      )}
+                      <div style={{ fontSize: t.label === 'Hinton' ? '1.1rem' : '1rem', color: t.label === 'Hinton' ? '#a78bfa' : t.color, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.02em' }}>{t.year}</div>
+                      <div style={{ fontSize: t.label === 'Hinton' ? '1.1rem' : '0.95rem', fontWeight: 700, color: t.label === 'Hinton' ? '#e2d9ff' : 'var(--text-h)', marginTop: '0.1rem' }}>{t.label}</div>
+                      <div style={{ fontSize: '0.75rem', color: t.label === 'Hinton' ? '#c4b5fd' : 'var(--text-dim)', marginTop: '0.15rem' }}>{t.event}</div>
                       <AnimatePresence>
                         {isOpen && (
                           <motion.div

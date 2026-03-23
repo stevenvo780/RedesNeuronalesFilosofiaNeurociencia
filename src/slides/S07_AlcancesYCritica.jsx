@@ -5,6 +5,7 @@ import {
   Hash, TrendingUp, Microscope, Telescope,
   Layers, Wind, Footprints, Leaf, Droplets, Thermometer, Moon,
   HelpCircle, LoaderCircle, CheckCircle2, RefreshCw, ChevronDown,
+  Plus, Minus, SlidersHorizontal,
 } from 'lucide-react'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
@@ -58,17 +59,19 @@ function buildDataset(repeats = 80) {
 }
 
 // ── Training hook ──────────────────────────────────────────────────────────────
-function useAnimalNet() {
-  const modelRef = useRef(null)
-  const stopRef  = useRef(false)
-  const speedRef = useRef(200)
-  const [speed, setSpeed]   = useState(200)
-  const [ready, setReady]   = useState(false)
-  const [epoch, setEpoch] = useState(0)
-  const [maxEpoch] = useState(100)
-  const [acc, setAcc] = useState(0)
+function useAnimalNet(hiddenLayersCfg, totalEpochs) {
+  const modelRef   = useRef(null)
+  const stopRef    = useRef(false)
+  const speedRef   = useRef(200)
+  const cfgRef     = useRef({ hiddenLayersCfg, totalEpochs })
+  cfgRef.current   = { hiddenLayersCfg, totalEpochs }
+
+  const [speed, setSpeed]       = useState(200)
+  const [ready, setReady]       = useState(false)
+  const [epoch, setEpoch]       = useState(0)
+  const [acc, setAcc]           = useState(0)
   const [lossHist, setLossHist] = useState([])
-  const [accHist, setAccHist] = useState([])
+  const [accHist, setAccHist]   = useState([])
   const [hiddenActs, setHiddenActs] = useState(null)
   const [training, setTraining] = useState(false)
 
@@ -84,12 +87,18 @@ function useAnimalNet() {
 
     await tf.ready()
 
+    // Read latest config
+    const { hiddenLayersCfg: layers, totalEpochs: TOTAL } = cfgRef.current
+
     // Dispose previous model
     if (modelRef.current) { try { modelRef.current.dispose() } catch (_) {} }
 
     const model = tf.sequential()
-    model.add(tf.layers.dense({ units: 12, activation: 'relu', inputShape: [N_FEAT] }))
-    model.add(tf.layers.dense({ units: 8, activation: 'relu' }))
+    layers.forEach((units, i) => {
+      const opts = { units, activation: 'relu' }
+      if (i === 0) opts.inputShape = [N_FEAT]
+      model.add(tf.layers.dense(opts))
+    })
     model.add(tf.layers.dense({ units: N_CLASS, activation: 'softmax' }))
     model.compile({
       optimizer: tf.train.adam(0.015),
@@ -101,7 +110,6 @@ function useAnimalNet() {
     const xs = tf.tensor2d(X)
     const ys = tf.tensor2d(y)
 
-    const TOTAL = 100
     for (let e = 0; e < TOTAL; e++) {
       if (stopRef.current) break
       const res = await model.fit(xs, ys, {
@@ -116,21 +124,21 @@ function useAnimalNet() {
       setLossHist(prev => [...prev, curLoss])
       setAccHist(prev => [...prev, curAcc])
 
-      // Extract hidden activations for visualization every 5 epochs
+      // Extract hidden activations for visualization
       if ((e + 1) % 3 === 0 || e === TOTAL - 1) {
         tf.tidy(() => {
           const sampleIn = tf.tensor2d([ANIMALS[0].features])
-          // Get activations from each layer
-          const h1Model = tf.model({ inputs: model.input, outputs: model.layers[0].output })
-          const h2Model = tf.model({ inputs: model.input, outputs: model.layers[1].output })
-          const h1 = h1Model.predict(sampleIn).dataSync()
-          const h2 = h2Model.predict(sampleIn).dataSync()
-          const out = model.predict(sampleIn).dataSync()
-          setHiddenActs({ h1: Array.from(h1), h2: Array.from(h2), out: Array.from(out) })
+          const acts = {}
+          // Build sub-models for each hidden layer
+          for (let li = 0; li < layers.length; li++) {
+            const sub = tf.model({ inputs: model.input, outputs: model.layers[li].output })
+            acts[`h${li}`] = Array.from(sub.predict(sampleIn).dataSync())
+          }
+          acts.out = Array.from(model.predict(sampleIn).dataSync())
+          setHiddenActs(acts)
         })
       }
 
-      // Let React breathe (speed-controlled delay)
       await new Promise(r => setTimeout(r, speedRef.current))
     }
 
@@ -153,15 +161,17 @@ function useAnimalNet() {
   const predict = useCallback((features) => {
     const model = modelRef.current
     if (!model || !ready) return null
+    const { hiddenLayersCfg: layers } = cfgRef.current
     return tf.tidy(() => {
       const inp = tf.tensor2d([features])
-      // Also get hidden acts for live viz
-      const h1Model = tf.model({ inputs: model.input, outputs: model.layers[0].output })
-      const h2Model = tf.model({ inputs: model.input, outputs: model.layers[1].output })
-      const h1 = Array.from(h1Model.predict(inp).dataSync())
-      const h2 = Array.from(h2Model.predict(inp).dataSync())
+      const acts = {}
+      for (let li = 0; li < layers.length; li++) {
+        const sub = tf.model({ inputs: model.input, outputs: model.layers[li].output })
+        acts[`h${li}`] = Array.from(sub.predict(inp).dataSync())
+      }
       const probs = Array.from(model.predict(inp).dataSync())
-      setHiddenActs({ h1, h2, out: probs })
+      acts.out = probs
+      setHiddenActs(acts)
       return probs
     })
   }, [ready])
@@ -176,11 +186,12 @@ function useAnimalNet() {
     setSpeed(v)
   }, [])
 
-  return { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed }
+  return { ready, epoch, maxEpoch: totalEpochs, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed }
 }
 
 // ── Animated Network Canvas ────────────────────────────────────────────────────
-function NetworkCanvas({ features, hiddenActs, width = 340, height = 280 }) {
+const HIDDEN_COLORS = ['#06b6d4','#a78bfa','#f59e0b','#ec4899']
+function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340, height = 280 }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -191,13 +202,18 @@ function NetworkCanvas({ features, hiddenActs, width = 340, height = 280 }) {
     const H = canvas.height = height
     ctx.clearRect(0, 0, W, H)
 
-    // Layer positions
+    // Build layers dynamically
+    const totalLayers = 2 + layerConfig.length // input + hidden... + output
+    const padX = 35
+    const stepX = (W - padX * 2) / (totalLayers - 1)
     const layers = [
-      { n: 8,  x: 35,  vals: features, color: '#7c6dfa', label: 'entrada' },
-      { n: 12, x: 125, vals: hiddenActs?.h1, color: '#06b6d4', label: 'oculta 1' },
-      { n: 8,  x: 215, vals: hiddenActs?.h2, color: '#a78bfa', label: 'oculta 2' },
-      { n: 6,  x: 305, vals: hiddenActs?.out, color: '#22c55e', label: 'salida' },
+      { n: N_FEAT, vals: features, color: '#7c6dfa', label: 'entrada' },
+      ...layerConfig.map((units, i) => ({
+        n: units, vals: hiddenActs?.[`h${i}`], color: HIDDEN_COLORS[i % HIDDEN_COLORS.length], label: `oculta ${i+1}`,
+      })),
+      { n: N_CLASS, vals: hiddenActs?.out, color: '#22c55e', label: 'salida' },
     ]
+    layers.forEach((l, i) => { l.x = padX + i * stepX })
 
     // Compute node Y positions
     const nodePositions = layers.map(l => {
@@ -260,7 +276,7 @@ function NetworkCanvas({ features, hiddenActs, width = 340, height = 280 }) {
       ctx.fillText(l.label, l.x, H - 4)
     })
 
-  }, [features, hiddenActs, width, height])
+  }, [features, hiddenActs, width, height, layerConfig])
 
   return <canvas ref={ref} width={width} height={height} style={{ width, height }} />
 }
@@ -336,11 +352,26 @@ const APPS = [
 
 // ── Main Slide ─────────────────────────────────────────────────────────────────
 export default function S07_AlcancesYCritica({ profesorMode }) {
-  const { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed } = useAnimalNet()
+  const [hiddenLayers, setHiddenLayers] = useState([12, 8])
+  const [totalEpochs, setTotalEpochs]   = useState(100)
+  const { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed } = useAnimalNet(hiddenLayers, totalEpochs)
   const [features, setFeatures] = useState([1,0,0,1,0,0,1,1]) // default: gato
   const [probs, setProbs] = useState(null)
   const [selectedPreset, setSelectedPreset] = useState(0)
   const [activeApp, setActiveApp] = useState(null)
+
+  // ── Architecture controls ─────────────────
+  const addLayer = () => {
+    if (hiddenLayers.length >= 4) return
+    setHiddenLayers(prev => [...prev, 8])
+  }
+  const removeLayer = (idx) => {
+    if (hiddenLayers.length <= 1) return
+    setHiddenLayers(prev => prev.filter((_, i) => i !== idx))
+  }
+  const setLayerUnits = (idx, units) => {
+    setHiddenLayers(prev => prev.map((u, i) => i === idx ? units : u))
+  }
 
   // Predict when features change or model ready
   useEffect(() => {
@@ -507,21 +538,94 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
           </div>
         </div>
 
-        {/* CENTER: Animated network */}
+        {/* CENTER: Animated network + architecture controls */}
         <div style={{
           flex: '1 1 340px',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          minWidth: '280px',
+          minWidth: '280px', gap: '0.4rem',
         }}>
-          <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.3rem' }}>
-            RED NEURONAL 8→12→8→6
+          <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+            RED NEURONAL {N_FEAT}→{hiddenLayers.join('→')}→{N_CLASS}
           </div>
           <motion.div
             animate={{ opacity: training ? [0.6, 1, 0.6] : 1 }}
             transition={{ repeat: training ? Infinity : 0, duration: 1.5 }}
           >
-            <NetworkCanvas features={features} hiddenActs={hiddenActs} width={340} height={260} />
+            <NetworkCanvas features={features} hiddenActs={hiddenActs} layerConfig={hiddenLayers} width={360} height={240} />
           </motion.div>
+
+          {/* Architecture panel */}
+          <div style={{
+            width: '100%', background: 'rgba(124,109,250,0.06)',
+            border: '1px solid rgba(124,109,250,0.18)', borderRadius: '8px',
+            padding: '0.4rem 0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
+              <SlidersHorizontal size={13} strokeWidth={2} color="#7c6dfa" />
+              <span style={{ fontSize: '0.6rem', color: '#7c6dfa', fontFamily: 'monospace', letterSpacing: '0.06em', fontWeight: 600 }}>ARQUITECTURA</span>
+            </div>
+
+            {hiddenLayers.map((units, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.6rem', color: HIDDEN_COLORS[i % HIDDEN_COLORS.length], fontFamily: 'monospace', width: '56px', flexShrink: 0 }}>
+                  oculta {i + 1}
+                </span>
+                <input
+                  type="range" min={2} max={32} step={1} value={units}
+                  onChange={e => setLayerUnits(i, Number(e.target.value))}
+                  style={{ flex: 1, accentColor: HIDDEN_COLORS[i % HIDDEN_COLORS.length], cursor: 'pointer', height: '14px' }}
+                />
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-h)', fontFamily: 'monospace', width: '24px', textAlign: 'center' }}>
+                  {units}
+                </span>
+                {hiddenLayers.length > 1 && (
+                  <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                    onClick={() => removeLayer(i)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444aa', display: 'flex', padding: '2px' }}>
+                    <Minus size={13} strokeWidth={2} />
+                  </motion.button>
+                )}
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.1rem' }}>
+              {hiddenLayers.length < 4 && (
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={addLayer}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '3px',
+                    padding: '0.2rem 0.5rem', borderRadius: '5px',
+                    border: '1px dashed rgba(124,109,250,0.35)', background: 'transparent',
+                    color: '#7c6dfa', fontSize: '0.6rem', fontFamily: 'monospace', cursor: 'pointer',
+                  }}>
+                  <Plus size={11} strokeWidth={2.5} /> capa
+                </motion.button>
+              )}
+
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>épocas</span>
+                <input
+                  type="range" min={10} max={300} step={10} value={totalEpochs}
+                  onChange={e => setTotalEpochs(Number(e.target.value))}
+                  style={{ width: '60px', accentColor: '#22c55e', cursor: 'pointer', height: '14px' }}
+                />
+                <span style={{ fontSize: '0.6rem', color: '#22c55e', fontFamily: 'monospace', width: '28px' }}>{totalEpochs}</span>
+              </div>
+            </div>
+
+            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}
+              onClick={restart} disabled={training}
+              style={{
+                width: '100%', padding: '0.3rem 0',
+                borderRadius: '6px', border: '1px solid #7c6dfa44',
+                background: training ? '#1a1a2e' : 'rgba(124,109,250,0.12)',
+                color: training ? 'var(--text-dim)' : '#a78bfa',
+                fontSize: '0.68rem', fontWeight: 600, cursor: training ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
+              }}>
+              <RefreshCw size={12} strokeWidth={2} /> {training ? 'Entrenando…' : 'Entrenar con esta arquitectura'}
+            </motion.button>
+          </div>
         </div>
 
         {/* RIGHT: Prediction */}
@@ -698,7 +802,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '0.9rem', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--yellow)' }}>Arquitectura:</strong>{' '}
-          8 rasgos → 12 ReLU → 8 ReLU → 6 softmax. Adam lr=0.015, 100 épocas, batch 32.
+          {N_FEAT} rasgos → {hiddenLayers.map(u => `${u} ReLU`).join(' → ')} → {N_CLASS} softmax. Adam lr=0.015, {totalEpochs} épocas, batch 32.
           Dato clave: la red clasifica animales por rasgos binarios, <em>no por imagen</em>.
           Eso es exactamente lo que Hinton defendía: representaciones distribuidas de propiedades,
           no patrones de píxeles. La pregunta ST: ¿una red que clasifica "gato" por 8 bits

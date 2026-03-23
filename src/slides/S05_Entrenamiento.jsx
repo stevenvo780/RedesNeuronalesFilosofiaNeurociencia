@@ -154,6 +154,12 @@ export default function S05_Entrenamiento({ profesorMode }) {
   const [accHistory, setAccH]       = useState([0.5])
   const phaseTimerRef               = useRef(null)
 
+  // Auto-start on slide mount
+  useEffect(() => {
+    net.start()
+    return () => net.stop()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Keep loss/acc history in sync with real values
   useEffect(() => {
     if (net.loss) setLossH(h => [...h.slice(-79), net.loss])
