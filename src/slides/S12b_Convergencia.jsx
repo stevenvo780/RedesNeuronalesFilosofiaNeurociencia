@@ -10,53 +10,73 @@ function ReceptiveFieldCanvas({ type }) {
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const W = canvas.width = canvas.offsetWidth
-    const H = canvas.height = canvas.offsetHeight
-    ctx.clearRect(0, 0, W, H)
-    ctx.fillStyle = '#04040e'
-    ctx.fillRect(0, 0, W, H)
-
-    const cx = W / 2, cy = H / 2
+    let id
     const cells = 6
+    const angle = type === 'bio' ? Math.PI / 4 : Math.PI / 4 + 0.12
+    const sx = type === 'bio' ? 0.08 : 0.09
+    const sy = type === 'bio' ? 0.25 : 0.26
+    const scale = type === 'bio' ? 1.0 : 0.92
+    const baseColor = type === 'bio' ? [34, 197, 94] : [124, 109, 250]
 
-    for (let i = 0; i < cells; i++) {
-      for (let j = 0; j < cells; j++) {
-        const x = (W * 0.15) + (i / (cells - 1)) * (W * 0.7)
-        const y = (H * 0.18) + (j / (cells - 1)) * (H * 0.65)
-        const dx = (x - cx) / (W * 0.4)
-        const dy = (y - cy) / (H * 0.4)
+    function draw(ts) {
+      const W = canvas.width  = canvas.offsetWidth || 200
+      const H = canvas.height = canvas.offsetHeight || 160
+      const t = ts * 0.001
+      const ctx = canvas.getContext('2d')
 
-        let val
-        if (type === 'bio') {
-          // Gaussian-like receptive field with slight elongation (oriented)
-          const angle = Math.PI / 4
+      ctx.fillStyle = '#04040e'
+      ctx.fillRect(0, 0, W, H)
+
+      const cxC = W / 2, cyC = H / 2
+
+      for (let i = 0; i < cells; i++) {
+        for (let j = 0; j < cells; j++) {
+          const x = W * 0.15 + (i / (cells - 1)) * W * 0.7
+          const y = H * 0.18 + (j / (cells - 1)) * H * 0.65
+          const dx = (x - cxC) / (W * 0.4)
+          const dy = (y - cyC) / (H * 0.4)
           const rx = dx * Math.cos(angle) + dy * Math.sin(angle)
           const ry = -dx * Math.sin(angle) + dy * Math.cos(angle)
-          val = Math.exp(-(rx * rx / 0.08 + ry * ry / 0.25))
-        } else {
-          // Trained network — very similar Gaussian-oriented field
-          const angle = Math.PI / 4 + 0.12
-          const rx = dx * Math.cos(angle) + dy * Math.sin(angle)
-          const ry = -dx * Math.sin(angle) + dy * Math.cos(angle)
-          val = Math.exp(-(rx * rx / 0.09 + ry * ry / 0.26)) * 0.92
+          const val = Math.exp(-(rx * rx / sx + ry * ry / sy)) * scale
+          // animated shimmer
+          const shimmer = 1.0 + 0.12 * Math.sin(t * 1.4 + i * 0.7 + j * 0.5)
+          const v = Math.min(1, val * shimmer)
+          const size = Math.max(2, (W / cells) * 0.38)
+          const [r, g, b] = baseColor
+
+          // outer glow for active cells
+          if (v > 0.3) {
+            const grd = ctx.createRadialGradient(x, y, 0, x, y, size * 2.2)
+            grd.addColorStop(0, `rgba(${r},${g},${b},${v * 0.35})`)
+            grd.addColorStop(1, 'rgba(0,0,0,0)')
+            ctx.beginPath(); ctx.arc(x, y, size * 2.2, 0, Math.PI * 2)
+            ctx.fillStyle = grd; ctx.fill()
+          }
+
+          ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(${r},${g},${b},${0.1 + v * 0.9})`
+          if (v > 0.6) { ctx.shadowColor = `rgb(${r},${g},${b})`; ctx.shadowBlur = 8 * v }
+          ctx.fill(); ctx.shadowBlur = 0
         }
-
-        const size = Math.max(2, (W / cells) * 0.35)
-        const r = Math.round(val * (type === 'bio' ? 34 : 124))
-        const g = Math.round(val * (type === 'bio' ? 197 : 109))
-        const b = Math.round(val * (type === 'bio' ? 94 : 250))
-        ctx.fillStyle = `rgba(${r},${g},${b},${0.15 + val * 0.85})`
-        ctx.beginPath()
-        ctx.arc(x, y, size, 0, Math.PI * 2)
-        ctx.fill()
       }
+
+      // orientation line
+      const lc = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${0.5 + 0.2*Math.sin(t*0.8)})`
+      ctx.strokeStyle = lc; ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(cxC - Math.cos(angle)*W*0.28, cyC - Math.sin(angle)*H*0.28)
+      ctx.lineTo(cxC + Math.cos(angle)*W*0.28, cyC + Math.sin(angle)*H*0.28)
+      ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([])
+
+      ctx.fillStyle = type === 'bio' ? '#22c55e' : '#7c6dfa'
+      ctx.font = '10px monospace'; ctx.textAlign = 'center'
+      ctx.fillText(type === 'bio' ? 'neurona real (área 7a)' : 'unidad entrenada (red)', W / 2, H - 6)
+
+      id = requestAnimationFrame(draw)
     }
 
-    ctx.fillStyle = type === 'bio' ? '#22c55e' : '#7c6dfa'
-    ctx.font = '10px monospace'
-    ctx.textAlign = 'center'
-    ctx.fillText(type === 'bio' ? 'neurona real (área 7a)' : 'unidad entrenada (red)', W / 2, H - 6)
+    id = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(id)
   }, [type])
 
   return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />

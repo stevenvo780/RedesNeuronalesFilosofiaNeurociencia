@@ -19,12 +19,13 @@ export function generateSpiral(n = 100, noise = 0.12) {
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
-export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48 } = {}) {
+export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nPoints = 100 } = {}) {
   const modelRef   = useRef(null)
   const dataRef    = useRef(null)
   const xsRef      = useRef(null)
   const ysRef      = useRef(null)
   const runningRef = useRef(false)
+  const speedRef   = useRef(60)
 
   const [epoch,       setEpoch]       = useState(0)
   const [loss,        setLoss]        = useState(1.0)
@@ -34,6 +35,7 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48 } =
   const [activations, setActivations] = useState([])  // [inputVec, l1Acts, ..., outputActs]
   const [gradMags,    setGradMags]    = useState([])  // [{flat, rms, shape}]
   const [training,    setTraining]    = useState(false)
+  const [speed,       setSpeed]       = useState(60)
 
   // ── Internal helpers ─────────────────────────────────────────────────────────
   function snapWeights(model) {
@@ -92,7 +94,7 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48 } =
   // ── Init ──────────────────────────────────────────────────────────────────────
   useEffect(() => {
     tf.ready().then(() => {
-      const data = generateSpiral(100)
+      const data = generateSpiral(nPoints)
       dataRef.current = data
       xsRef.current   = tf.tensor2d(data.X)
       ysRef.current   = tf.tensor2d(data.y, [data.y.length, 1])
@@ -153,7 +155,7 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48 } =
     setTraining(true)
     while (runningRef.current) {
       await doStep()
-      await new Promise(r => setTimeout(r, 60))
+      await new Promise(r => setTimeout(r, speedRef.current))
     }
     setTraining(false)
   }, [doStep])
@@ -193,10 +195,16 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48 } =
     if (model && sample) computeActivations(model, sample)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const updateSpeed = useCallback((ms) => {
+    speedRef.current = ms
+    setSpeed(ms)
+  }, [])
+
   return {
     epoch, loss, accuracy, weights, gridPreds, activations, gradMags, training,
     data: dataRef.current,
     gridRes,
+    speed, updateSpeed,
     start, stop, step, reset, getActivationsFor,
   }
 }

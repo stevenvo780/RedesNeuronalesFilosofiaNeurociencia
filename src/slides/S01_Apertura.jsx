@@ -13,57 +13,112 @@ function NetworkBackground() {
     let w, h, animationId
 
     const resize = () => {
-      w = canvas.width = window.innerWidth
-      h = canvas.height = window.innerHeight
+      w = canvas.width = canvas.offsetWidth || window.innerWidth
+      h = canvas.height = canvas.offsetHeight || window.innerHeight
     }
     resize()
-    window.addEventListener('resize', resize)
+    const ro = new ResizeObserver(resize)
+    ro.observe(canvas)
 
-    const nodes = Array.from({ length: 40 }, () => ({
+    const N = 90
+    const nodes = Array.from({ length: N }, () => ({
       x: Math.random() * w, y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+      vx: (Math.random() - 0.5) * 0.45, vy: (Math.random() - 0.5) * 0.45,
+      r: 1.8 + Math.random() * 2.8,
+      ph: Math.random() * Math.PI * 2,
     }))
 
-    const render = () => {
-      ctx.clearRect(0, 0, w, h)
-      ctx.fillStyle = 'rgba(124, 109, 250, 0.4)'
-      ctx.strokeStyle = 'rgba(124, 109, 250, 0.25)'
-
-      nodes.forEach(n => {
-        n.x += n.vx; n.y += n.vy
-        if (n.x < 0 || n.x > w) n.vx *= -1
-        if (n.y < 0 || n.y > h) n.vy *= -1
-
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, 1.5, 0, Math.PI * 2)
-        ctx.fill()
-      })
-
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x
-          const dy = nodes[i].y - nodes[j].y
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 150) {
-            ctx.beginPath()
-            ctx.moveTo(nodes[i].x, nodes[i].y)
-            ctx.lineTo(nodes[j].x, nodes[j].y)
-            ctx.stroke()
-          }
+    // Pre-build edge list with signal state
+    const MAX_DIST = 210
+    const edges = []
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const dx = nodes[i].x - nodes[j].x
+        const dy = nodes[i].y - nodes[j].y
+        if (dx * dx + dy * dy < MAX_DIST * MAX_DIST) {
+          edges.push({ a: i, b: j, sig: Math.random(), spd: 0.003 + Math.random() * 0.007 })
         }
       }
+    }
+
+    let startTime = null
+    const render = (ts) => {
+      if (!startTime) startTime = ts
+      const t = (ts - startTime) * 0.001
+
+      // color cycle violet↔cyan
+      const cycle = (Math.sin(t * 0.07) + 1) / 2
+      const cr = Math.round(124 - cycle * 45)
+      const cg = Math.round(109 + cycle * 78)
+      const cb = Math.round(250 - cycle * 32)
+
+      ctx.fillStyle = 'rgba(1,1,14,0.18)'
+      ctx.fillRect(0, 0, w, h)
+
+      // drift nodes
+      nodes.forEach(n => {
+        n.x = ((n.x + n.vx) + w) % w
+        n.y = ((n.y + n.vy) + h) % h
+      })
+
+      // edges + signals
+      edges.forEach(e => {
+        e.sig = (e.sig + e.spd) % 1
+        const na = nodes[e.a], nb = nodes[e.b]
+        const dx = nb.x - na.x, dy = nb.y - na.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist > MAX_DIST) return
+        const fade = 1 - dist / MAX_DIST
+        const lw = 0.6 + fade * 0.9
+
+        // line
+        ctx.beginPath()
+        ctx.moveTo(na.x, na.y); ctx.lineTo(nb.x, nb.y)
+        ctx.strokeStyle = `rgba(${cr},${cg},${cb},${0.08 + fade * 0.28})`
+        ctx.lineWidth = lw; ctx.stroke()
+
+        // signal pulse
+        const pA = 0.85 * Math.sin(e.sig * Math.PI)
+        if (pA > 0.1) {
+          const sx = na.x + dx * e.sig, sy = na.y + dy * e.sig
+          const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, 8)
+          grd.addColorStop(0, `rgba(${Math.min(255,cr+60)},${Math.min(255,cg+50)},${cb},${pA})`)
+          grd.addColorStop(0.5, `rgba(${cr},${cg},${cb},${pA * 0.4})`)
+          grd.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2)
+          ctx.fillStyle = grd; ctx.fill()
+        }
+      })
+
+      // nodes with halo + core
+      nodes.forEach((n, i) => {
+        const pulse = 0.5 + 0.5 * Math.sin(t * (0.7 + (i % 13) * 0.08) + n.ph)
+        const r = n.r * (0.7 + 0.5 * pulse)
+
+        // halo
+        const hrd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 8)
+        hrd.addColorStop(0, `rgba(${cr},${cg},${cb},${0.18 * pulse})`)
+        hrd.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.beginPath(); ctx.arc(n.x, n.y, r * 8, 0, Math.PI * 2)
+        ctx.fillStyle = hrd; ctx.fill()
+
+        // core
+        ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${Math.min(255,cr+65)},${Math.min(255,cg+50)},${cb},${0.6 + pulse * 0.4})`
+        ctx.shadowColor = `rgb(${cr},${cg},${cb})`
+        ctx.shadowBlur = 8 * pulse
+        ctx.fill(); ctx.shadowBlur = 0
+      })
+
       animationId = requestAnimationFrame(render)
     }
-    render()
+    animationId = requestAnimationFrame(render)
 
-    return () => {
-      window.removeEventListener('resize', resize)
-      cancelAnimationFrame(animationId)
-    }
+    return () => { cancelAnimationFrame(animationId); ro.disconnect() }
   }, [])
 
   return (
-    <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none', opacity: 0.7 }} />
+    <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }} />
   )
 }
 
@@ -75,26 +130,32 @@ export default function S01_Apertura({ profesorMode }) {
   const betRef = useRef(null)
 
   useEffect(() => {
+    // Set initial states via GSAP so kill() doesn't revert to CSS inline
+    wordsRef.current.forEach(el => { if (el) gsap.set(el, { opacity: 0, y: 10 }) })
+    if (questionRef.current) gsap.set(questionRef.current, { opacity: 0, y: 16 })
+    if (betRef.current) gsap.set(betRef.current, { opacity: 0 })
+
     const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
     wordsRef.current.forEach((el, i) => {
       if (!el) return
-      tl.fromTo(el,
-        { opacity: 0, y: 10 },
+      tl.to(el,
         { opacity: 1, y: 0, duration: 0.4 },
         i === 0 ? 0 : `+=${i < 3 ? 0.35 : 0.6}`
       )
     })
-    tl.fromTo(questionRef.current,
-      { opacity: 0, y: 16 },
+    tl.to(questionRef.current,
       { opacity: 1, y: 0, duration: 0.6 },
       '+=0.5'
     )
-    tl.fromTo(betRef.current,
-      { opacity: 0 },
+    tl.to(betRef.current,
       { opacity: 1, duration: 0.5 },
       '+=0.3'
     )
-    return () => tl.kill()
+
+    return () => {
+      tl.progress(1)  // snap to end state before killing
+      tl.kill()
+    }
   }, [])
 
   return (
@@ -118,7 +179,6 @@ export default function S01_Apertura({ profesorMode }) {
               key={i}
               ref={el => wordsRef.current[i] = el}
               style={{
-                opacity: 0,
                 color: w.includes('...') || w === 'notable.' ? 'var(--accent-2)' : 'var(--text-h)',
               }}
             >
@@ -133,7 +193,6 @@ export default function S01_Apertura({ profesorMode }) {
             fontSize: 'clamp(0.9rem, 2vw, 1.15rem)',
             color: 'var(--text-dim)',
             fontStyle: 'italic',
-            opacity: 0,
           }}
         >
           ¿Es eso una descripción o una apuesta?
@@ -141,7 +200,7 @@ export default function S01_Apertura({ profesorMode }) {
       </div>
 
       {/* Mapa argumental ST */}
-      <div ref={betRef} style={{ width: '100%', opacity: 0 }}>
+      <div ref={betRef} style={{ width: '100%' }}>
         <STArgGraph />
       </div>
 

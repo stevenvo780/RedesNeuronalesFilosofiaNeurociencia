@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Play, Pause, SkipForward, RotateCcw } from 'lucide-react'
+import { Play, Pause, SkipForward, RotateCcw, Gauge } from 'lucide-react'
 import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
@@ -9,8 +9,8 @@ import STModalBadge from '../components/st/STModalBadge'
 const PHASES = [
   { id: 'presentar', label: '1. PRESENTAR',   color: '#22c55e', desc: 'Un punto (x,y) del espacio espiral entra a la red. La capa de entrada se activa.' },
   { id: 'evaluar',   label: '2. EVALUAR',     color: '#ef4444', desc: 'La red produce una predicción. Se mide el error respecto a la clase real.' },
-  { id: 'calcular',  label: '3. CALCULAR EP', color: '#eab308', desc: 'Se calcula el gradiente de la pérdida respecto a cada peso — la responsabilidad de cada conexión.' },
-  { id: 'actualizar',label: '4. ACTUALIZAR',  color: '#7c6dfa', desc: 'Los pesos se ajustan en la dirección opuesta al gradiente. La frontera se mueve.' },
+  { id: 'calcular',  label: '3. CALCULAR EP', color: '#eab308', desc: 'Se calcula el gradiente — la responsabilidad de cada conexión en el error.' },
+  { id: 'actualizar',label: '4. ACTUALIZAR',  color: '#7c6dfa', desc: 'Los pesos se ajustan en dirección opuesta al gradiente. La frontera se mueve.' },
 ]
 
 // ── Decision boundary canvas ──────────────────────────────────────────────────
@@ -147,15 +147,17 @@ function LossCurve({ lossHistory, accHistory }) {
 
 // ── Main slide ────────────────────────────────────────────────────────────────
 export default function S05_Entrenamiento({ profesorMode }) {
-  const net = useNeuralNet({ hiddenSizes: [8, 8], gridRes: 50 })
+  const net = useNeuralNet({ hiddenSizes: [8, 8], gridRes: 60, nPoints: 200 })
 
   const [phase, setPhase]           = useState(0)
   const [lossHistory, setLossH]     = useState([1.0])
   const [accHistory, setAccH]       = useState([0.5])
+  const [phaseSpeed, setPhaseSpeed] = useState(2500)
   const phaseTimerRef               = useRef(null)
 
-  // Auto-start on slide mount
+  // Auto-start on slide mount (slower default)
   useEffect(() => {
+    net.updateSpeed(200)
     net.start()
     return () => net.stop()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -170,10 +172,17 @@ export default function S05_Entrenamiento({ profesorMode }) {
   useEffect(() => {
     clearInterval(phaseTimerRef.current)
     if (net.training) {
-      phaseTimerRef.current = setInterval(() => setPhase(p => (p + 1) % 4), 900)
+      phaseTimerRef.current = setInterval(() => setPhase(p => (p + 1) % 4), phaseSpeed)
     }
     return () => clearInterval(phaseTimerRef.current)
-  }, [net.training])
+  }, [net.training, phaseSpeed])
+
+  // Sync speed slider: training speed + phase speed
+  const handleSpeedChange = (ms) => {
+    net.updateSpeed(ms)
+    // Phase advances proportionally: faster training = faster phases, but always readable
+    setPhaseSpeed(Math.max(1200, ms * 10))
+  }
 
   const current = PHASES[phase]
 
@@ -291,11 +300,11 @@ export default function S05_Entrenamiento({ profesorMode }) {
         <button
           onClick={() => net.training ? net.stop() : net.start()}
           style={{
-            padding: '0.8rem 2rem', borderRadius: '8px',
+            padding: '0.7rem 1.8rem', borderRadius: '8px',
             border: `2px solid ${net.training ? '#ef4444' : 'var(--accent)'}`,
             background: net.training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
             color: net.training ? '#ef4444' : 'var(--accent-2)',
-            fontSize: '1.1rem', cursor: 'pointer', fontWeight: 600,
+            fontSize: '1rem', cursor: 'pointer', fontWeight: 600,
             transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem',
           }}
         >
@@ -303,10 +312,31 @@ export default function S05_Entrenamiento({ profesorMode }) {
             ? <><Pause size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar Entrenamiento</>
             : <><Play  size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> Iniciar Entrenamiento</>}
         </button>
-        <button onClick={net.step} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+
+        {/* Speed slider */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.4rem',
+          background: 'var(--bg-3)', border: '1px solid var(--border)',
+          borderRadius: '8px', padding: '0.4rem 0.8rem',
+        }}>
+          <Gauge size={14} strokeWidth={2} color="#7c6dfa" />
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>rápido</span>
+          <input
+            type="range" min={30} max={800} step={10}
+            value={net.speed}
+            onChange={e => handleSpeedChange(Number(e.target.value))}
+            style={{ width: '100px', accentColor: '#7c6dfa', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>lento</span>
+          <span style={{ fontSize: '0.6rem', color: '#7c6dfa', fontFamily: 'monospace', width: '40px' }}>
+            {net.speed}ms
+          </span>
+        </div>
+
+        <button onClick={net.step} style={{ padding: '0.7rem 1.2rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <SkipForward size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> 1 época manual
         </button>
-        <button onClick={net.reset} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <button onClick={net.reset} style={{ padding: '0.7rem 1.2rem', borderRadius: '8px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <RotateCcw size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Reiniciar Pesos
         </button>
       </div>

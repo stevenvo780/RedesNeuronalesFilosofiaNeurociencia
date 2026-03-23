@@ -26,109 +26,194 @@ const BIO_PAIRS = [
   { bio: 'Tasa de disparo', bio_sub: 'Hz de potenciales',     art: 'Salida y',              art_sub: 'valor 0→1',              color: '#10b981' },
 ]
 
-// ── SVG Neuron Diagram ─────────────────────────────────────────────────────────
+// ── Animated Neuron Diagram Canvas ────────────────────────────────────────────
 function NeuronDiagram({ inputs, weights, sum, output, transferFn }) {
-  const color = TRANSFER_FNS[transferFn].color
-  const n = inputs.length
-  const svgH = 195
-  const inputX = 65, sumX = 275, fnX = 400, outX = 510
-  const spacing = (svgH - 44) / (n - 1)
-  const centerY = svgH / 2
-  const inputYs = inputs.map((_, i) => 22 + i * spacing)
+  const ref      = useRef(null)
+  const propsRef = useRef({ inputs, weights, sum, output, transferFn })
+  useEffect(() => { propsRef.current = { inputs, weights, sum, output, transferFn } })
 
-  return (
-    <svg viewBox={`0 0 570 ${svgH}`} style={{ width: '100%', height: 'auto', overflow: 'visible', display: 'block' }}>
-      <defs>
-        <marker id="arrowGray3"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 z" fill="#555" />
-        </marker>
-        <marker id={`arrowColor3-${transferFn}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 z" fill={color} />
-        </marker>
-      </defs>
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    let id
+    const BW = 570, BH = 195  // base viewbox
+    const PERIOD = 2.8
 
-      {/* ── Input→Σ weight lines ── */}
-      {inputs.map((x, i) => {
+    function draw(ts) {
+      const { inputs, weights, sum, output, transferFn } = propsRef.current
+      const W = canvas.offsetWidth || BW
+      const H = Math.round(W * BH / BW)
+      canvas.width = W; canvas.height = H
+      const s = W / BW
+
+      const ctx = canvas.getContext('2d')
+      ctx.clearRect(0, 0, W, H)
+      ctx.fillStyle = '#0a0a1e'
+      ctx.fillRect(0, 0, W, H)
+
+      const n = inputs.length
+      const iX = 65, sX = 275, fX = 400, oX = 510
+      const sp = (BH - 44) / (n - 1)
+      const cY = BH / 2
+      const iYs = inputs.map((_, i) => 22 + i * sp)
+      const col = TRANSFER_FNS[transferFn].color
+      const t = (ts * 0.001) % PERIOD
+
+      // glow intensities
+      const sGlow = t >= 1.2 && t <= 2.0 ? Math.sin((t - 1.2) / 0.8 * Math.PI) * 0.8 : 0
+      const fGlow = t >= 1.8 && t <= 2.5 ? Math.sin((t - 1.8) / 0.7 * Math.PI) * 0.8 : 0
+      const oGlow = t >= 2.25 && t <= PERIOD ? Math.sin(Math.min((t - 2.25) / 0.4, 1) * Math.PI) * 0.8 : 0
+
+      // ── weight lines ──
+      inputs.forEach((_, i) => {
         const w = weights[i]
-        const wColor = w > 0 ? '#7c6dfa' : '#ef4444'
-        const absW = Math.abs(w)
-        const midX = (inputX + 16 + sumX - 28) / 2 + (i % 2 === 0 ? -12 : 12)
-        const midY = (inputYs[i] + centerY) / 2
-        return (
-          <g key={i}>
-            <line
-              x1={inputX + 16} y1={inputYs[i]}
-              x2={sumX - 28}   y2={centerY}
-              stroke={wColor}
-              strokeWidth={Math.max(0.5, absW * 3.8)}
-              strokeOpacity={0.12 + absW * 0.72}
-            />
-            <text x={midX} y={midY - 2}
-              fill={wColor} fontSize="8" textAnchor="middle" fontFamily="monospace" opacity={0.9}>
-              {w >= 0 ? '+' : ''}{w.toFixed(2)}
-            </text>
-          </g>
-        )
-      })}
+        const wc = w > 0 ? '#7c6dfa' : '#ef4444'
+        const aw = Math.abs(w)
+        ctx.beginPath()
+        ctx.moveTo((iX + 16) * s, iYs[i] * s)
+        ctx.lineTo((sX - 28) * s, cY * s)
+        ctx.strokeStyle = wc
+        ctx.lineWidth = Math.max(0.5, aw * 3.8) * s
+        ctx.globalAlpha = 0.12 + aw * 0.72
+        ctx.stroke()
+        ctx.globalAlpha = 1
+        const mxL = ((iX + 16 + sX - 28) / 2 + (i % 2 === 0 ? -12 : 12)) * s
+        const myL = ((iYs[i] + cY) / 2) * s
+        ctx.fillStyle = wc; ctx.font = `${8 * s}px monospace`; ctx.textAlign = 'center'
+        ctx.fillText((w >= 0 ? '+' : '') + w.toFixed(2), mxL, myL - 2 * s)
+      })
 
-      {/* ── Σ → f() ── */}
-      <line
-        x1={sumX + 28} y1={centerY} x2={fnX - 26} y2={centerY}
-        stroke="#666" strokeWidth={2} markerEnd="url(#arrowGray3)"
-      />
-      <text x={(sumX + 28 + fnX - 26) / 2} y={centerY - 7}
-        fill={sum >= 0 ? '#a78bfa' : '#ef4444'} fontSize="9.5" textAnchor="middle" fontFamily="monospace">
-        {sum >= 0 ? '+' : ''}{sum.toFixed(3)}
-      </text>
-      <text x={(sumX + 28 + fnX - 26) / 2} y={centerY + 15}
-        fill="#444" fontSize="7" textAnchor="middle" fontFamily="monospace">net input</text>
+      // ── Σ→f() connector ──
+      ctx.beginPath()
+      ctx.moveTo((sX + 28) * s, cY * s); ctx.lineTo((fX - 26) * s, cY * s)
+      ctx.strokeStyle = sGlow > 0 ? `rgba(167,139,250,${0.4 + sGlow * 0.6})` : '#555'
+      ctx.lineWidth = (1.5 + sGlow * 1.5) * s; ctx.globalAlpha = 1; ctx.stroke()
+      const smX = ((sX + 28 + fX - 26) / 2) * s
+      ctx.fillStyle = sum >= 0 ? '#a78bfa' : '#ef4444'
+      ctx.font = `${9.5 * s}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText((sum >= 0 ? '+' : '') + sum.toFixed(3), smX, (cY - 7) * s)
+      ctx.fillStyle = '#444'; ctx.font = `${7 * s}px monospace`
+      ctx.fillText('net input', smX, (cY + 15) * s)
 
-      {/* ── f() → output ── */}
-      <line
-        x1={fnX + 26} y1={centerY} x2={outX - 20} y2={centerY}
-        stroke={color} strokeWidth={2.5} markerEnd={`url(#arrowColor3-${transferFn})`}
-      />
+      // ── f()→output connector ──
+      ctx.beginPath()
+      ctx.moveTo((fX + 26) * s, cY * s); ctx.lineTo((oX - 20) * s, cY * s)
+      ctx.strokeStyle = fGlow > 0 ? col : col + '88'
+      ctx.lineWidth = (1.5 + fGlow * 1.5) * s; ctx.stroke()
 
-      {/* ── Input nodes ── */}
-      {inputs.map((_, i) => (
-        <g key={i}>
-          <circle cx={inputX} cy={inputYs[i]} r={16} fill="#0b0b1f" stroke="#7c6dfa33" strokeWidth={1} />
-          <text x={inputX} y={inputYs[i] - 3}
-            fill="#555" fontSize="7" textAnchor="middle" fontFamily="monospace">x{i+1}=</text>
-          <text x={inputX} y={inputYs[i] + 7}
-            fill="#a78bfa" fontSize="9" textAnchor="middle" fontFamily="monospace">{inputs[i]}</text>
-        </g>
-      ))}
-      <text x={inputX} y={svgH - 3} fill="#444" fontSize="7" textAnchor="middle" fontFamily="monospace">dendrita</text>
+      // ── PULSE: inputs→Σ ──
+      inputs.forEach((_, i) => {
+        const w = weights[i]
+        const pc = w > 0 ? '#a78bfa' : '#ff5555'
+        const t0 = i * 0.13, t1 = t0 + 0.75
+        const lt = t - t0
+        if (lt >= 0 && lt <= (t1 - t0)) {
+          const p = lt / (t1 - t0)
+          const alpha = Math.sin(p * Math.PI)
+          const px = ((iX + 16) + ((sX - 28) - (iX + 16)) * p) * s
+          const py = (iYs[i] + (cY - iYs[i]) * p) * s
+          ctx.beginPath(); ctx.arc(px, py, 7 * s, 0, Math.PI * 2)
+          ctx.fillStyle = pc; ctx.globalAlpha = alpha * 0.92
+          ctx.shadowColor = pc; ctx.shadowBlur = 14 * s
+          ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1
+        }
+      })
 
-      {/* ── Σ node ── */}
-      <circle cx={sumX} cy={centerY} r={28} fill="#0f0f28" stroke="#7c6dfa" strokeWidth={2} />
-      <text x={sumX} y={centerY + 7}
-        fill="#a78bfa" fontSize="22" textAnchor="middle">Σ</text>
-      <text x={sumX + 20} y={centerY + 36}
-        fill="#555" fontSize="7.5" textAnchor="start" fontFamily="monospace">+b={BIAS}</text>
-      <text x={sumX} y={svgH - 3} fill="#444" fontSize="7" textAnchor="middle" fontFamily="monospace">suma ponderada</text>
+      // ── PULSE: Σ→f() ──
+      if (t >= 1.4 && t <= 1.85) {
+        const p = (t - 1.4) / 0.45
+        const px = ((sX + 28) + ((fX - 26) - (sX + 28)) * p) * s
+        const alpha = Math.sin(p * Math.PI)
+        ctx.beginPath(); ctx.arc(px, cY * s, 7 * s, 0, Math.PI * 2)
+        ctx.fillStyle = '#c4b5fd'; ctx.globalAlpha = alpha * 0.92
+        ctx.shadowColor = '#a78bfa'; ctx.shadowBlur = 14 * s
+        ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1
+      }
 
-      {/* ── f() box ── */}
-      <rect x={fnX - 26} y={centerY - 24} width={52} height={48} rx={9}
-        fill="#0f0f28" stroke={color} strokeWidth={2}
-        style={{ filter: `drop-shadow(0 0 4px ${color}55)` }} />
-      <text x={fnX} y={centerY + 6}
-        fill={color} fontSize="14" textAnchor="middle" fontFamily="monospace">f(·)</text>
-      <text x={fnX} y={svgH - 3} fill="#444" fontSize="7" textAnchor="middle" fontFamily="monospace">activación</text>
+      // ── PULSE: f()→output ──
+      if (t >= 1.85 && t <= 2.3) {
+        const p = (t - 1.85) / 0.45
+        const px = ((fX + 26) + ((oX - 20) - (fX + 26)) * p) * s
+        const alpha = Math.sin(p * Math.PI)
+        ctx.beginPath(); ctx.arc(px, cY * s, 7 * s, 0, Math.PI * 2)
+        ctx.fillStyle = col; ctx.globalAlpha = alpha * 0.92
+        ctx.shadowColor = col; ctx.shadowBlur = 14 * s
+        ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1
+      }
 
-      {/* ── Output node ── */}
-      <circle cx={outX} cy={centerY} r={20} fill="#0b0b1f" stroke={color} strokeWidth={2.8}
-        style={{ filter: `drop-shadow(0 0 8px ${color}77)` }} />
-      <text x={outX} y={centerY - 5}
-        fill="#666" fontSize="7" textAnchor="middle" fontFamily="monospace">y =</text>
-      <text x={outX} y={centerY + 8}
-        fill={color} fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">
-        {output.toFixed(3)}
-      </text>
-      <text x={outX} y={svgH - 3} fill="#444" fontSize="7" textAnchor="middle" fontFamily="monospace">salida</text>
-    </svg>
-  )
+      // ── INPUT NODES ──
+      inputs.forEach((_, i) => {
+        const pulseT = t - i * 0.13
+        const np = (pulseT >= 0 && pulseT <= 0.35) ? Math.sin(pulseT / 0.35 * Math.PI) * 0.55 : 0
+        if (np > 0) {
+          const w = weights[i]
+          ctx.beginPath(); ctx.arc(iX * s, iYs[i] * s, 24 * s, 0, Math.PI * 2)
+          ctx.fillStyle = w > 0 ? `rgba(124,109,250,${np * 0.3})` : `rgba(239,68,68,${np * 0.3})`
+          ctx.shadowColor = w > 0 ? '#7c6dfa' : '#ef4444'; ctx.shadowBlur = 14 * s
+          ctx.fill(); ctx.shadowBlur = 0
+        }
+        ctx.beginPath(); ctx.arc(iX * s, iYs[i] * s, 16 * s, 0, Math.PI * 2)
+        ctx.fillStyle = '#0b0b1f'; ctx.strokeStyle = '#7c6dfa44'; ctx.lineWidth = s; ctx.fill(); ctx.stroke()
+        ctx.fillStyle = '#666'; ctx.font = `${7 * s}px monospace`; ctx.textAlign = 'center'
+        ctx.fillText(`x${i + 1}=`, iX * s, (iYs[i] - 3) * s)
+        ctx.fillStyle = '#a78bfa'; ctx.font = `${9 * s}px monospace`
+        ctx.fillText(inputs[i], iX * s, (iYs[i] + 7) * s)
+      })
+      ctx.fillStyle = '#555'; ctx.font = `${7 * s}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText('dendrita', iX * s, (BH - 3) * s)
+
+      // ── Σ NODE ──
+      if (sGlow > 0) { ctx.shadowColor = '#7c6dfa'; ctx.shadowBlur = 20 * s * sGlow }
+      ctx.beginPath(); ctx.arc(sX * s, cY * s, 28 * s, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(15,15,40,${0.9 + sGlow * 0.1})`
+      ctx.strokeStyle = sGlow > 0 ? `rgba(167,139,250,${0.5 + sGlow * 0.5})` : '#7c6dfa'
+      ctx.lineWidth = (2 + sGlow * 3) * s; ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0
+      ctx.fillStyle = `rgba(167,139,250,${0.7 + sGlow * 0.3})`
+      ctx.font = `${22 * s}px sans-serif`; ctx.textAlign = 'center'
+      ctx.fillText('Σ', sX * s, (cY + 7) * s)
+      ctx.fillStyle = '#555'; ctx.font = `${7.5 * s}px monospace`; ctx.textAlign = 'left'
+      ctx.fillText(`+b=${BIAS}`, (sX + 20) * s, (cY + 36) * s)
+      ctx.fillStyle = '#555'; ctx.font = `${7 * s}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText('suma ponderada', sX * s, (BH - 3) * s)
+
+      // ── f() BOX ──
+      if (fGlow > 0) { ctx.shadowColor = col; ctx.shadowBlur = 16 * s * fGlow }
+      const bx = (fX - 26) * s, by = (cY - 24) * s, bw = 52 * s, bh = 48 * s, br = 9 * s
+      ctx.beginPath()
+      ctx.moveTo(bx + br, by); ctx.lineTo(bx + bw - br, by)
+      ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br)
+      ctx.lineTo(bx + bw, by + bh - br); ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh)
+      ctx.lineTo(bx + br, by + bh); ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br)
+      ctx.lineTo(bx, by + br); ctx.quadraticCurveTo(bx, by, bx + br, by); ctx.closePath()
+      ctx.fillStyle = '#0f0f28'
+      ctx.strokeStyle = col; ctx.lineWidth = (2 + fGlow * 3) * s; ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0
+      ctx.fillStyle = fGlow > 0 ? col : col + 'cc'
+      ctx.font = `${14 * s}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText('f(·)', fX * s, (cY + 6) * s)
+      ctx.fillStyle = '#555'; ctx.font = `${7 * s}px monospace`
+      ctx.fillText('activación', fX * s, (BH - 3) * s)
+
+      // ── OUTPUT NODE ──
+      if (oGlow > 0) { ctx.shadowColor = col; ctx.shadowBlur = 24 * s * oGlow }
+      ctx.beginPath(); ctx.arc(oX * s, cY * s, 20 * s, 0, Math.PI * 2)
+      ctx.fillStyle = '#0b0b1f'
+      ctx.strokeStyle = col; ctx.lineWidth = (2.8 + oGlow * 3) * s; ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0
+      ctx.fillStyle = '#666'; ctx.font = `${7 * s}px monospace`; ctx.textAlign = 'center'
+      ctx.fillText('y =', oX * s, (cY - 5) * s)
+      ctx.fillStyle = oGlow > 0 ? col : col + 'cc'
+      ctx.font = `bold ${11 * s}px monospace`
+      ctx.fillText(output.toFixed(3), oX * s, (cY + 8) * s)
+      ctx.fillStyle = '#555'; ctx.font = `${7 * s}px monospace`
+      ctx.fillText('salida', oX * s, (BH - 3) * s)
+
+      id = requestAnimationFrame(draw)
+    }
+
+    id = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  return <canvas ref={ref} style={{ width: '100%', display: 'block' }} />
 }
 
 // ── Activation function graph ──────────────────────────────────────────────────

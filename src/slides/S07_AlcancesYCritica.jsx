@@ -204,9 +204,14 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
     const H = canvas.height = height
     ctx.clearRect(0, 0, W, H)
 
+    // Scale factor relative to the "base" 480×320 size
+    const sX = W / 480
+    const sY = H / 320
+    const s = Math.min(sX, sY)  // uniform scale factor
+
     // Build layers dynamically
     const totalLayers = 2 + layerConfig.length
-    const padX = 40
+    const padX = 50 * sX
     const stepX = (W - padX * 2) / (totalLayers - 1)
     const layers = [
       { n: N_FEAT, vals: features, color: '#7c6dfa', label: 'entrada' },
@@ -217,15 +222,16 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
     ]
     layers.forEach((l, i) => { l.x = padX + i * stepX })
 
-    // Compute node Y positions
+    // Compute node Y positions — scale spacing with canvas height
+    const maxSpacing = 48 * sY
     const nodePositions = layers.map(l => {
-      const spacing = Math.min(24, (H - 50) / (l.n + 1))
+      const spacing = Math.min(maxSpacing, (H - 60 * sY) / (l.n + 1))
       const startY = (H - (l.n - 1) * spacing) / 2
       return Array.from({ length: l.n }, (_, i) => ({ x: l.x, y: startY + i * spacing }))
     })
 
     // Store for hit-testing
-    nodesRef.current = { layers, nodePositions }
+    nodesRef.current = { layers, nodePositions, scale: s }
 
     // Draw connections
     for (let li = 0; li < layers.length - 1; li++) {
@@ -243,21 +249,23 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
           ctx.moveTo(from[f].x, from[f].y)
           ctx.lineTo(to[t].x, to[t].y)
           ctx.strokeStyle = `rgba(124,109,250,${strength * 0.22})`
-          ctx.lineWidth = 0.4 + strength * 1.5
+          ctx.lineWidth = (0.4 + strength * 1.5) * s
           ctx.stroke()
         }
       }
     }
 
-    // Draw nodes
+    // Draw nodes — scaled radii
+    const baseR = 6 * s
+    const maxExtraR = 8 * s
     layers.forEach((l, li) => {
       nodePositions[li].forEach((pos, ni) => {
         const val = l.vals ? Math.min(1, Math.abs(l.vals[ni])) : 0
-        const r = 6 + val * 6
+        const r = baseR + val * maxExtraR
 
         if (val > 0.3) {
           ctx.beginPath()
-          ctx.arc(pos.x, pos.y, r + 5, 0, Math.PI * 2)
+          ctx.arc(pos.x, pos.y, r + 6 * s, 0, Math.PI * 2)
           ctx.fillStyle = `${l.color}22`
           ctx.fill()
         }
@@ -267,25 +275,25 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
         ctx.fillStyle = val > 0.01 ? l.color + (Math.round(40 + val * 215).toString(16).padStart(2, '0')) : '#1a1a2e'
         ctx.fill()
         ctx.strokeStyle = l.color + '66'
-        ctx.lineWidth = 1.2
+        ctx.lineWidth = 1.2 * s
         ctx.stroke()
 
         // Show activation value inside node
         if (val > 0.01) {
           ctx.fillStyle = '#ffffffcc'
-          ctx.font = '7px monospace'
+          ctx.font = `${Math.max(7, Math.round(10 * s))}px monospace`
           ctx.textAlign = 'center'
-          ctx.fillText(val.toFixed(2), pos.x, pos.y + 2.5)
+          ctx.fillText(val.toFixed(2), pos.x, pos.y + 3 * s)
         }
       })
     })
 
     // Labels
-    ctx.font = '10px monospace'
+    ctx.font = `${Math.max(10, Math.round(13 * s))}px monospace`
     ctx.textAlign = 'center'
     layers.forEach((l) => {
       ctx.fillStyle = l.color + 'cc'
-      ctx.fillText(l.label, l.x, H - 6)
+      ctx.fillText(l.label, l.x, H - 8 * sY)
     })
 
   }, [features, hiddenActs, width, height, layerConfig])
@@ -297,13 +305,15 @@ function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340
     const rect = canvas.getBoundingClientRect()
     const mx = (e.clientX - rect.left) * (width / rect.width)
     const my = (e.clientY - rect.top) * (height / rect.height)
-    const { layers, nodePositions } = nodesRef.current
+    const { layers, nodePositions, scale: s = 1 } = nodesRef.current
+    const hitR = 14 * (s || 1)
+    const hitR2 = hitR * hitR
     // Check nodes
     for (let li = 0; li < layers.length; li++) {
       for (let ni = 0; ni < nodePositions[li].length; ni++) {
         const pos = nodePositions[li][ni]
         const dx = mx - pos.x, dy = my - pos.y
-        if (dx * dx + dy * dy < 144) { // radius ~12px
+        if (dx * dx + dy * dy < hitR2) {
           const val = layers[li].vals?.[ni]
           const label = `${layers[li].label} [${ni}]`
           setTooltip({
