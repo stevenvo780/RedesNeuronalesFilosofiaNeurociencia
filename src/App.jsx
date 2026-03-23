@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import AIPanel from './components/AIPanel'
 import S01_Apertura from './slides/S01_Apertura'
 import S02_NeuronasReal from './slides/S02_NeuronasReal'
@@ -84,20 +85,22 @@ export default function App() {
       {/* Sidebar nav */}
       {navVisible && (
         <nav style={{
-          width: '200px',
+          width: 'clamp(240px, 18vw, 320px)',
           flexShrink: 0,
-          background: 'var(--bg-2)',
+          background: 'rgba(17, 17, 24, 0.65)',
+          backdropFilter: 'blur(12px)',
           borderRight: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          zIndex: 50,
         }}>
           {/* Header */}
-          <div style={{ padding: '0.75rem 0.875rem', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-h)', lineHeight: 1.3 }}>
+          <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-h)', lineHeight: 1.3 }}>
               Hinton 1992
             </div>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>
               Redes Neuronales
             </div>
           </div>
@@ -109,37 +112,38 @@ export default function App() {
                 key={s.id}
                 onClick={() => goTo(i)}
                 style={{
+                  width: '100%',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  width: '100%',
-                  padding: '0.45rem 0.875rem',
-                  background: current === i ? 'rgba(124,109,250,0.15)' : 'none',
+                  gap: '0.8rem',
+                  padding: '0.8rem 1.5rem',
+                  background: current === i ? 'rgba(124,109,250,0.1)' : 'transparent',
                   border: 'none',
-                  borderLeft: `3px solid ${current === i ? 'var(--accent)' : 'transparent'}`,
+                  borderLeft: `4px solid ${current === i ? 'var(--accent)' : 'transparent'}`,
                   textAlign: 'left',
                   cursor: 'pointer',
                   transition: 'background 0.15s',
                 }}
               >
                 <span style={{
-                  fontSize: '0.65rem',
+                  fontSize: '0.9rem',
                   fontFamily: 'monospace',
                   color: current === i ? 'var(--accent-2)' : 'var(--text-dim)',
-                  width: '18px',
+                  width: '24px',
                   flexShrink: 0,
                 }}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span style={{
-                  fontSize: '0.72rem',
+                  fontSize: '1rem',
                   color: current === i ? 'var(--text-h)' : 'var(--text-dim)',
                   lineHeight: 1.3,
                   flex: 1,
+                  fontWeight: current === i ? 600 : 400,
                 }}>
                   {s.label}
                 </span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', flexShrink: 0 }}>
                   {s.time}
                 </span>
               </button>
@@ -147,36 +151,38 @@ export default function App() {
           </div>
 
           {/* Footer controls */}
-          <div style={{ padding: '0.6rem 0.875rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             <button
               onClick={() => setProfesorMode(m => !m)}
               style={{
-                padding: '0.3rem 0.6rem',
-                borderRadius: '4px',
+                padding: '0.6rem 0.8rem',
+                borderRadius: '6px',
                 border: `1px solid ${profesorMode ? 'var(--accent)' : 'var(--border)'}`,
                 background: profesorMode ? 'rgba(124,109,250,0.2)' : 'none',
                 color: profesorMode ? 'var(--accent-2)' : 'var(--text-dim)',
-                fontSize: '0.68rem',
+                fontSize: '0.9rem',
                 cursor: 'pointer',
                 textAlign: 'left',
+                fontWeight: 600,
               }}
             >
-              {profesorMode ? '◉ Modo profesor' : '○ Modo público'} <span style={{ opacity: 0.5 }}>(P)</span>
+              {profesorMode ? '◉ Modo profesor' : '○ Modo público'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(P)</span>
             </button>
             <button
               onClick={() => setAiVisible(v => !v)}
               style={{
-                padding: '0.3rem 0.6rem',
-                borderRadius: '4px',
+                padding: '0.6rem 0.8rem',
+                borderRadius: '6px',
                 border: `1px solid ${aiVisible ? 'var(--cyan)' : 'var(--border)'}`,
                 background: aiVisible ? 'rgba(6,182,212,0.1)' : 'none',
                 color: aiVisible ? 'var(--cyan)' : 'var(--text-dim)',
-                fontSize: '0.68rem',
+                fontSize: '0.9rem',
                 cursor: 'pointer',
                 textAlign: 'left',
+                fontWeight: 600,
               }}
             >
-              {aiVisible ? '◉ IA activa' : '○ Panel IA'} <span style={{ opacity: 0.5 }}>(A)</span>
+              {aiVisible ? '◉ IA activa' : '○ Panel IA'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(A)</span>
             </button>
           </div>
         </nav>
@@ -190,13 +196,20 @@ export default function App() {
         marginRight: aiVisible ? '340px' : 0,
         transition: 'margin-right 0.3s ease',
       }}>
-        {/* Slide */}
-        <div
-          key={current}
-          className="fade-in"
-          style={{ width: '100%', height: '100%', overflow: 'hidden auto' }}
-        >
-          <Component profesorMode={profesorMode} />
+        {/* Slide with Framer Motion */}
+        <div style={{ width: '100%', height: 'calc(100% - 36px)', overflow: 'hidden auto', position: 'relative' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              style={{ width: '100%', minHeight: '100%', position: 'absolute', inset: 0 }}
+            >
+              <Component profesorMode={profesorMode} />
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Bottom bar */}

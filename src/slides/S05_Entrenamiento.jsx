@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
+import STTooltip from '../components/st/STTooltip'
+import STModalBadge from '../components/st/STModalBadge'
 
 const PHASES = [
   { id: 'presentar', label: '1. PRESENTAR',   color: '#22c55e', desc: 'Un punto (x,y) del espacio espiral entra a la red. La capa de entrada se activa.' },
@@ -169,50 +171,51 @@ export default function S05_Entrenamiento({ profesorMode }) {
   const current = PHASES[phase]
 
   return (
-    <div className="section-slide" style={{ gap: '1rem' }}>
+    <div className="section-slide" style={{ gap: '1.5rem' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">Entrenamiento supervisado</div>
-        <div className="section-subtitle">Red real entrenando en tiempo real</div>
+        <div className="section-title"><STTooltip term="aprendizaje_supervisado">Entrenamiento supervisado</STTooltip></div>
+        <div className="section-subtitle">Red en vivo ajustando topología de decisión</div>
       </div>
 
       {/* Main layout: boundary + curve */}
-      <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '760px', height: '230px' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', width: '100%', maxWidth: '1200px', height: '400px' }}>
         {/* Decision boundary */}
         <div style={{
-          flex: '1.3', background: 'var(--bg-3)', borderRadius: '10px',
+          flex: '1.5', background: 'var(--bg-3)', borderRadius: '12px',
           border: '1px solid var(--border)', overflow: 'hidden',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.15)'
         }}>
           <BoundaryCanvas gridPreds={net.gridPreds} gridRes={net.gridRes} data={net.data} phase={phase} />
         </div>
 
         {/* Loss curve + stats */}
-        <div style={{ flex: 0.8, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{
-            flex: 1, background: 'var(--bg-3)', borderRadius: '8px',
+            flex: 1, background: 'var(--bg-3)', borderRadius: '12px',
             border: '1px solid var(--border)', overflow: 'hidden',
             position: 'relative',
           }}>
             <LossCurve lossHistory={lossHistory} accHistory={accHistory} />
-            <div style={{ position: 'absolute', top: 4, left: 7, fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-              curva de aprendizaje
+            <div style={{ position: 'absolute', top: 10, left: 14, fontSize: '0.9rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+              curva de <STTooltip term="error">aprendizaje (loss)</STTooltip>
             </div>
           </div>
 
           {/* Stats */}
           <div style={{
             background: 'var(--bg-3)', border: '1px solid var(--border)',
-            borderRadius: '8px', padding: '0.5rem 0.7rem',
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem',
+            borderRadius: '12px', padding: '1rem 1.5rem',
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem',
           }}>
             {[
               { label: 'época', value: net.epoch, color: '#7c6dfa' },
-              { label: 'pérdida', value: net.loss?.toFixed(4), color: '#ef4444' },
+              { label: 'error', value: net.loss?.toFixed(4), color: '#ef4444' },
               { label: 'precisión', value: `${((net.accuracy ?? 0.5) * 100).toFixed(1)}%`, color: '#22c55e' },
               { label: 'estado', value: net.training ? 'entrenando' : 'pausado', color: net.training ? '#22c55e' : '#888' },
             ].map(s => (
               <div key={s.label}>
-                <div style={{ fontSize: '0.58rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{s.label}</div>
-                <div style={{ fontSize: '0.78rem', color: s.color, fontWeight: 600, fontFamily: 'monospace' }}>{s.value}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.2rem' }}>{s.label}</div>
+                <div style={{ fontSize: '1.2rem', color: s.color, fontWeight: 600, fontFamily: 'monospace' }}>{s.value}</div>
               </div>
             ))}
           </div>
@@ -220,19 +223,20 @@ export default function S05_Entrenamiento({ profesorMode }) {
       </div>
 
       {/* Phase indicator */}
-      <div style={{ display: 'flex', gap: '0.3rem', width: '100%', maxWidth: '760px' }}>
+      <div style={{ display: 'flex', gap: '0.8rem', width: '100%', maxWidth: '1200px' }}>
         {PHASES.map((p, i) => (
           <button
             key={p.id}
             onClick={() => { net.stop(); setPhase(i) }}
             style={{
-              flex: 1, padding: '0.45rem 0.25rem',
-              borderRadius: '6px',
+              flex: 1, padding: '0.8rem 0.5rem',
+              borderRadius: '8px',
               border: `2px solid ${phase === i ? p.color : 'var(--border)'}`,
               background: phase === i ? `${p.color}1a` : 'var(--bg-3)',
               color: phase === i ? p.color : 'var(--text-dim)',
-              fontSize: '0.62rem', fontWeight: phase === i ? 700 : 400,
+              fontSize: '0.95rem', fontWeight: phase === i ? 700 : 400,
               cursor: 'pointer', textAlign: 'center', lineHeight: 1.3,
+              transition: 'all 0.2s',
             }}
           >
             {p.label}
@@ -244,59 +248,71 @@ export default function S05_Entrenamiento({ profesorMode }) {
       <div style={{
         background: `${current.color}14`,
         border: `1px solid ${current.color}55`,
-        borderLeft: `4px solid ${current.color}`,
-        borderRadius: '6px', padding: '0.6rem 1rem',
-        maxWidth: '760px', width: '100%',
+        borderLeft: `5px solid ${current.color}`,
+        borderRadius: '8px', padding: '1rem 1.5rem',
+        maxWidth: '1200px', width: '100%',
+        minHeight: '120px',
       }}>
-        <div style={{ fontSize: '0.8rem', color: current.color, fontWeight: 600, marginBottom: '0.2rem' }}>
+        <div style={{ fontSize: '1.1rem', color: current.color, fontWeight: 600, marginBottom: '0.4rem' }}>
           {current.label}
         </div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text)' }}>{current.desc}</div>
+        <div style={{ fontSize: '1.05rem', color: 'var(--text)', lineHeight: 1.5 }}>
+          {phase === 0 && <>Un punto (x,y) entra a la red. La <STTooltip term="capa_de_entrada">capa de entrada</STTooltip> propaga la señal hacia adelante.</>}
+          {phase === 1 && <>La red predice. Se mide la divergencia o <STTooltip term="error">señal de error</STTooltip> contra la respuesta experada.</>}
+          {phase === 2 && <>Cálculo del gradiente: se halla la <STTooltip term="derivada_del_error">derivada del error</STTooltip> para rastrear la culpa topológica.</>}
+          {phase === 3 && <>Actualización: los <STTooltip term="peso">pesos</STTooltip> mutan para reducir el error. La representación ha cambiado.</>}
+        </div>
         {profesorMode && phase === 1 && (
-          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
+          <div style={{ marginTop: '0.8rem', fontSize: '1.1rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
             <InlineMath math="\mathcal{L} = -\frac{1}{N}\sum_i [y_i \log \hat{y}_i + (1-y_i)\log(1-\hat{y}_i)]" />
           </div>
         )}
         {profesorMode && phase === 2 && (
-          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
+          <div style={{ marginTop: '0.8rem', fontSize: '1.1rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
             <InlineMath math="\nabla_{W} \mathcal{L} = \frac{\partial \mathcal{L}}{\partial W}" />
           </div>
         )}
         {profesorMode && phase === 3 && (
-          <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
+          <div style={{ marginTop: '0.8rem', fontSize: '1.1rem', fontFamily: 'monospace', color: 'var(--text-dim)' }}>
             <InlineMath math="W \leftarrow W - \alpha \nabla_{W} \mathcal{L}" />
           </div>
         )}
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button
           onClick={() => net.training ? net.stop() : net.start()}
           style={{
-            padding: '0.5rem 1.4rem', borderRadius: '6px',
-            border: `1px solid ${net.training ? '#ef4444' : 'var(--accent)'}`,
+            padding: '0.8rem 2rem', borderRadius: '8px',
+            border: `2px solid ${net.training ? '#ef4444' : 'var(--accent)'}`,
             background: net.training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
             color: net.training ? '#ef4444' : 'var(--accent-2)',
-            fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600,
+            fontSize: '1.1rem', cursor: 'pointer', fontWeight: 600,
+            transition: 'all 0.2s',
           }}
         >
-          {net.training ? '⏸ Pausar' : '▶ Entrenar'}
+          {net.training ? '⏸ Pausar Entrenamiento' : '▶ Iniciar Entrenamiento'}
         </button>
-        <button onClick={net.step} style={{ padding: '0.5rem 0.9rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '0.8rem', cursor: 'pointer' }}>
-          → 1 época
+        <button onClick={net.step} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text-dim)', fontSize: '1rem', cursor: 'pointer' }}>
+          → 1 época manual
         </button>
-        <button onClick={net.reset} style={{ padding: '0.5rem 0.9rem', borderRadius: '6px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>
-          ↺ Reiniciar
+        <button onClick={net.reset} style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid #ef444466', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>
+          ↺ Reiniciar Pesos
         </button>
       </div>
 
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <STModalBadge symbol="=" content="MODEL_EQ" title="Identidad Matemática" />
+        <STModalBadge symbol="C" content="CAUSAL_AGENCY" title="Agencia Causal por Error" />
+      </div>
+
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '760px', width: '100%', fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--accent-2)' }}>Lo que ves es real:</strong>{' '}
-          La frontera de decisión muestra las predicciones actuales de la red TF.js sobre el espacio 2D completo.
-          Blanco = límite p=0.5. Azul = predice clase 1. Rojo = predice clase 0. La frontera se mueve
-          con cada actualización de pesos — el aprendizaje es literalmente visible.
+        <div className="st-card" style={{ maxWidth: '1200px', width: '100%', fontSize: '0.95rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--accent-2)' }}>Ontología del límite:</strong>{' '}
+          La frontera de decisión no es pre-programada. Emerge del cálculo iterativo.
+          Blanco = umbral epistémico. Azul/Rojo coinciden con el mapeo del espacio subyacente.
+          Cada época demuestra cómo la estructura formal del error esculpe la materialidad virtual de la red.
         </div>
       )}
     </div>

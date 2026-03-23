@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
+import STTooltip from '../components/st/STTooltip'
+import STModalBadge from '../components/st/STModalBadge'
 
 const INPUTS = [0.8, 0.3, 0.9, 0.1, 0.6]
 const INIT_WEIGHTS = [0.5, -0.3, 0.7, 0.2, -0.5]
@@ -64,26 +66,26 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
   }, [weights, transferFn, sum])
 
   return (
-    <div className="section-slide" style={{ gap: '1.25rem' }}>
+    <div className="section-slide" style={{ gap: '1.5rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">La neurona artificial</div>
         <div className="section-subtitle">El análogo formal</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '600px' }}>
-        "Hinton no copia la neurona — la <em>idealiza</em>. Y esa idealización,
+      <div className="quote" style={{ maxWidth: '900px' }}>
+        "Hinton no copia la <STTooltip term="neurona_biologica">neurona</STTooltip> — la <em>idealiza</em>. Y esa <STTooltip term="idealizacion">idealización</STTooltip>,
         aunque burda, es poderosa. ¿Qué se gana? ¿Qué se pierde?"
       </div>
 
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '820px' }}>
+      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '1100px' }}>
         {/* Diagrama de la unidad */}
-        <div className="st-card" style={{ flex: '1 1 280px', minWidth: '260px' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '0.75rem', fontFamily: 'monospace' }}>
-            UNIDAD ARTIFICIAL — ajusta los pesos
+        <div className="st-card" style={{ flex: '1 1 350px', minWidth: '320px', padding: '1.5rem' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginBottom: '1rem', fontFamily: 'monospace' }}>
+            <STTooltip term="neurona_artificial">UNIDAD ARTIFICIAL</STTooltip> — ajusta los <STTooltip term="peso">pesos</STTooltip>
           </div>
           {INPUTS.map((x, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', width: '20px', fontFamily: 'monospace' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '1rem', color: 'var(--text-dim)', width: '30px', fontFamily: 'monospace' }}>
                 x{i + 1}={x}
               </span>
               <input
@@ -97,11 +99,11 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
                   nw[i] = parseFloat(e.target.value)
                   setWeights(nw)
                 }}
-                style={{ flex: 1, accentColor: weights[i] > 0 ? '#7c6dfa' : '#ef4444' }}
+                style={{ flex: 1, accentColor: weights[i] > 0 ? '#7c6dfa' : '#ef4444', height: '6px' }}
               />
               <span style={{
-                fontSize: '0.75rem',
-                width: '40px',
+                fontSize: '1rem',
+                width: '60px',
                 textAlign: 'right',
                 fontFamily: 'monospace',
                 color: weights[i] > 0 ? 'var(--accent-2)' : 'var(--red)',
@@ -110,18 +112,18 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
               </span>
             </div>
           ))}
-          <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '0.6rem' }}>
+          <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
             {profesorMode && (
-              <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-dim)', marginBottom: '0.4rem' }}>
+              <div style={{ fontSize: '1rem', fontFamily: 'monospace', color: 'var(--text-dim)', marginBottom: '0.8rem' }}>
                 <InlineMath math={`\\text{entrada total} = \\sum_i x_i w_i + b = ${sum.toFixed(3)}`} />
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-dim)' }}>Entrada total:</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', marginBottom: '0.4rem' }}>
+              <span style={{ color: 'var(--text-dim)' }}><STTooltip term="entrada_total">Entrada total:</STTooltip></span>
               <span style={{ color: 'var(--cyan)', fontFamily: 'monospace' }}>{sum.toFixed(3)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginTop: '0.2rem' }}>
-              <span style={{ color: 'var(--text-dim)' }}>Salida ({transferFn}):</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', marginTop: '0.4rem' }}>
+              <span style={{ color: 'var(--text-dim)' }}>Salida (<STTooltip term="sigmoide">{transferFn}</STTooltip>):</span>
               <span style={{ color: 'var(--accent-2)', fontFamily: 'monospace', fontWeight: 700 }}>
                 {output.toFixed(3)}
               </span>
@@ -130,22 +132,23 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
         </div>
 
         {/* Panel derecho: función de transferencia */}
-        <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Botones */}
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', gap: '0.8rem' }}>
             {Object.entries(TRANSFER_FNS).map(([key, { label, color }]) => (
               <button
                 key={key}
                 onClick={() => setTransferFn(key)}
                 style={{
                   flex: 1,
-                  padding: '0.35rem',
-                  borderRadius: '6px',
+                  padding: '0.6rem',
+                  borderRadius: '8px',
                   border: `1px solid ${transferFn === key ? color : 'var(--border)'}`,
                   background: transferFn === key ? `${color}22` : 'var(--bg-3)',
                   color: transferFn === key ? color : 'var(--text-dim)',
-                  fontSize: '0.75rem',
+                  fontSize: '1rem',
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
               >
                 {label}
@@ -157,23 +160,25 @@ export default function S03_NeuronasArtificial({ profesorMode }) {
           <div style={{
             background: 'var(--bg-3)',
             border: '1px solid var(--border)',
-            borderRadius: '8px',
+            borderRadius: '12px',
             overflow: 'hidden',
-            height: '140px',
+            height: '240px',
             position: 'relative',
           }}>
             <canvas ref={fnCanvasRef} style={{ width: '100%', height: '100%' }} />
           </div>
 
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
+          <div style={{ fontSize: '1rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
             {TRANSFER_FNS[transferFn].desc}
           </div>
 
+          <STModalBadge symbol="T" content="IDEALIZATION_TRADE" title="Trade-off Epistémico" />
+
           {profesorMode && (
-            <div className="st-card" style={{ fontSize: '0.75rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
-              <strong style={{ color: 'var(--yellow)' }}>Lo que se pierde:</strong> geometría del axón,
-              química sináptica, temporalidad, morfología. Hinton lo llama explícitamente
-              "idealización burda" — pero productiva.
+            <div className="st-card" style={{ fontSize: '0.95rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--yellow)' }}>Lo que se pierde:</strong> geometría del axón, 
+              química sináptica, temporalidad, morfología. Hinton lo llama explícitamente 
+              "<STTooltip term="idealizacion">idealización</STTooltip> burda" — pero es lo que permite el cálculo tratable de derivadas.
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { motion } from 'framer-motion'
 import * as THREE from 'three'
 
@@ -268,9 +269,13 @@ export default function S08_Limites({ profesorMode }) {
           <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>arrastrar para rotar</span>
         </div>
         <div style={{ height: '270px', background: '#04040e' }}>
-          <Canvas camera={{ position: [0, 8, 12], fov: 40 }} gl={{ antialias: true }}>
+          <Canvas camera={{ position: [0, 8, 12], fov: 40 }} gl={{ antialias: false, powerPreference: "high-performance" }}>
             <Suspense fallback={null}>
+              <color attach="background" args={['#04040e']} />
               <LossScene />
+              <EffectComposer disableNormalPass>
+                <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.2} />
+              </EffectComposer>
             </Suspense>
           </Canvas>
         </div>

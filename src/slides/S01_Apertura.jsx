@@ -2,6 +2,70 @@ import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import STArgGraph from '../components/st/STArgGraph'
 
+function NetworkBackground() {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let w, h, animationId
+
+    const resize = () => {
+      w = canvas.width = window.innerWidth
+      h = canvas.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const nodes = Array.from({ length: 40 }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+    }))
+
+    const render = () => {
+      ctx.clearRect(0, 0, w, h)
+      ctx.fillStyle = 'rgba(124, 109, 250, 0.15)'
+      ctx.strokeStyle = 'rgba(124, 109, 250, 0.05)'
+
+      nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy
+        if (n.x < 0 || n.x > w) n.vx *= -1
+        if (n.y < 0 || n.y > h) n.vy *= -1
+
+        ctx.beginPath()
+        ctx.arc(n.x, n.y, 1.5, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x
+          const dy = nodes[i].y - nodes[j].y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 150) {
+            ctx.beginPath()
+            ctx.moveTo(nodes[i].x, nodes[i].y)
+            ctx.lineTo(nodes[j].x, nodes[j].y)
+            ctx.stroke()
+          }
+        }
+      }
+      animationId = requestAnimationFrame(render)
+    }
+    render()
+
+    return () => {
+      window.removeEventListener('resize', resize)
+      cancelAnimationFrame(animationId)
+    }
+  }, [])
+
+  return (
+    <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none', opacity: 0.7 }} />
+  )
+}
+
 const WORDS = ['El', 'cerebro...', 'es', 'una', 'computadora...', 'notable.']
 
 export default function S01_Apertura({ profesorMode }) {
@@ -33,9 +97,10 @@ export default function S01_Apertura({ profesorMode }) {
   }, [])
 
   return (
-    <div className="section-slide" style={{ gap: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+    <div className="section-slide" style={{ gap: '2rem', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+      <NetworkBackground />
       {/* Frase de apertura */}
-      <div style={{ textAlign: 'center' }}>
+      <div style={{ textAlign: 'center', zIndex: 1 }}>
         <div style={{
           fontSize: 'clamp(1.8rem, 5vw, 3.5rem)',
           fontWeight: 700,
@@ -81,11 +146,11 @@ export default function S01_Apertura({ profesorMode }) {
 
       {/* Apuesta filosófica */}
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '680px', width: '100%' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '0.5rem', fontFamily: 'monospace' }}>
+        <div className="st-card" style={{ maxWidth: '1000px', width: '100%', zIndex: 1 }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '0.6rem', fontFamily: 'monospace' }}>
             MARCO FILOSÓFICO
           </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--text)', lineHeight: 1.6 }}>
             Este texto instala un <span style={{ color: 'var(--accent-2)' }}>marco computacional-representacional</span> con
             compromisos ontológicos fuertes. El cerebro como computadora no es metáfora decorativa — es una apuesta
             empírica que genera predicciones falsificables. Al final la cuestionaremos con el propio formalismo del texto.
@@ -94,7 +159,7 @@ export default function S01_Apertura({ profesorMode }) {
       )}
 
       {/* Contexto en el curso */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', zIndex: 1 }}>
         {[
           { label: 'Daugman 1992', desc: 'metáforas del cerebro', color: 'var(--text-dim)' },
           { label: 'Hinton 1992', desc: 'redes neuronales', color: 'var(--accent)' },
@@ -103,14 +168,15 @@ export default function S01_Apertura({ profesorMode }) {
           <div key={n.label} style={{
             background: n.color === 'var(--accent)' ? 'rgba(124,109,250,0.15)' : 'var(--bg-3)',
             border: `1px solid ${n.color === 'var(--accent)' ? 'var(--accent)' : 'var(--border)'}`,
-            borderRadius: '8px',
-            padding: '0.5rem 1rem',
+            borderRadius: '12px',
+            padding: '0.8rem 1.5rem',
             textAlign: 'center',
+            boxShadow: n.color === 'var(--accent)' ? '0 0 20px rgba(124,109,250,0.2)' : 'none'
           }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: n.color === 'var(--accent)' ? 'var(--accent-2)' : 'var(--text-h)' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: n.color === 'var(--accent)' ? 'var(--accent-2)' : 'var(--text-h)' }}>
               {n.label}
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{n.desc}</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>{n.desc}</div>
           </div>
         ))}
       </div>

@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import * as tf from '@tensorflow/tfjs'
 import STTensionPanel from '../components/st/STTensionPanel'
+import STTooltip from '../components/st/STTooltip'
+import STModalBadge from '../components/st/STModalBadge'
 
 // ── Digit patterns 5×5 (0..9) ─────────────────────────────────────────────────
 const DIGIT_PATTERNS = [
@@ -221,91 +223,101 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   const confidence     = probs ? Math.max(...probs) : 0
 
   return (
-    <div className="section-slide" style={{ gap: '1.25rem' }}>
+    <div className="section-slide" style={{ gap: '1.5rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Alcances + Primera crítica</div>
-        <div className="section-subtitle">Funciona. Pero ¿explica?</div>
+        <div className="section-subtitle">Funciona. Pero ¿<STTooltip term="modelo">explica</STTooltip>?</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '600px' }}>
+      <div className="quote" style={{ maxWidth: '900px' }}>
         "Funciona. Reconoce dígitos, predice tasas cambiarias, detecta células precancerosas.
-        Pero ¿está <em>explicando</em> cómo aprende el cerebro, o simplemente funciona?"
+        Pero ¿está <em>explicando</em> cómo aprende el <STTooltip term="cerebro">cerebro</STTooltip>, o simplemente funciona como herramienta?"
       </div>
 
       {/* Apps */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '680px', width: '100%' }}>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1100px', width: '100%' }}>
         {APPS.map(a => (
-          <div key={a.label} style={{ flex: '1 1 130px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.55rem 0.7rem' }}>
-            <div style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>{a.icon}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-h)', fontWeight: 600 }}>{a.label}</div>
-            <div style={{ fontSize: '0.67rem', color: 'var(--text-dim)' }}>{a.desc}</div>
+          <div key={a.label} style={{ flex: '1 1 220px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem 1.5rem' }}>
+            <div style={{ fontSize: '1.6rem', marginBottom: '0.4rem' }}>{a.icon}</div>
+            <div style={{ fontSize: '1.05rem', color: 'var(--text-h)', fontWeight: 600 }}>{a.label}</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>{a.desc}</div>
           </div>
         ))}
       </div>
 
       {/* Live digit classifier */}
       <div style={{
-        display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center',
-        width: '100%', maxWidth: '720px',
+        display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center',
+        width: '100%', maxWidth: '1100px',
         background: 'var(--bg-3)', border: '1px solid var(--border)',
-        borderRadius: '10px', padding: '1rem',
+        borderRadius: '16px', padding: '2rem',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.15)'
       }}>
         {/* Training status */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-            Red TF.js local — {ready ? `entrenada · acc: ${(trainAcc * 100).toFixed(1)}%` : `entrenando... época ${trainEpoch}/120`}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+            <STTooltip term="neurona_artificial">Red Artificial</STTooltip> TF.js local — {ready ? `entrenada · acc: ${(trainAcc * 100).toFixed(1)}%` : `entrenando... época ${trainEpoch}/120`}
           </span>
-          <div style={{ width: '100px', height: '5px', background: '#1a1a2a', borderRadius: '3px', overflow: 'hidden' }}>
+          <div style={{ width: '150px', height: '8px', background: '#1a1a2a', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(trainEpoch / 120) * 100}%`, background: ready ? '#22c55e' : '#7c6dfa', transition: 'width 0.3s' }} />
           </div>
         </div>
 
         {/* DrawPad */}
         <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.4rem' }}>
-            Dibuja un dígito (clic + arrastre) · botón derecho = borrar
+          <div style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.8rem' }}>
+            Dibuja un dígito (clic + arrastre) · clíck derecho = borrar
           </div>
-          <DrawPad pixels={pixels} setPixels={setPixels} />
+          {/* Aumentamos el tamaño de las celdas */}
+          <div style={{ transform: 'scale(1.2)', transformOrigin: 'top left' }}>
+             <DrawPad pixels={pixels} setPixels={setPixels} />
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: '200px', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: '320px', flex: 1, marginLeft: '3rem' }}>
           {/* Prediction */}
           <div style={{
             background: ready ? 'rgba(124,109,250,0.12)' : 'rgba(255,255,255,0.04)',
             border: `2px solid ${ready ? 'var(--accent)' : 'var(--border)'}`,
-            borderRadius: '8px', padding: '0.6rem 1rem', textAlign: 'center',
+            borderRadius: '12px', padding: '1rem 2rem', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.2rem' }}>clasificación</div>
-            <div style={{ fontSize: '3rem', fontWeight: 700, color: 'var(--accent-2)', lineHeight: 1 }}>
+            <div style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.4rem' }}>clasificación</div>
+            <div style={{ fontSize: '5rem', fontWeight: 700, color: 'var(--accent-2)', lineHeight: 1 }}>
               {ready && predictedDigit !== null ? predictedDigit : '?'}
             </div>
             {ready && (
-              <div style={{ fontSize: '0.65rem', color: confidence > 0.7 ? '#22c55e' : '#eab308', fontFamily: 'monospace', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '0.9rem', color: confidence > 0.7 ? '#22c55e' : '#eab308', fontFamily: 'monospace', marginTop: '0.5rem' }}>
                 confianza: {(confidence * 100).toFixed(1)}%
               </div>
             )}
           </div>
 
           {/* Probability bars */}
-          <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginBottom: '0.15rem', fontFamily: 'monospace' }}>
-            distribución de probabilidades:
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginBottom: '0.2rem', fontFamily: 'monospace' }}>
+            distribución de <STTooltip term="representacion_distribuida">probabilidades</STTooltip>:
           </div>
-          <ProbBars probs={ready ? probs : null} />
+          <div style={{ transform: 'scale(1.1)', transformOrigin: 'top left' }}>
+            <ProbBars probs={ready ? probs : null} />
+          </div>
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <STModalBadge symbol="O" content="EPISTEMOLOGICAL_GAP" title="Brecha Epistemológica" />
+      </div>
+
       {/* ST Tension Panel */}
-      <div style={{ width: '100%', maxWidth: '760px' }}>
+      <div style={{ width: '100%', maxWidth: '1100px' }}>
         <STTensionPanel />
       </div>
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '760px', width: '100%', fontSize: '0.78rem', lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--yellow)' }}>Punto de quiebre:</strong>{' '}
+        <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '1.05rem', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--yellow)' }}>Punto de quiebre filosófico:</strong>{' '}
           <span style={{ color: 'var(--text)' }}>
-            La red que clasificó tu dígito fue entrenada completamente en tu navegador — TF.js real.
-            Arquitectura: 25→32→24→10, softmax, Adam lr=0.01, 120 épocas, 600 ejemplos ruidosos.
-            La pregunta filosófica: ¿esta red <em>reconoce</em> dígitos o sólo <em>clasifica</em> patrones de píxeles?
+            La <STTooltip term="modelo">red</STTooltip> que clasificó tu dígito fue entrenada completamente en tu navegador usando perceptrones multicapa.
+            Arquitectura: 25→32→24→10, softmax, Adam lr=0.01, 120 épocas.
+            La pregunta ST subyacente: ¿El éxito funcional justifica la realidad de los procesos? ¿Esta red "reconoce" números o simplemente encadena operaciones lineales sobre arreglos multidimensionales?
           </span>
         </div>
       )}

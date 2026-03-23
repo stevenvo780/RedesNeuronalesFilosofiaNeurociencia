@@ -24,6 +24,7 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
   height: 100svh;
+  font-size: clamp(16px, 1.25vw, 24px);
 }
 
 #root {
@@ -46,25 +47,26 @@ body {
 }
 
 .section-title {
-  font-size: clamp(1.5rem, 4vw, 3rem);
-  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 800;
   color: var(--text-h);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   line-height: 1.1;
 }
 
 .section-subtitle {
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  font-size: clamp(1.2rem, 2.5vw, 2rem);
   color: var(--text-dim);
-  margin-top: 0.5rem;
+  margin-top: 0.8rem;
+  font-weight: 300;
 }
 
 .quote {
-  border-left: 3px solid var(--accent);
-  padding-left: 1rem;
+  border-left: 4px solid var(--accent);
+  padding-left: 1.5rem;
   color: var(--text-dim);
   font-style: italic;
-  font-size: 0.95rem;
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
   line-height: 1.6;
 }
 
@@ -72,10 +74,11 @@ body {
 .st-card {
   background: var(--bg-3);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  font-size: 0.82rem;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  font-size: clamp(0.9rem, 1.3vw, 1.25rem);
   font-family: 'JetBrains Mono', monospace;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 
 .st-derive { border-left: 3px solid var(--green); }

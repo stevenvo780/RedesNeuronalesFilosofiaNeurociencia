@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import STTooltip from '../components/st/STTooltip'
 
@@ -256,9 +257,13 @@ export default function S02_NeuronasReal({ profesorMode }) {
         border: '1px solid var(--border)', background: '#04040e',
         position: 'relative',
       }}>
-        <Canvas camera={{ position: [2, 1.5, 9], fov: 42 }} gl={{ antialias: true }}>
+        <Canvas camera={{ position: [2, 1.5, 9], fov: 42 }} gl={{ antialias: false, powerPreference: "high-performance" }}>
           <Suspense fallback={null}>
+            <color attach="background" args={['#04040e']} />
             <NeuronScene selected={selected} setSelected={setSelected} />
+            <EffectComposer disableNormalPass>
+              <Bloom luminanceThreshold={0.2} mipmapBlur luminanceSmoothing={0.1} intensity={1.5} />
+            </EffectComposer>
           </Suspense>
         </Canvas>
         <div style={{ position: 'absolute', top: 8, right: 10, fontSize: '0.65rem', color: '#ffffff44', fontFamily: 'monospace' }}>

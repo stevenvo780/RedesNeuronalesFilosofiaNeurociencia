@@ -66,7 +66,8 @@ export default function AIPanel({ visible, onClose }) {
       top: 0,
       bottom: 0,
       width: '340px',
-      background: 'var(--bg-2)',
+      background: 'rgba(17, 17, 24, 0.75)',
+      backdropFilter: 'blur(16px)',
       borderLeft: '1px solid var(--border)',
       display: 'flex',
       flexDirection: 'column',
@@ -75,41 +76,42 @@ export default function AIPanel({ visible, onClose }) {
     }}>
       {/* Header */}
       <div style={{
-        padding: '0.75rem 1rem',
+        padding: '1.2rem 1.5rem',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
         <div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-h)', fontWeight: 600 }}>
+          <div style={{ fontSize: '1.1rem', color: 'var(--text-h)', fontWeight: 600 }}>
             IA · qwen2.5-coder:14b
           </div>
-          <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
-            Contexto: Hinton 1992 + notas filosóficas
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+            Contexto: Hinton 1992 + notas
           </div>
         </div>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '2rem', lineHeight: 1 }}
         >
           ×
         </button>
       </div>
 
       {/* Messages */}
-      <div className="scroll-y" style={{ flex: 1, padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+      <div className="scroll-y" style={{ flex: 1, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {messages.map((m, i) => (
           <div key={i} style={{
             maxWidth: '90%',
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
             background: m.role === 'user' ? 'rgba(124,109,250,0.2)' : 'var(--bg-3)',
             border: '1px solid var(--border)',
-            borderRadius: '8px',
-            padding: '0.5rem 0.75rem',
-            fontSize: '0.82rem',
-            color: 'var(--text)',
+            borderRadius: '12px',
+            padding: '0.8rem 1.2rem',
+            fontSize: '1rem',
             lineHeight: 1.5,
+            color: 'var(--text)',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
           }}>
             {m.content}
           </div>
