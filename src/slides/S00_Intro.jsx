@@ -5,7 +5,7 @@ import { ExternalLink, QrCode, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import * as THREE from 'three'
 
-const PUBLIC_URL = 'https://redes-neuronales-filosofia-neurocie.vercel.app/'
+const PUBLIC_URL = 'https://hinton.stevenvallejo.com/'
 
 // ── Deterministic pseudo-random ─────────────────────────────────────────────
 function prng(seed) {
@@ -346,6 +346,17 @@ function NeuralScene() {
 export default function S00_Intro() {
   const [qrOpen, setQrOpen] = useState(false)
 
+  useEffect(() => {
+    if (!qrOpen) return
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setQrOpen(false)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [qrOpen])
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: '#020212', overflow: 'hidden' }}>
       <Canvas
@@ -421,71 +432,177 @@ export default function S00_Intro() {
           </span>
         </button>
 
-        {qrOpen && (
+      </div>
+
+      {qrOpen && (
+        <div
+          onClick={() => setQrOpen(false)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'clamp(1rem, 4vw, 2rem)',
+            background: 'rgba(2, 2, 18, 0.42)',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
           <div style={{
-            width: 'min(280px, calc(100vw - 2.25rem))',
-            background: 'rgba(10,10,18,0.84)',
-            border: '1px solid rgba(167,139,250,0.26)',
-            borderRadius: '18px',
-            padding: '0.95rem',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 22px 60px rgba(0,0,0,0.36)',
+            width: 'min(1200px, 100%)',
+            minHeight: 'min(82vh, 760px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            justifyContent: 'center',
+            gap: '1.2rem',
+            background: 'linear-gradient(180deg, rgba(10,10,18,0.56) 0%, rgba(18,18,32,0.48) 100%)',
+            border: '1px solid rgba(167,139,250,0.18)',
+            borderRadius: '30px',
+            padding: 'clamp(1.1rem, 2.4vw, 1.8rem)',
+            backdropFilter: 'blur(14px)',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.32)',
+            position: 'relative',
+            overflow: 'hidden',
           }}>
-            <div style={{
-              fontSize: '0.78rem',
-              color: 'var(--accent-2)',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              marginBottom: '0.35rem',
-            }}>
-              ESCANEA Y ABRE LA PRESENTACIÓN
-            </div>
-            <div style={{
-              fontSize: '0.72rem',
-              color: 'var(--text-dim)',
-              lineHeight: 1.5,
-              marginBottom: '0.85rem',
-            }}>
-              Ideal para que el público entre rápido desde la cámara del móvil sin pelearse con el teclado. Tecnología al servicio de la paz social.
-            </div>
+            <button
+              onClick={(event) => {
+                event.stopPropagation()
+                setQrOpen(false)
+              }}
+              aria-label="Cerrar acceso QR"
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.06)',
+                color: 'var(--text-dim)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={18} strokeWidth={2.2} />
+            </button>
 
             <div style={{
               display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap-reverse',
+              gap: 'clamp(2rem, 5vw, 6rem)',
+              alignItems: 'center',
               justifyContent: 'center',
-              padding: '0.8rem',
-              background: '#fff',
-              borderRadius: '16px',
-              marginBottom: '0.8rem',
+              minHeight: 0,
             }}>
-              <QRCodeSVG
-                value={PUBLIC_URL}
-                size={164}
-                bgColor="#ffffff"
-                fgColor="#111118"
-                level="M"
-                includeMargin={true}
-              />
-            </div>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                alignItems: 'flex-start',
+                textAlign: 'left',
+                minWidth: 0,
+              }}>
+                <div style={{
+                  fontSize: '0.76rem',
+                  color: 'rgba(167,139,250,0.86)',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}>
+                  Acceso rápido desde el móvil
+                </div>
 
-            <a
-              href={PUBLIC_URL}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'block',
-                textAlign: 'center',
-                fontSize: '0.7rem',
-                color: 'var(--text)',
-                textDecoration: 'none',
-                wordBreak: 'break-all',
-                lineHeight: 1.5,
-              }}
-            >
-              {PUBLIC_URL}
-            </a>
+                <a
+                  href={PUBLIC_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: 'clamp(1rem, 2.2vw, 1.5rem)',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(167,139,250,0.22)',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: 'var(--text-h)',
+                    textDecoration: 'none',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.12,
+                    boxShadow: '0 14px 40px rgba(0,0,0,0.18)',
+                  }}
+                >
+                  <div style={{
+                    fontSize: '0.74rem',
+                    color: 'rgba(240,240,255,0.56)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: '0.55rem',
+                  }}>
+                    URL pública
+                  </div>
+                  <div style={{
+                    fontSize: 'clamp(2rem, 4.8vw, 3.9rem)',
+                    fontWeight: 800,
+                    color: 'var(--text-h)',
+                    letterSpacing: '-0.04em',
+                  }}>
+                    hinton.stevenvallejo.com
+                  </div>
+                </a>
+
+                <div style={{
+                  fontSize: 'clamp(1rem, 1.45vw, 1.15rem)',
+                  color: 'rgba(240,240,255,0.72)',
+                  lineHeight: 1.5,
+                  maxWidth: '44ch',
+                }}>
+                  Si alguien igual quiere escribirla, ahora es corta. Pero el camino preferido sigue siendo el QR: sacar cámara, escanear y entrar.
+                </div>
+
+                <div style={{
+                  fontSize: 'clamp(0.86rem, 1.1vw, 0.96rem)',
+                  color: 'rgba(240,240,255,0.48)',
+                  lineHeight: 1.5,
+                  maxWidth: '48ch',
+                }}>
+                  El QR está optimizado para verse grande en pantalla completa. Pulsa fuera del modal o presiona <strong style={{ color: 'rgba(240,240,255,0.75)' }}>Esc</strong> para cerrarlo.
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 0,
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  padding: 'clamp(0.9rem, 1.6vw, 1.15rem)',
+                  background: 'rgba(255,255,255,0.96)',
+                  borderRadius: '26px',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.18)',
+                }}>
+                  <QRCodeSVG
+                    value={PUBLIC_URL}
+                    size={380}
+                    bgColor="#ffffff"
+                    fgColor="#111118"
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div style={{
         position: 'absolute', bottom: 18, right: 18,

@@ -377,7 +377,7 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
   }
 
   return (
-    <div className="section-slide" style={{ gap: '1.6rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="section-slide" style={{ gap: '1.6rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Evidencia Biológica: Códigos Demográficos</div>
         <div className="section-subtitle">¿Cómo procesa la corteza las representaciones continuas del espacio?</div>

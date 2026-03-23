@@ -229,8 +229,6 @@ export default function S12_De1992AHoy({ profesorMode }) {
       className="section-slide"
       style={{
         gap: '0.5rem',
-        maxWidth: '1200px',
-        margin: '0 auto',
         padding: '0.6rem 1.5rem',
         position: 'relative',
         overflow: 'hidden',

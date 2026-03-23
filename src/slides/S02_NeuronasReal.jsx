@@ -390,7 +390,7 @@ export default function S02_NeuronasReal({ profesorMode, ref }) {
   const info = PARTS.find(p => p.id === selected)
 
   return (
-    <div className="section-slide" style={{ gap: '1.25rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="section-slide" style={{ gap: '1.25rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Ontología Biológica Básica (Realidad Material)</div>
         <div className="section-subtitle">El Sustrato Natural (Neuronas Físicas 3D)</div>

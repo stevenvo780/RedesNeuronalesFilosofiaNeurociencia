@@ -95,7 +95,7 @@ nuevas y corroborables sobre cómo funciona la cognición real.`
 
 export default function S13_CierreArgumental({ profesorMode }) {
   return (
-    <div className="section-slide" style={{ gap: '2rem', maxWidth: '1200px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
+    <div className="section-slide" style={{ gap: '2rem', position: 'relative', overflow: 'hidden' }}>
       <NeuralBg />
       <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
         <div className="section-title">Tesis y Arco Argumentativo</div>

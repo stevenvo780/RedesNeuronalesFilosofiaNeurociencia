@@ -366,7 +366,7 @@ export default function S08_Limites({ profesorMode }) {
   const [activeLimit, setActiveLimit] = useState(null)
 
   return (
-    <div className="section-slide" style={{ gap: '1.4rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="section-slide" style={{ gap: '1.4rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Límites Analíticos y Ontológicos de la Retropropagación</div>
         <div className="section-subtitle">Grietas en el Paradigma Conexionista de 1992</div>

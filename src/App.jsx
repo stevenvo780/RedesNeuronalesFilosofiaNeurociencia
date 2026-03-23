@@ -403,8 +403,11 @@ export default function App() {
                 }}
               />
             ))}
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginLeft: '0.4rem', fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', margin: '0 0.4rem', fontFamily: 'monospace' }}>
               {current + 1}/{SLIDES.length}
+            </span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontStyle: 'italic', opacity: 0.75 }}>
+              — Steven Vallejo
             </span>
           </div>
 

@@ -256,7 +256,7 @@ export default function S12b_Convergencia({ profesorMode }) {
   return (
     <motion.div
       className="section-slide"
-      style={{ gap: '1.8rem', maxWidth: '1200px', margin: '0 auto' }}
+      style={{ gap: '1.8rem' }}
       variants={stagger}
       initial="hidden"
       animate="visible"

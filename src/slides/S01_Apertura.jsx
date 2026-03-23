@@ -276,6 +276,7 @@ export default function S01_Apertura({ profesorMode }) {
         <em style={{ color: 'var(--text)' }}>Scientific American</em>, 267(3), 144–151.
         <span style={{ display: 'block', color: 'var(--text-dim)', opacity: 0.65, marginTop: '0.2rem', fontSize: '0.76rem' }}>
           Artículo de divulgación — propuesta programática dirigida a público amplio, no demostración formal
+          <br/>Presentación por <strong style={{ color: 'var(--text-h)' }}>Steven Vallejo</strong>
         </span>
       </div>
       </div>

@@ -334,7 +334,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
   }
 
   return (
-    <div className="section-slide" style={{ gap: '1.2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="section-slide" style={{ gap: '1.2rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Aprendizaje No Supervisado</div>
         <div className="section-subtitle">El Ecosistema Topológico Computacional</div>

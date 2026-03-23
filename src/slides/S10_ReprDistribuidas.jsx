@@ -191,7 +191,7 @@ function RecurrentNet() {
 // ── Main slide ────────────────────────────────────────────────────────────────
 export default function S10_ReprDistribuidas({ profesorMode }) {
   return (
-    <div className="section-slide" style={{ gap: '1.6rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="section-slide" style={{ gap: '1.6rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Ontología de las Representaciones</div>
         <div className="section-subtitle">Del Localismo al Sparse Coding Recurrente</div>
