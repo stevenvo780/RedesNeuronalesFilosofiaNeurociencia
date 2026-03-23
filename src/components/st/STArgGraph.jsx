@@ -24,7 +24,7 @@ export default function STArgGraph() {
     svg.append('defs').append('marker')
       .attr('id', 'arrow')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 32)
+      .attr('refX', 65)
       .attr('refY', 0)
       .attr('markerWidth', 7)
       .attr('markerHeight', 7)
@@ -57,17 +57,25 @@ export default function STArgGraph() {
       .attr('transform', d => `translate(${d.cx}, ${d.cy})`)
       .attr('opacity', 0)
 
-    g.append('circle')
-      .attr('r', 28)
+    // Increase dimensions to fit large words
+    const rectW = 120;
+    const rectH = 40;
+
+    g.append('rect')
+      .attr('x', -rectW / 2)
+      .attr('y', -rectH / 2)
+      .attr('width', rectW)
+      .attr('height', rectH)
+      .attr('rx', 8)
       .attr('fill', '#1a1a24')
       .attr('stroke', '#7c6dfa')
-      .attr('stroke-width', 2.5)
+      .attr('stroke-width', 2)
 
     g.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '0.35em')
       .attr('fill', '#a78bfa')
-      .attr('font-size', '12px')
+      .attr('font-size', '13px')
       .attr('font-weight', 'bold')
       .attr('font-family', 'monospace')
       .text(d => d.label)

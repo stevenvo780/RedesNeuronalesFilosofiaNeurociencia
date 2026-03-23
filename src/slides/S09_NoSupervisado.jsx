@@ -1,3 +1,5 @@
+import STTooltip from "../components/st/STTooltip"
+import STTensionPanel from "../components/st/STTensionPanel"
 import { useEffect, useRef, useState } from 'react'
 import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
@@ -191,30 +193,30 @@ export default function S09_NoSupervisado({ profesorMode }) {
   }, [tab])
 
   return (
-    <div className="section-slide" style={{ gap: '1.25rem' }}>
+    <div className="section-slide" style={{ gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">Aprendizaje no supervisado</div>
-        <div className="section-subtitle">La mitad más filosófica</div>
+        <div className="section-title">Aprendizaje No Supervisado</div>
+        <div className="section-subtitle">El Ecosistema Topológico Computacional</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '640px' }}>
-        "¿Cómo puede una red aprender a representar el mundo si nadie le dice qué es el mundo?"
+      <div className="quote" style={{ maxWidth: '850px', fontSize: '1.1rem' }}>
+        "¿Cómo logra un sistema desarrollar una <STTooltip term="representacion">representación isomórfica</STTooltip> del mundo, sin que un instructor omnisciente asigne etiquetas externas sobre qué es lo que observa?"
       </div>
 
       {/* Criterio de buena representación */}
-      <div className="st-card" style={{ maxWidth: '640px', width: '100%' }}>
-        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.4rem' }}>
-          CRITERIO COMPARTIDO — todos los procedimientos lo usan
+      <div className="st-card" style={{ maxWidth: '900px', width: '100%' }}>
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginBottom: '0.6rem' }}>
+          EL CRITERIO UNIVERSAL DE COMPRESIÓN ACTIVA
         </div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text)', lineHeight: 1.6 }}>
-          Una buena representación es:{' '}
-          <strong style={{ color: 'var(--green)' }}>económica</strong> (pocos bits para las unidades ocultas) +{' '}
-          <strong style={{ color: 'var(--cyan)' }}>reconstructiva</strong> (la entrada se puede recuperar).
+        <p style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.6 }}>
+          Cualquier <STTooltip term="representacion">modelo representacional autónomo</STTooltip> obedece una tensión dialéctica:{' '}
+          <strong style={{ color: 'var(--green)' }}>Eficiencia Ontológica</strong> (reducir dimensionalidad exprimiendo redundancias en vectores de <STTooltip term="peso">pesos</STTooltip>) y{' '}
+          <strong style={{ color: 'var(--cyan)' }}>Fidelidad Generativa</strong> (garantizar que la señal de entrada pueda ser inferida/reconstruida a partir del código comprimido).
         </p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.4rem', maxWidth: '640px', width: '100%' }}>
+      <div style={{ display: 'flex', gap: '0.6rem', maxWidth: '1000px', width: '100%' }}>
         {[
           { id: 'pca', label: '9a — PCA' },
           { id: 'competitive', label: '9b — Competitivo' },
@@ -225,9 +227,10 @@ export default function S09_NoSupervisado({ profesorMode }) {
             onClick={() => setTab(t.id)}
             style={{
               flex: 1,
-              padding: '0.4rem',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
+              padding: '0.65rem',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: 500,
               cursor: 'pointer',
               ...(tab === t.id ? TAB_STYLES.selected : TAB_STYLES.default),
             }}
@@ -240,8 +243,8 @@ export default function S09_NoSupervisado({ profesorMode }) {
       {/* Canvas */}
       <div style={{
         width: '100%',
-        maxWidth: '640px',
-        height: '200px',
+        maxWidth: '1000px',
+        height: '350px',
         background: 'var(--bg-3)',
         border: '1px solid var(--border)',
         borderRadius: '8px',
@@ -253,27 +256,27 @@ export default function S09_NoSupervisado({ profesorMode }) {
       </div>
 
       {/* Tab descriptions */}
-      <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textAlign: 'center', maxWidth: '580px' }}>
-        {tab === 'pca' && 'Algoritmos de Linsker y Oja — solo correlaciones, sin retropropagación. Biológicamente plausibles.'}
-        {tab === 'competitive' && 'Las unidades compiten: una gana, sus pesos migran hacia el patrón. Contraste con PCA: cooperan vs. compiten.'}
-        {tab === 'kohonen' && 'Unidades físicamente cercanas aprenden patrones similares → mapas topográficos como en la corteza visual.'}
+      <div style={{ fontSize: '1rem', color: 'var(--text-dim)', textAlign: 'center', maxWidth: '900px' }}>
+        {tab === 'pca' && <><STTooltip term="aprendizaje_hebbiano">Cálculo de Componentes Principales</STTooltip> — Las unidades extraen correlaciones estadísticas dominantes (Linsker y Oja). Altamente <STTooltip term="plausibilidad_biologica">plausible biológicamente</STTooltip>.</>}
+        {tab === 'competitive' && <>Redes de Competición Mutua (Winner-Takes-All). Las neuronas no colaboran, compiten. Actúa como un mecanismo implacable de <STTooltip term="representacion">categorización discreta</STTooltip>.</>}
+        {tab === 'kohonen' && <>Mapas Auto-organizados (SOM). La geometría topológica importa. Obliga a neuronas vecinas en el perceptrón a codificar <STTooltip term="vector_de_estado">vectores de estado</STTooltip> estructuralmente similares, imitando la corteza cerebral real.</>}
       </div>
 
       {/* ST Deriva */}
       {profesorMode && (
-        <div style={{ width: '100%', maxWidth: '640px' }}>
-          <STDeriveCard derive={ST_ONTOLOGIA.derives[0]} />
-          <STDeriveCard derive={ST_ONTOLOGIA.derives[1]} />
+        <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', gap: '1rem' }}>
+          <div style={{ flex: 1 }}><STDeriveCard derive={ST_ONTOLOGIA.derives[0]} /></div>
+          <div style={{ flex: 1 }}><STDeriveCard derive={ST_ONTOLOGIA.derives[1]} /></div>
         </div>
       )}
 
       {/* Tabla comparativa */}
-      <div style={{ width: '100%', maxWidth: '640px', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+      <div style={{ width: '100%', maxWidth: '1000px', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr>
               {['Paradigma', 'Instructor', 'Representación', 'Uso hoy'].map(h => (
-                <th key={h} style={{ padding: '0.4rem 0.6rem', textAlign: 'left', color: 'var(--text-dim)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
+                <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'var(--text-dim)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
                   {h}
                 </th>
               ))}
@@ -282,10 +285,10 @@ export default function S09_NoSupervisado({ profesorMode }) {
           <tbody>
             {PARADIGMS.map(p => (
               <tr key={p.label} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '0.35rem 0.6rem', color: p.color, fontWeight: 500 }}>{p.label}</td>
-                <td style={{ padding: '0.35rem 0.6rem', color: 'var(--text)' }}>{p.instructor}</td>
-                <td style={{ padding: '0.35rem 0.6rem', color: 'var(--text-dim)' }}>{p.repr}</td>
-                <td style={{ padding: '0.35rem 0.6rem', color: 'var(--text-dim)' }}>{p.uso}</td>
+                <td style={{ padding: '0.55rem 1rem', color: p.color, fontWeight: 500 }}>{p.label}</td>
+                <td style={{ padding: '0.55rem 1rem', color: 'var(--text)' }}>{p.instructor}</td>
+                <td style={{ padding: '0.55rem 1rem', color: 'var(--text-dim)' }}>{p.repr}</td>
+                <td style={{ padding: '0.55rem 1rem', color: 'var(--text-dim)' }}>{p.uso}</td>
               </tr>
             ))}
           </tbody>

@@ -1,3 +1,4 @@
+import STTensionPanel from "../components/st/STTensionPanel"
 import { useRef, useState, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
@@ -239,20 +240,19 @@ export default function S02_NeuronasReal({ profesorMode }) {
   const info = PARTS.find(p => p.id === selected)
 
   return (
-    <div className="section-slide" style={{ gap: '1rem' }}>
+    <div className="section-slide" style={{ gap: '1.25rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">La neurona real</div>
-        <div className="section-subtitle">El modelo que Hinton idealiza — 3D interactivo</div>
+        <div className="section-title">Ontología Biológica Básica (Realidad Material)</div>
+        <div className="section-subtitle">El Sustrato Natural (Neuronas Físicas 3D)</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '620px' }}>
-        "Antes de hablar de neuronas artificiales, hay que entender qué se imita —
-        y cuánto se pierde en la imitación."
+      <div className="quote" style={{ maxWidth: '900px', fontSize: '1.1rem' }}>
+        "Antes de someter al cerebro a la <STTooltip term="idealizacion">idealización reduccionista</STTooltip> de 1992, debemos contemplar la asombrosa complejidad geométrica y electroquímica que la máquina descarta."
       </div>
 
       {/* 3D Canvas */}
       <div style={{
-        width: '100%', maxWidth: '760px', height: '300px',
+        width: '100%', maxWidth: '1000px', height: '360px',
         borderRadius: '10px', overflow: 'hidden',
         border: '1px solid var(--border)', background: '#04040e',
         position: 'relative',
@@ -272,18 +272,19 @@ export default function S02_NeuronasReal({ profesorMode }) {
       </div>
 
       {/* Part selector buttons */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         {PARTS.map(p => (
           <button
             key={p.id}
             onClick={() => setSelected(s => s === p.id ? null : p.id)}
             style={{
-              padding: '0.35rem 0.9rem',
-              borderRadius: '6px',
+              padding: '0.6rem 1.2rem',
+              borderRadius: '8px',
               border: `1px solid ${selected === p.id ? p.color : 'var(--border)'}`,
               background: selected === p.id ? `${p.color}22` : 'var(--bg-3)',
               color: selected === p.id ? p.color : 'var(--text-dim)',
-              fontSize: '0.78rem',
+              fontSize: '0.95rem',
+              fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.15s',
             }}
@@ -296,13 +297,13 @@ export default function S02_NeuronasReal({ profesorMode }) {
       {/* Info panel */}
       {info && (
         <div style={{
-          maxWidth: '680px', width: '100%',
+          maxWidth: '1000px', width: '100%',
           background: 'var(--bg-3)',
           border: `1px solid ${info.color}55`,
           borderLeft: `4px solid ${info.color}`,
-          borderRadius: '6px',
-          padding: '0.75rem 1rem',
-          fontSize: '0.82rem',
+          borderRadius: '8px',
+          padding: '1rem 1.5rem',
+          fontSize: '1rem',
           color: 'var(--text)',
           lineHeight: 1.65,
           transition: 'all 0.2s',
@@ -310,21 +311,25 @@ export default function S02_NeuronasReal({ profesorMode }) {
           {info.info}
         </div>
       )}
+      
+      <STTensionPanel 
+        title="Reducción Ontológica Neuronal"
+        items={[
+          { label: "Temporalidad Compleja", status: "no", desc: "El timing exacto de los picos de acción electroquímicos se ignora (salvo en SNNs modernas)." },
+          { label: "Plasticidad Sináptica", status: "yes", desc: "El cambio en la 'eficacia' sináptica (pesos matemáticos) se mantiene como matriz central." }
+        ]}
+      />
 
       {/* Key insight */}
-      <div className="st-card" style={{ maxWidth: '680px', width: '100%' }}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.6 }}>
-          <span style={{ color: 'var(--accent-2)' }}>La información no está en ningún lugar.</span>{' '}
-          Está distribuida en la eficacia de miles de{' '}
-          <STTooltip term="sinapsis">sinapsis</STTooltip>.
-          Aprender = cambio en eficacia sináptica. El modelo de Hinton conserva esa intuición
-          y descarta el resto.
+      <div className="st-card" style={{ maxWidth: '1000px', width: '100%' }}>
+        <p style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.6 }}>
+          <span style={{ color: 'var(--accent-2)' }}>El conocimiento no es un archivo almacenado, sino una disposición estructural latente.</span>{' '}
+          La cognición reside holográficamente en la conectividad material codificada materialmente entre infinitas uniones de <STTooltip term="sinapsis">sinapsis</STTooltip>.
+          Aprender implica alterar esta topología micro-conductora.
         </p>
         {profesorMode && (
-          <div style={{ marginTop: '0.5rem', fontSize: '0.74rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-            La idealización borra: geometría del axón, química sináptica, temporalidad de disparos,
-            potencial de membrana continuo. Conserva: suma ponderada + umbral no lineal + plasticidad.
-            Esa restricción es filosóficamente significativa — y es exactamente el foco de Hinton 1992.
+          <div style={{ marginTop: '0.8rem', fontSize: '0.85rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+            Hinton ejecutó una <STTooltip term="idealizacion">reducción funcional</STTooltip> estricta. Intercambió fidelidad anatómica por manejabilidad algebraica, reduciendo química y geometría pura para poder diferenciar derivativamente matrices enteras de aprendizaje <STTooltip term="conexionismo">conexionista</STTooltip>.
           </div>
         )}
       </div>

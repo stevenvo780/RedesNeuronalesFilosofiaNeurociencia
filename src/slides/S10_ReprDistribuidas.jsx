@@ -1,3 +1,5 @@
+import STTooltip from "../components/st/STTooltip"
+import STTensionPanel from "../components/st/STTensionPanel"
 import { useEffect, useRef } from 'react'
 
 const REPR_TYPES = [
@@ -116,19 +118,26 @@ export default function S10_ReprDistribuidas({ profesorMode }) {
   }, [])
 
   return (
-    <div className="section-slide" style={{ gap: '1.5rem' }}>
+    <div className="section-slide" style={{ gap: '1.8rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">Representaciones y redes recurrentes</div>
-        <div className="section-subtitle">¿Cuántas neuronas para un concepto?</div>
+        <div className="section-title">Ontología de las Representaciones</div>
+        <div className="section-subtitle">Del Localismo al Sparse Coding Recurrente</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '560px' }}>
-        "¿Cuántas neuronas necesitas para representar un concepto?
-        ¿Una? ¿Mil? ¿Depende?"
+      <div className="quote" style={{ maxWidth: '900px', fontSize: '1.1rem' }}>
+        "¿Dónde reside el concepto de 'abuela' en la red? ¿En una sola neurona (célula de la abuela) o distribuida holográficamente en mil sinapsis? Hinton y Barlow buscaban el punto medio ontológico."
       </div>
+      
+      <STTensionPanel 
+        title="El Debate Representacional"
+        items={[
+          { label: "Postura Localista", status: "no", desc: "Aislar conceptos empíricos en unidades individuales. Frágil ante la muerte celular, incapaz de generalizar." },
+          { label: "Postura Distribuida (Sparse)", status: "yes", desc: "La identidad es un vector de activación esparcido. Robusto, combinatorio, topológicamente denso." }
+        ]}
+      />
 
       {/* Tres tipos de representación */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', maxWidth: '760px', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', maxWidth: '1100px', justifyContent: 'center' }}>
         {REPR_TYPES.map(t => (
           <div key={t.id} style={{
             flex: '1 1 200px',
@@ -138,31 +147,27 @@ export default function S10_ReprDistribuidas({ profesorMode }) {
             borderRadius: '8px',
             padding: '0.75rem',
           }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: t.color, marginBottom: '0.3rem' }}>{t.label}</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 600, color: t.color, marginBottom: '0.6rem' }}>{t.label}</div>
             <ReprDiagram type={t} />
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.4rem', lineHeight: 1.4 }}>{t.desc}</div>
+            <div style={{ fontSize: '0.95rem', color: 'var(--text-dim)', marginTop: '0.8rem', lineHeight: 1.5 }}>{t.desc}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ fontSize: '0.8rem', color: 'var(--text)', textAlign: 'center', maxWidth: '600px', lineHeight: 1.6 }}>
-        Hinton:{' '}
-        <span style={{ color: 'var(--accent-2)' }}>
-          "los casos más interesantes están entre los dos extremos"
-        </span>{' '}
-        — el sparse coding de Barlow combina economía y redundancia reducida.
+      <div style={{ fontSize: '1.05rem', color: 'var(--text)', textAlign: 'center', maxWidth: '900px', lineHeight: 1.6 }}>
+        Hinton subraya que: <span style={{ color: 'var(--accent-2)' }}>"los casos más interesantes ocurren en la frontera entre la extrema economía (localismo) y la extrema densidad"</span> — El <STTooltip term="representacion">Sparse Coding</STTooltip> de Barlow soluciona esto garantizando que el estado sea decodificable pero empleando fracciones mínimas de neuronas activas.
       </div>
 
       {/* Redes recurrentes */}
-      <div style={{ width: '100%', maxWidth: '500px' }}>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-h)', fontWeight: 600, marginBottom: '0.5rem' }}>
-          Redes recurrentes
+      <div style={{ width: '100%', maxWidth: '900px', alignSelf: 'center' }}>
+        <div style={{ fontSize: '1.05rem', color: 'var(--text-h)', fontWeight: 600, marginBottom: '0.8rem', textAlign: 'center' }}>
+          Topología No Lineal: <STTooltip term="arquitectura">Redes Recurrentes (RNN)</STTooltip>
         </div>
         <div style={{
-          height: '140px',
+          height: '240px',
           background: 'var(--bg-3)',
           border: '1px solid var(--border)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           overflow: 'hidden',
         }}>
           <canvas ref={recCanvasRef} style={{ width: '100%', height: '100%' }} />
@@ -170,7 +175,7 @@ export default function S10_ReprDistribuidas({ profesorMode }) {
       </div>
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '640px', width: '100%', fontSize: '0.78rem', lineHeight: 1.6 }}>
+        <div className="st-card" style={{ maxWidth: '1000px', width: '100%', fontSize: '1rem', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--accent-2)' }}>Vínculo con hoy:</strong>{' '}
           <span style={{ color: 'var(--text)' }}>
             Las LSTM y los transformers son descendientes directos de las redes recurrentes de Hinton.

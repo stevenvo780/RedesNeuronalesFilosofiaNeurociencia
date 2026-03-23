@@ -205,31 +205,35 @@ function LossScene() {
 
 // ── Limits list ───────────────────────────────────────────────────────────────
 const LIMITS = [
-  { n: 1, title: 'Requiere instructor',     color: '#ef4444', desc: 'Necesita la salida correcta en cada ejemplo. Alguien debe saber la respuesta de antemano.' },
-  { n: 2, title: 'Escalabilidad',           color: '#eab308', desc: 'El tiempo crece más rápido que el tamaño de la red. Redes muy grandes son costosas.' },
-  { n: 3, title: 'Mínimos locales',         color: '#f97316', desc: 'El espacio de error tiene valles locales. El gradiente puede quedar atrapado — como la bola roja.' },
-  { n: 4, title: 'Implausibilidad biológica', color: '#a78bfa', desc: 'La retropropagación envía errores hacia atrás. Ningún mecanismo biológico conocido hace eso.' },
+  { n: 1, title: 'Requiere instructor',     color: '#ef4444', desc: <><STTooltip term="aprendizaje_supervisado">Necesita la salida correcta</STTooltip> en cada ejemplo. Alguien (o algún mecanismo) debe inyectar la respuesta de antemano. Esto es insostenible en entornos autónomos.</> },
+  { n: 2, title: 'Escalabilidad (O(n³))',           color: '#eab308', desc: <>El tiempo de cálculo crece más rápido que la <STTooltip term="arquitectura">escala de la red</STTooltip>. Entrenar redes inmensas mediante retropropagación estándar satura la computación.</> },
+  { n: 3, title: 'Mínimos locales',         color: '#f97316', desc: <>El espacio de <STTooltip term="error">error no convexo</STTooltip> tiene valles locales. El gradiente estocástico (SGD) puede quedar atrapado para siempre.</> },
+  { n: 4, title: 'Implausibilidad biológica', color: '#a78bfa', desc: <>Las sinapsis requerirían <STTooltip term="plausibilidad_biologica">circuitos bidireccionales simétricos</STTooltip> para enviar errores hacia atrás. Ningún mecanismo biológico (ej. axones) soporta esto estructuradamente.</> },
 ]
 
 // ── Main slide ────────────────────────────────────────────────────────────────
+import STTooltip from '../components/st/STTooltip'
+import STModalBadge from '../components/st/STModalBadge'
+import STTensionPanel from '../components/st/STTensionPanel'
+
 export default function S08_Limites({ profesorMode }) {
   const [focusLandscape, setFocusLandscape] = useState(false)
 
   return (
-    <div className="section-slide" style={{ gap: '1rem' }}>
+    <div className="section-slide" style={{ gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">Límites del modelo</div>
-        <div className="section-subtitle">Hinton mismo los dice — paisaje de pérdida 3D</div>
+        <div className="section-title">Límites Analíticos y Ontológicos de la Retropropagación</div>
+        <div className="section-subtitle">Grietas en el Paradigma Conexionista de 1992</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '580px' }}>
-        "Hinton mismo los dice. No hay que ir lejos para encontrar las grietas."
+      <div className="quote" style={{ maxWidth: '900px', fontSize: '1.1rem' }}>
+        "Incluso Hinton reconocía sus flaquezas. La retropropagación exige una <STTooltip term="idealizacion">supervisión omnisciente</STTooltip> y asume propiedades arquitectónicas (simetría de pesos bidireccional) que son neurobiológicamente imposibles. ¿Son estas reducciones pragmáticas útiles, o contradicciones fatales?"
       </div>
 
       {/* Limits grid */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '0.6rem', width: '100%', maxWidth: '700px',
+        gap: '1rem', width: '100%', maxWidth: '1100px',
       }}>
         {LIMITS.map((l, i) => (
           <motion.div
@@ -242,23 +246,23 @@ export default function S08_Limites({ profesorMode }) {
               background: 'var(--bg-3)',
               border: `1px solid ${l.color}44`,
               borderLeft: `4px solid ${l.color}`,
-              borderRadius: '8px', padding: '0.65rem 0.9rem',
+              borderRadius: '8px', padding: '1rem 1.25rem',
               cursor: l.n === 3 ? 'pointer' : 'default',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
               <span style={{ fontSize: '0.65rem', color: l.color, fontFamily: 'monospace' }}>L{l.n}</span>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>{l.title}</span>
+              <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-h)' }}>{l.title}</span>
               {l.n === 3 && <span style={{ fontSize: '0.6rem', color: l.color, marginLeft: 'auto' }}>↓ ver 3D</span>}
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text)', lineHeight: 1.5, margin: 0 }}>{l.desc}</p>
+            <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.5, margin: 0 }}>{l.desc}</p>
           </motion.div>
         ))}
       </div>
 
       {/* Loss landscape 3D */}
       <div style={{
-        width: '100%', maxWidth: '700px',
+        width: '100%', maxWidth: '1100px',
         background: 'var(--bg-3)', border: '1px solid var(--border)',
         borderRadius: '10px', overflow: 'hidden',
       }}>
@@ -266,9 +270,9 @@ export default function S08_Limites({ profesorMode }) {
           <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
             Espacio de error 3D — superfície de pérdida real con mínimos locales
           </span>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>arrastrar para rotar</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>arrastrar para rotar (Canvas 3D)</span>
         </div>
-        <div style={{ height: '270px', background: '#04040e' }}>
+        <div style={{ height: '400px', background: '#04040e' }}>
           <Canvas camera={{ position: [0, 8, 12], fov: 40 }} gl={{ antialias: false, powerPreference: "high-performance" }}>
             <Suspense fallback={null}>
               <color attach="background" args={['#04040e']} />
@@ -280,11 +284,19 @@ export default function S08_Limites({ profesorMode }) {
           </Canvas>
         </div>
         <div style={{ padding: '0.4rem 0.75rem', display: 'flex', gap: '1.2rem', borderTop: '1px solid var(--border)' }}>
-          <span style={{ fontSize: '0.65rem', color: '#22c55e', fontFamily: 'monospace' }}>● SGD convergiendo al mínimo global</span>
-          <span style={{ fontSize: '0.65rem', color: '#ef4444', fontFamily: 'monospace' }}>● SGD atrapado en mínimo local</span>
-          <span style={{ fontSize: '0.65rem', color: '#22c55e', fontFamily: 'monospace' }}>▲ mínimo global</span>
+          <span style={{ fontSize: '0.9rem', color: '#22c55e', fontFamily: 'monospace' }}>● Descenso Gradiente al Mínimo Global</span>
+          <span style={{ fontSize: '0.9rem', color: '#ef4444', fontFamily: 'monospace' }}>● Atrapado en Mínimo Local</span>
+          <span style={{ fontSize: '0.9rem', color: '#22c55e', fontFamily: 'monospace' }}>▲ Solución Óptima Ideal</span>
         </div>
       </div>
+
+      <STTensionPanel 
+        title="La Tensión de la Plausibilidad vs. Utilidad"
+        items={[
+          { label: "Cálculo Eficiente", status: "yes", desc: "El algoritmo permite a los agentes artificiales generar mapas abstractos complejos." },
+          { label: "Exactitud Estructural", status: "no", desc: "Las neuronas biológicas no mandan señales idénticas en reversa. Hinton sacrificó realismo por computabilidad heurística." }
+        ]}
+      />
 
       {/* Bridge */}
       <motion.div
@@ -292,20 +304,20 @@ export default function S08_Limites({ profesorMode }) {
         style={{
           background: 'rgba(124,109,250,0.08)',
           border: '1px solid rgba(124,109,250,0.3)',
-          borderRadius: '8px', padding: '0.75rem 1.25rem',
-          maxWidth: '620px', width: '100%', textAlign: 'center',
+          borderRadius: '12px', padding: '1.25rem 2rem',
+          maxWidth: '850px', width: '100%', textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: '0.85rem', color: 'var(--accent-2)', fontStyle: 'italic' }}>
-          "Si quitamos el instructor, ¿qué queda? La red aprende sola — o no aprende."
+        <div style={{ fontSize: '1.1rem', color: 'var(--accent-2)', fontStyle: 'italic' }}>
+          "Si la dependencia de un instructor y las conexiones simétricas son neurobiológicamente irreales... ¿Será posible que existan redes que puedan descubrir sus propias representaciones de manera autónoma?"
         </div>
-        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>
-          → Sección siguiente: aprendizaje no supervisado
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginTop: '0.6rem' }}>
+          → Siguiente frontera: Aprendizaje No Supervisado
         </div>
       </motion.div>
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '700px', width: '100%', fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
+        <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '1rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--accent-2)' }}>Marco ST:</strong>{' '}
           L1–L4 corresponden a fórmulas validadas en{' '}
           <code>06_Critica_Ontologica.st</code>:{' '}

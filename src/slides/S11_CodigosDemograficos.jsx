@@ -1,3 +1,5 @@
+import STTensionPanel from "../components/st/STTensionPanel"
+import STTooltip from "../components/st/STTooltip"
 import { useEffect, useRef, useState } from 'react'
 import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
@@ -119,19 +121,18 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
   }
 
   return (
-    <div className="section-slide" style={{ gap: '1.25rem' }}>
+    <div className="section-slide" style={{ gap: '1.8rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">Códigos demográficos</div>
-        <div className="section-subtitle">Un concepto no vive en una sola neurona</div>
+        <div className="section-title">Evidencia Biológica: Códigos Demográficos</div>
+        <div className="section-subtitle">¿Cómo procesa la corteza las representaciones continuas del espacio?</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '600px' }}>
-        "Sparks y sus colegas anestesiaron neuronas del cerebro de un mono.
-        El ojo no se quedó quieto — se movió al <em>promedio</em> de las que quedaban."
+      <div className="quote" style={{ maxWidth: '900px', fontSize: '1.1rem' }}>
+        "El experimento de Sparks con monos anestesiados destruyó el modelo del <STTooltip term="idealizacion">localismo</STTooltip>. Al anular neuronas específicas que controlan el movimiento ocular (colículo superior), el ojo no se paralizó ni erró catastróficamente; promedió las fuerzas restantes. Esto confirma un cálculo poblacional de <STTooltip term="pesos">vectores demográficos</STTooltip>."
       </div>
 
       {/* Interactive bump */}
-      <div style={{ width: '100%', maxWidth: '640px' }}>
+      <div style={{ width: '100%', maxWidth: '1000px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>
           <span>mueve el centro del bump</span>
           <span style={{ fontFamily: 'monospace' }}>centro = unidad {center}</span>
@@ -145,12 +146,12 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
           style={{ width: '100%', accentColor: 'var(--accent)', marginBottom: '0.5rem' }}
         />
         <div style={{
-          height: '130px',
+          height: '200px',
           background: 'var(--bg-3)',
           border: '1px solid var(--border)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           overflow: 'hidden',
-          marginBottom: '0.5rem',
+          marginBottom: '1rem',
         }}>
           <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
         </div>
@@ -166,13 +167,14 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
               onClick={() => toggleAnesthetize(i)}
               title={`Unidad ${i}`}
               style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '3px',
+                width: '42px',
+                height: '42px',
+                borderRadius: '6px',
                 border: '1px solid var(--border)',
                 background: anesthetized.has(i) ? 'rgba(239,68,68,0.5)' : 'var(--bg-3)',
                 color: anesthetized.has(i) ? '#ef4444' : 'var(--text-dim)',
-                fontSize: '0.6rem',
+                fontSize: '0.9rem',
+                fontWeight: 600,
                 cursor: 'pointer',
                 padding: 0,
               }}
@@ -201,15 +203,15 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
       </div>
 
       {/* Eye position */}
-      <div style={{ width: '100%', maxWidth: '380px' }}>
+      <div style={{ width: '100%', maxWidth: '500px' }}>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>
           posición ocular resultante
         </div>
         <div style={{
-          height: '80px',
+          height: '150px',
           background: 'var(--bg-3)',
           border: '1px solid var(--border)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           overflow: 'hidden',
         }}>
           <canvas ref={eyeCanvasRef} style={{ width: '100%', height: '100%' }} />
@@ -218,14 +220,14 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
 
       {/* ST Derivations */}
       {profesorMode && (
-        <div style={{ width: '100%', maxWidth: '640px' }}>
+        <div style={{ width: '100%', maxWidth: '1000px' }}>
           <STDeriveCard derive={ST_ONTOLOGIA.derives[2]} />
           <STDeriveCard derive={ST_ONTOLOGIA.derives[3]} />
         </div>
       )}
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '640px', width: '100%', fontSize: '0.78rem', lineHeight: 1.6 }}>
+        <div className="st-card" style={{ maxWidth: '1000px', width: '100%', fontSize: '1rem', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--accent-2)' }}>Punto filosófico:</strong>{' '}
           <span style={{ color: 'var(--text)' }}>
             Un concepto no existe en un lugar del cerebro. Existe distribuido.

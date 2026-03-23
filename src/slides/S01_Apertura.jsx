@@ -1,3 +1,4 @@
+import STTooltip from "../components/st/STTooltip"
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import STArgGraph from '../components/st/STArgGraph'
@@ -25,8 +26,8 @@ function NetworkBackground() {
 
     const render = () => {
       ctx.clearRect(0, 0, w, h)
-      ctx.fillStyle = 'rgba(124, 109, 250, 0.15)'
-      ctx.strokeStyle = 'rgba(124, 109, 250, 0.05)'
+      ctx.fillStyle = 'rgba(124, 109, 250, 0.4)'
+      ctx.strokeStyle = 'rgba(124, 109, 250, 0.25)'
 
       nodes.forEach(n => {
         n.x += n.vx; n.y += n.vy
@@ -150,9 +151,9 @@ export default function S01_Apertura({ profesorMode }) {
           <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '0.6rem', fontFamily: 'monospace' }}>
             MARCO FILOSÓFICO
           </div>
-          <p style={{ color: 'var(--text)', lineHeight: 1.6 }}>
-            Este texto instala un <span style={{ color: 'var(--accent-2)' }}>marco computacional-representacional</span> con
-            compromisos ontológicos fuertes. El cerebro como computadora no es metáfora decorativa — es una apuesta
+          <p style={{ color: 'var(--text)', lineHeight: 1.6, fontSize: '1.05rem' }}>
+            Este texto instala un <STTooltip term="representacionalismo"><span style={{ color: 'var(--accent-2)' }}>marco computacional-representacional</span></STTooltip> con 
+            compromisos ontológicos fuertes. El cerebro como computadora no es una <STTooltip term="isomorfismo">metáfora decorativa</STTooltip> — es una apuesta 
             empírica que genera predicciones falsificables. Al final la cuestionaremos con el propio formalismo del texto.
           </p>
         </div>

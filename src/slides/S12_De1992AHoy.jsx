@@ -1,14 +1,16 @@
+import STTooltip from "../components/st/STTooltip"
+import STTensionPanel from "../components/st/STTensionPanel"
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import STModalBadge from '../components/st/STModalBadge'
 
 const TIMELINE = [
-  { year: 1992, label: 'Hinton', event: 'Redes neuronales — representaciones distribuidas', color: '#7c6dfa' },
+  { year: 1992, label: 'Hinton', event: 'Fundaciones Topológicas — Conexionismo distribuido', color: '#7c6dfa' },
   { year: 1998, label: 'LeCun', event: 'CNN — LeNet para dígitos', color: '#06b6d4' },
   { year: 2012, label: 'AlexNet', event: 'Deep learning gana ImageNet (+10% accuracy)', color: '#22c55e' },
   { year: 2017, label: 'Transformers', event: 'Attention is all you need — mecanismo de atención', color: '#eab308' },
   { year: 2020, label: 'GPT-3', event: '175B parámetros — emergencia de capacidades', color: '#f97316' },
-  { year: 2023, label: 'LLMs+', event: 'Modelos de mundo, razonamiento, agentes', color: '#ef4444' },
+  { year: 2024, label: 'LLMs & Agentes', event: 'Modelos de mundo generativos. Separación terminal del bio-isomorfismo', color: '#ef4444' },
 ]
 
 const OPEN_QUESTIONS = [
@@ -36,19 +38,18 @@ export default function S12_De1992AHoy({ profesorMode }) {
   }, [])
 
   return (
-    <div className="section-slide" style={{ gap: '1.5rem' }}>
+    <div className="section-slide" style={{ gap: '1.8rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="section-title">De 1992 a hoy</div>
-        <div className="section-subtitle">Cierre filosófico</div>
+        <div className="section-title">De 1992 a Hoy: Ontología en Evolución</div>
+        <div className="section-subtitle">Cierre Filosófico y Estructural</div>
       </div>
 
-            <div className="quote" style={{ maxWidth: '900px' }}>
-        "Hinton cierra con una esperanza cautelosa: computación y biología podrían converger.
-        Treinta años después, ¿convergieron? ¿O se alejaron más?"
+      <div className="quote" style={{ maxWidth: '1000px', fontSize: '1.1rem' }}>
+        "Hinton cerró en 1992 con una <STTooltip term="idealizacion">esperanza cautelosa</STTooltip>: creía que la computación algorítmica y la biología neurocientífica podrían converger. Treinta años después, han explotado en capacidad, ¿pero convergieron ontológicamente, o sus rumbos divergen hasta ser irreconocibles?"
       </div>
 
       {/* Timeline */}
-      <div ref={timelineRef} style={{ width: '100%', maxWidth: '1000px' }}>
+      <div ref={timelineRef} style={{ width: '100%', maxWidth: '1100px' }}>
         {TIMELINE.map((t, i) => (
           <div
             key={t.year}
@@ -80,8 +81,8 @@ export default function S12_De1992AHoy({ profesorMode }) {
               padding: '0.8rem 1.2rem',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
-              <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-h)' }}>{t.label}</span>
-              <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', marginLeft: '0.8rem' }}>{t.event}</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-h)' }}>{t.label}</span>
+              <span style={{ fontSize: '1.05rem', color: 'var(--text-dim)', marginLeft: '1rem' }}>{t.event}</span>
             </div>
           </div>
         ))}
@@ -102,24 +103,13 @@ export default function S12_De1992AHoy({ profesorMode }) {
       )}
 
       {/* Preguntas abiertas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', width: '100%', maxWidth: '1000px' }}>
-        {OPEN_QUESTIONS.map(q => (
-          <div key={q.q} style={{
-            background: 'var(--bg-3)',
-            border: '1px solid rgba(239,68,68,0.3)',
-            borderLeft: '4px solid #ef4444',
-            borderRadius: '8px',
-            padding: '1rem',
-          }}>
-            <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-h)', marginBottom: '0.4rem' }}>
-              {q.q}
-            </div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text)' }}>
-              {q.desc}
-            </div>
-          </div>
-        ))}
-      </div>
+      <STTensionPanel 
+        title="Divergencia Ontológica (Mente vs. Computadora)"
+        items={[
+          { label: "El Problema Difícil", status: "no", desc: "La experiencia subjetiva de Qualia sigue eludiendo la matriz topológica puramente funcional abstracta." },
+          { label: "Emergencia Agencial", status: "yes", desc: "Escalar funciones y auto-atención está generando heurísticas y 'modelos de mundo' que superan un mero lorito probabilístico." }
+        ]}
+      />
 
       {/* ST Badges */}
       <div style={{ display: 'flex', gap: '1rem' }}>
