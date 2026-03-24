@@ -6,12 +6,18 @@ import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
 
 const PARADIGMS = [
-  { label: 'Supervisado + Retroprop.', instructor: 'Sí',            repr: 'Distribuida',          uso: 'Clasificación, visión, voz',     color: '#7c6dfa' },
-  { label: 'Componentes principales', instructor: 'No',            repr: 'Distribuida cooperativa', uso: 'Reducción dimensionalidad',     color: '#06b6d4' },
-  { label: 'Competitivo / Kohonen',   instructor: 'No',            repr: 'Local (una gana)',       uso: 'Mapas, clustering',              color: '#22c55e' },
-  { label: 'Hebb (1949) / Oja',       instructor: 'No',            repr: 'Local hebbiana',         uso: 'Biológicamente plausible, LTP',  color: '#a78bfa' },
-  { label: 'Barlow sparse coding',    instructor: 'No',            repr: 'Intermedia (sparse)',    uso: 'Codificación eficiente',         color: '#eab308' },
-  { label: 'Refuerzo (RLHF)',         instructor: 'Señal recompensa', repr: 'Distribuida',         uso: 'LLMs actuales',                  color: '#f97316' },
+  { label: 'Supervisado + Retroprop.', instructor: 'Sí',               repr: 'Distribuida',            uso: 'Clasificación, visión, voz',
+    signal: 'Error explícito (δ)',       bio: 'Debatido — sin evidencia directa de backprop biológico',  limit: 'Requiere etiquetas masivas',    ref: 'Rumelhart 1986', color: '#7c6dfa' },
+  { label: 'Componentes principales',  instructor: 'No',               repr: 'Distribuida cooperativa', uso: 'Reducción dimensionalidad',
+    signal: 'Varianza máxima',           bio: 'Corteza visual V1 (Linsker 1988)',                        limit: 'Solo captura relaciones lineales', ref: 'Oja 1982',  color: '#06b6d4' },
+  { label: 'Competitivo / Kohonen',    instructor: 'No',               repr: 'Local (una gana)',        uso: 'Mapas, clustering',
+    signal: 'Distancia mínima (WTA)',    bio: 'Corteza somatosensorial, columnas corticales',            limit: 'No escala a alta dimensión',    ref: 'Kohonen 1982', color: '#22c55e' },
+  { label: 'Hebb (1949) / Oja',        instructor: 'No',               repr: 'Local hebbiana',          uso: 'Biológicamente plausible, LTP',
+    signal: 'Co-activación pre/post',    bio: 'LTP sináptica real (Bliss & Lømo 1973)',                  limit: 'Inestable sin normalización',   ref: 'Hebb 1949',   color: '#a78bfa' },
+  { label: 'Barlow sparse coding',     instructor: 'No',               repr: 'Intermedia (sparse)',     uso: 'Codificación eficiente',
+    signal: 'Independencia estadística', bio: 'Retina y V1 — campos receptivos sparse',                 limit: 'Computacionalmente costoso',    ref: 'Barlow 1961',  color: '#eab308' },
+  { label: 'Refuerzo (RLHF)',          instructor: 'Señal recompensa', repr: 'Distribuida',             uso: 'LLMs actuales, robótica',
+    signal: 'Recompensa escalar (r)',    bio: 'Sistema dopaminérgico (Schultz 1997)',                    limit: 'Alta varianza, sample-ineficiente', ref: 'Sutton 1988', color: '#f97316' },
 ]
 
 const TAB_STYLES = {
@@ -21,6 +27,7 @@ const TAB_STYLES = {
 
 export default function S09_NoSupervisado({ profesorMode }) {
   const [tab, setTab] = useState('pca')
+  const [showTable, setShowTable] = useState(false)
   const pcaRef    = useRef(null)
   const compRef   = useRef(null)
   const kohRef    = useRef(null)
@@ -33,73 +40,119 @@ export default function S09_NoSupervisado({ profesorMode }) {
     const canvas = pcaRef.current
     let id
 
-    // Generate points once
-    let pts = null
+      // PCA Animation: Cloud with variance
+      let pts = null
+      let currentAngle = -Math.PI / 2; // start vertically
+      const targetAngle = 25 * Math.PI / 180;
 
-    function setup() {
-      const W = canvas.offsetWidth || 900
-      const H = canvas.offsetHeight || 350
-      if (!W) { id = requestAnimationFrame(setup); return }
-      canvas.width = W; canvas.height = H
+      function setup() {
+        const W = canvas.offsetWidth || 900
+        const H = canvas.offsetHeight || 350
+        if (!W) { id = requestAnimationFrame(setup); return }
+        canvas.width = W; canvas.height = H
 
-      if (!pts) {
-        pts = Array.from({ length: 120 }, () => {
-          const ang = Math.random() * 2 * Math.PI
-          const r = 0.3 + Math.random() * 0.5
-          return {
-            bx: W / 2 + Math.cos(ang) * r * W * 0.38,
-            by: H / 2 + Math.sin(ang * 0.4) * r * H * 0.33,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.15,
-            ph: Math.random() * Math.PI * 2,
-          }
-        })
-      }
+        if (!pts) {
+          const cosA = Math.cos(targetAngle), sinA = Math.sin(targetAngle);
+          pts = Array.from({ length: 150 }, () => {
+            // Box-Muller for Normal distribution
+            const u = Math.max(Math.random(), 0.000001); // avoid 0
+            const v = Math.random();
+            const z1 = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            const z2 = Math.sqrt(-2.0 * Math.log(u)) * Math.sin(2.0 * Math.PI * v);
+            
+            // Scaled for high variance in X, low in Y
+            const rx = z1 * 120;
+            const ry = z2 * 25;
+            
+            // Rotate by target angle
+            const px = rx * cosA - ry * sinA;
+            const py = rx * sinA + ry * cosA;
+            
+            return {
+              baseX: px,
+              baseY: py,
+              ph: Math.random() * Math.PI * 2,
+              speed: 0.3 + Math.random() * 0.6
+            }
+          })
+        }
 
-      let frame = 0
-      function draw(ts) {
-        frame++
-        const t = ts * 0.001
-        const ctx = canvas.getContext('2d')
-        ctx.fillStyle = 'rgba(13,13,30,0.35)'
-        ctx.fillRect(0, 0, W, H)
+        // Only variable declaration, we don't need frame and i
+        function draw(ts) {
+          const t = ts * 0.001
+          const ctx = canvas.getContext('2d')
+          
+          // slight clear for smooth motion tails or just solid
+          ctx.fillStyle = '#04040e'
+          ctx.fillRect(0, 0, W, H)
 
-        // PCA axis (slowly breathing)
-        const ax = W * (0.12 + 0.03 * Math.sin(t * 0.3))
-        ctx.strokeStyle = '#06b6d4'
-        ctx.lineWidth = 2.5
-        ctx.beginPath()
-        ctx.moveTo(ax, H * 0.6)
-        ctx.lineTo(W - ax, H * 0.4)
-        ctx.stroke()
-        ctx.fillStyle = '#06b6d4'
-        ctx.font = '10px monospace'
-        ctx.textAlign = 'left'
-        ctx.fillText('PC1', W - ax + 4, H * 0.39)
+          const cx = W / 2, cy = H / 2
 
-        // Points
-        pts.forEach((p, i) => {
-          const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + p.ph)
-          const px = p.bx + Math.sin(t * 0.4 + p.ph) * 5
-          const py = p.by + Math.cos(t * 0.5 + p.ph) * 3
+          // Slowly rotate PC1 line to find maximum variance
+          currentAngle += (targetAngle - currentAngle) * 0.02
+          const pcCos = Math.cos(currentAngle)
+          const pcSin = Math.sin(currentAngle)
+
+          // Draw and project points
+          pts.forEach((p) => {
+            // Slight organic drift
+            const dx = p.baseX + Math.sin(t * p.speed + p.ph) * 4
+            const dy = p.baseY + Math.cos(t * p.speed * 0.8 + p.ph) * 4
+            const x = cx + dx
+            const y = cy + dy
+
+            // Projection onto PC1 (dot product)
+            const dot = dx * pcCos + dy * pcSin
+            const projX = cx + dot * pcCos
+            const projY = cy + dot * pcSin
+
+            // Projection lines (fade out if too far, just for visual neatness)
+            ctx.beginPath()
+            ctx.moveTo(x, y)
+            ctx.lineTo(projX, projY)
+            ctx.strokeStyle = 'rgba(167,139,250,0.15)'
+            ctx.lineWidth = 1
+            ctx.stroke()
+
+            // Projected point on line
+            ctx.beginPath()
+            ctx.arc(projX, projY, 1.5, 0, Math.PI * 2)
+            ctx.fillStyle = 'rgba(6,182,212,0.6)'
+            ctx.fill()
+
+            // Original point
+            const pulse = 0.5 + 0.5 * Math.sin(t * 1.5 + p.ph)
+            ctx.beginPath()
+            ctx.arc(x, y, 2.5 + pulse * 1.2, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(124,109,250,${0.6 + pulse * 0.4})`
+            ctx.fill()
+          })
+
+          // Draw PC1 axis
+          const axLen = W * 0.4
+          ctx.strokeStyle = '#06b6d4'
+          ctx.lineWidth = 2.5
           ctx.beginPath()
-          ctx.arc(px, py, 2.5 + pulse * 1.2, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(124,109,250,${0.35 + pulse * 0.35})`
-          ctx.fill()
-        })
+          ctx.moveTo(cx - pcCos * axLen, cy - pcSin * axLen)
+          ctx.lineTo(cx + pcCos * axLen, cy + pcSin * axLen)
+          ctx.stroke()
 
-        ctx.fillStyle = 'rgba(167,139,250,0.6)'
-        ctx.font = '11px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.fillText('Cara de elipses: 1M píxeles → 5 parámetros', W / 2, H - 8)
+          ctx.fillStyle = '#06b6d4'
+          ctx.font = 'bold 11px monospace'
+          ctx.textAlign = 'left'
+          ctx.fillText('PC1 (Varianza Máxima)', cx + pcCos * (axLen * 0.6) + 10, cy + pcSin * (axLen * 0.6))
 
+          ctx.fillStyle = 'rgba(167,139,250,0.7)'
+          ctx.font = '11px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText('Las unidades hebbianas detectan la dirección que minimiza la pérdida de proyección', W / 2, H - 12)
+
+          id = requestAnimationFrame(draw)
+        }
         id = requestAnimationFrame(draw)
       }
-      ctx => ctx  // appease linter
-      id = requestAnimationFrame(draw)
-    }
-    id = requestAnimationFrame(setup)
-    return () => cancelAnimationFrame(id)
+      id = requestAnimationFrame(setup)
+      return () => cancelAnimationFrame(id)
   }, [tab])
 
   // ── Competitive — animated cluster formation ─────────────────────────────────
@@ -418,35 +471,112 @@ export default function S09_NoSupervisado({ profesorMode }) {
         </div>
       )}
 
-      {/* Tabla comparativa */}
-      <div style={{ width: '100%', maxWidth: '1000px', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-          <thead>
-            <tr>
-              {['Paradigma', 'Instructor', 'Representación', 'Uso hoy'].map(h => (
-                <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'var(--text-dim)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {PARADIGMS.map(p => (
-              <motion.tr
-                key={p.label}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                style={{ borderBottom: '1px solid var(--border)' }}
-              >
-                <td style={{ padding: '0.55rem 1rem', color: p.color, fontWeight: 500 }}>{p.label}</td>
-                <td style={{ padding: '0.55rem 1rem', color: 'var(--text)' }}>{p.instructor}</td>
-                <td style={{ padding: '0.55rem 1rem', color: 'var(--text-dim)' }}>{p.repr}</td>
-                <td style={{ padding: '0.55rem 1rem', color: 'var(--text-dim)' }}>{p.uso}</td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Botón para abrir Modal de Comparativa */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem', width: '100%' }}>
+        <motion.button 
+          onClick={() => setShowTable(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(124,109,250,0.2))',
+            border: '1px solid rgba(124,109,250,0.4)',
+            padding: '0.75rem 2rem',
+            borderRadius: '25px',
+            color: 'var(--accent-2)',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            display: 'flex', gap: '0.5rem', alignItems: 'center',
+            transition: 'all 0.2s',
+          }}
+        >
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Comparativa de Paradigmas
+        </motion.button>
       </div>
+
+      {/* Modal de Tabla comparativa */}
+      {showTable && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(4,4,14,0.85)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)', padding: '2rem'
+        }}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            style={{
+              background: 'var(--bg-2)', border: '1px solid rgba(124,109,250,0.3)',
+              borderRadius: '16px', padding: '2rem', maxWidth: '1100px', width: '100%',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.6)',
+              position: 'relative', overflow: 'hidden'
+            }}
+          >
+            <button 
+              onClick={() => setShowTable(false)}
+              style={{
+                position: 'absolute', top: '1.2rem', right: '1.2rem',
+                background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text)',
+                width: '32px', height: '32px', borderRadius: '50%',
+                fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >✕</button>
+            
+            <h3 style={{ marginTop: 0, color: 'var(--accent-2)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.4rem' }}>
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Ecosistema de Redes Neuronales
+            </h3>
+            
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+                <thead>
+                  <tr>
+                    {['Paradigma', 'Instructor', 'Representación', 'Uso hoy', 'Señal de Aprendizaje', 'Inspiración Biológica'].map(h => (
+                      <th key={h} style={{ padding: '0.8rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.5)', fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.1)', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {PARADIGMS.map(p => (
+                    <motion.tr
+                      key={p.label}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    >
+                      <td style={{ padding: '0.8rem 1rem', color: p.color, fontWeight: 600 }}>{p.label}</td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'var(--text)' }}>
+                        <span style={{ 
+                          background: p.instructor === 'Sí' ? 'rgba(239,68,68,0.2)' : p.instructor === 'No' ? 'rgba(34,197,94,0.2)' : 'rgba(249,115,22,0.2)',
+                          color: p.instructor === 'Sí' ? '#fca5a5' : p.instructor === 'No' ? '#86efac' : '#fdba74',
+                          padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600
+                        }}>
+                          {p.instructor}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.8)' }}>{p.repr}</td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.8)' }}>{p.uso}</td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>{p.signal}</td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>{p.bio}</td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <STFloatingButton slideId="S09" />
     </div>
