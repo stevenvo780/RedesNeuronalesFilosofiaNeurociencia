@@ -84,6 +84,67 @@ export const ST_PRESUPUESTOS = {
   ],
 }
 
+export const ST_EMERGENCIA = {
+  id: '07_Emergencia_vs_Reduccion',
+  type: 'Proposicional + Modal K',
+  thesis: 'REDUCT_INFO ∥ EMERG_WEAK — logically compatible positions',
+  derivations: [
+    {
+      id: 'emerg_formal',
+      conclusion: 'DISTRIBUTED_REPR → ¬(P = Σ Nᵢ) → EMERG_WEAK',
+      via: 'Definición formal: si P no se deriva de partes individuales, P es emergente (débil)',
+      valid: true,
+      natural: 'Las representaciones distribuidas de Hinton satisfacen la definición formal de emergencia débil: la propiedad P del conjunto no está contenida en ninguna unidad Nᵢ individual.',
+    },
+    {
+      id: 'reduct_info_move',
+      conclusion: 'P = g(R) → REDUCT_INFO',
+      via: 'Si P es función completa de R (pesos), entonces P es reducible a R en principio',
+      valid: true,
+      natural: 'Hinton asume implícitamente que toda propiedad cognitiva P es función de la configuración de pesos R. Esto es reduccionismo informacional: no hay surplus ontológico.',
+    },
+    {
+      id: 'epist_irreduc',
+      conclusion: 'P ← R ∧ (P ↚ {Nᵢ}) → ONTO_EPIST',
+      via: 'P es derivable de R pero no predecible desde partes individuales sin simular R',
+      valid: true,
+      natural: 'La bifurcación onto-epistémica: ontológicamente todo es R (monismo), pero epistémicamente P no puede predecirse sin simular la red completa. Kim (1999) argumentaría que esto es inestable.',
+    },
+    {
+      id: 'continuous_emerg',
+      conclusion: '∂P/∂t ≠ 0 → CONT_EMERG',
+      via: 'En cada paso de entrenamiento, P cambia continuamente con R — no hay salto cualitativo discreto',
+      valid: true,
+      natural: 'La emergencia en redes neuronales es continua: las propiedades emergentes varían suavemente con cada actualización de pesos. Esto no es ni emergencia fuerte clásica ni reducción simple.',
+    },
+  ],
+  tensions: [
+    {
+      id: 'emerg_reduct',
+      presupuesto: 'REDUCT_INFO',
+      presupuestoLabel: 'Toda propiedad P es función de R — reducible en principio',
+      objecion: 'EMERG_WEAK',
+      objecionLabel: 'P no es predecible desde {Nᵢ} sin simular R — irreducible en práctica',
+      presupuestoCheck: true,
+      objecionCheck: 'satisfacible',
+    },
+    {
+      id: 'silence_ontological',
+      presupuesto: 'EMERG_SILENCE',
+      presupuestoLabel: 'Hinton nunca menciona emergencia — la reemplaza por "información"',
+      objecion: 'DISTRIBUTED_REPR → EMERG_WEAK',
+      objecionLabel: 'Pero sus representaciones distribuidas SON emergentes por definición',
+      presupuestoCheck: true,
+      objecionCheck: 'válida',
+    },
+  ],
+  compatibility: {
+    formula: 'REDUCT_INFO ∥ EMERG_WEAK',
+    status: 'SATISFACIBLE',
+    note: 'Ambas posiciones son lógicamente compatibles. El monismo ontológico (todo es R) convive con la emergencia epistémica (P no se predice sin simular). La tensión no es lógica sino filosófica: Kim (1999) vs. funcionalismo.',
+  },
+}
+
 export const ST_CRITICA = {
   id: '06_Critica_Ontologica',
   type: 'Proposicional + Epistémica S5 + Modal K',
@@ -151,6 +212,11 @@ export const VAR_DEFINITIONS = {
   ROBUST_REAL:   'La robustez ante pérdida de neuronas es una propiedad real de los códigos poblacionales biológicos, demostrada en el experimento de Sparks (colículo superior).',
   SPATIAL_COMP:  'El procesamiento espacial (orientación, posición) es computacionalmente modelable con redes artificiales — apoyado por Andersen & Zipser.',
   UNSUP_NEC:     'El aprendizaje no supervisado es necesario para capturar la estructura estadística del mundo sin instructor externo — motivación directa de PCA, Kohonen y Hebb.',
+  REDUCT_INFO:   'Reduccionismo informacional: toda propiedad cognitiva P es función de los pesos R = {wᵢⱼ}. No hay surplus ontológico. La emergencia es solo una descripción de nivel superior, no una propiedad metafísica nueva.',
+  EMERG_WEAK:    'Emergentismo epistémico débil: P es determinada por {Nᵢ, R} pero no predecible desde ningún subconjunto propio sin simular el sistema completo. Reducible en principio, irreducible en práctica.',
+  EMERG_SILENCE: 'Hinton (1992) no menciona la emergencia ni una vez. Reemplaza el vocabulario emergentista por vocabulario informacional (representación distribuida, codificación, patrones). Decisión ontológica implícita.',
+  ONTO_EPIST:    'Bifurcación onto-epistémica: monismo ontológico (todo es R/pesos) + emergencia epistémica (P no es predecible sin simular R). Posición filosóficamente inestable según Kim (1999).',
+  CONT_EMERG:    'Emergencia continua: en cada paso de entrenamiento ∂P/∂t ≠ 0 — las propiedades emergentes cambian suavemente, sin saltos cualitativos. Ontología de gradiente, no de niveles.',
 }
 
 // ── Resumen ST en lenguaje natural ─────────────────────────────────────────────
@@ -243,6 +309,12 @@ export const SLIDE_SUPUESTOS = {
     presupuestos: ['CONV_STRONG', 'INTERNAL_REPR', 'SPATIAL_COMP'],
     tension: 'brain_comp',
     nota: 'La evidencia más fuerte a favor de CONV_STRONG: redes entrenadas en tareas espaciales desarrollan unidades similares a neuronas parietales. Pero cuidado: similaridad no es identidad. ◇CONV_POSS es satisfacible; □CONV no lo es.',
+  },
+  S12c: {
+    slide: '¿Por qué no emergencia? — El silencio ontológico de Hinton',
+    presupuestos: ['REDUCT_INFO', 'EMERG_WEAK', 'INTERNAL_REPR', 'ONTO_EPIST'],
+    tension: 'emerg_reduct',
+    nota: 'Hinton evita la emergencia reemplazándola por lenguaje informacional. Pero sus representaciones distribuidas satisfacen la definición formal de emergencia débil: P ≠ ΣNᵢ. El resultado es una posición filosóficamente rica pero inestable: monismo ontológico + emergencia epistémica. Kim (1999) argumentaría que esta combinación es insostenible — o P es real y causalmente eficaz, o es un epifenómeno descriptivo.',
   },
   S13: {
     slide: 'Cierre argumental — Tesis, arco, pregunta',

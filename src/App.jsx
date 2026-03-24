@@ -17,6 +17,7 @@ import S10_ReprDistribuidas from './slides/S10_ReprDistribuidas'
 import S11_CodigosDemograficos from './slides/S11_CodigosDemograficos'
 import S12_De1992AHoy from './slides/S12_De1992AHoy'
 import S12b_Convergencia from './slides/S12b_Convergencia'
+import S12c_Emergencia from './slides/S12c_Emergencia'
 import S13_CierreArgumental from './slides/S13_CierreArgumental'
 import QAModal from './components/QAModal'
 import HintonPassageFab from './components/HintonPassageFab'
@@ -38,6 +39,7 @@ const SLIDES = [
   { id: 's11', label: 'Códigos demográficos', Component: S11_CodigosDemograficos },
   { id: 's12', label: 'De 1992 a hoy', Component: S12_De1992AHoy },
   { id: 's12b', label: 'Convergencia empírica', Component: S12b_Convergencia },
+  { id: 's12c', label: '¿Emergencia?', Component: S12c_Emergencia },
   { id: 's13', label: 'Cierre argumental', Component: S13_CierreArgumental },
 ]
 

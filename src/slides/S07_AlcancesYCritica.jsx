@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react'
 import * as tf from '@tensorflow/tfjs'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -441,7 +441,7 @@ const APPS = [
 ]
 
 // ── Main Slide ─────────────────────────────────────────────────────────────────
-export default function S07_AlcancesYCritica({ profesorMode }) {
+export default function S07_AlcancesYCritica({ profesorMode, ref }) {
   const [hiddenLayers, setHiddenLayers] = useState([12, 8])
   const [totalEpochs, setTotalEpochs]   = useState(100)
   const { ready, epoch, maxEpoch, acc, lossHist, accHist, hiddenActs, predict, restart, training, speed, updateSpeed } = useAnimalNet(hiddenLayers, totalEpochs)
@@ -451,12 +451,31 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   const [activeApp, setActiveApp] = useState(null)
   const [showArchModal, setShowArchModal] = useState(false)
   const [showNetFullscreen, setShowNetFullscreen] = useState(false)
+  const stepRef = useRef(0)
   const syncPrediction = useCallback(() => {
     const nextProbs = predict(features)
     if (nextProbs) {
       setProbs(nextProbs)
     }
   }, [features, predict])
+
+  const setAppStep = useCallback((step) => {
+    stepRef.current = step
+    setActiveApp(step > 0 ? step - 1 : null)
+  }, [])
+
+  useImperativeHandle(ref, () => ({
+    advanceStep() {
+      if (stepRef.current >= APPS.length) return false
+      setAppStep(stepRef.current + 1)
+      return true
+    },
+    retreatStep() {
+      if (stepRef.current <= 0) return false
+      setAppStep(stepRef.current - 1)
+      return true
+    },
+  }), [setAppStep])
 
   // ── Architecture controls ─────────────────
   const addLayer = () => {
@@ -527,13 +546,14 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.08 }}
-              onClick={() => setActiveApp(isOpen ? null : i)}
+              onClick={() => setAppStep(isOpen ? 0 : i + 1)}
               whileHover={{ scale: 1.02 }}
               style={{
                 flex: '1 1 180px',
                 background: isOpen ? `rgba(${hexRgb(a.color)},0.08)` : 'var(--bg-3)',
-                border: `1px solid ${isOpen ? a.color + '88' : 'var(--border)'}`,
-                borderTop: `3px solid ${a.color}`,
+                borderStyle: 'solid',
+                borderWidth: '3px 1px 1px',
+                borderColor: `${a.color} ${isOpen ? a.color + '88' : 'var(--border)'} ${isOpen ? a.color + '88' : 'var(--border)'} ${isOpen ? a.color + '88' : 'var(--border)'}`,
                 borderRadius: '10px',
                 padding: '0.6rem 0.9rem',
                 cursor: 'pointer',

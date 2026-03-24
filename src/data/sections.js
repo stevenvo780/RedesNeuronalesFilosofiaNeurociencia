@@ -13,7 +13,8 @@ export const SECTIONS = [
   { id: 11, key: 's11', title: 'Códigos demográficos',             duration: 90,   color: '#a78bfa' },
   { id: 12,  key: 's12',  title: 'De 1992 a hoy',                    duration: 120,  color: '#7c6dfa' },
   { id: 13,  key: 's12b', title: 'Convergencia empírica',            duration: 90,   color: '#22c55e' },
-  { id: 14,  key: 's13',  title: 'Cierre argumental',                duration: 120,  color: '#7c6dfa' },
+  { id: 14,  key: 's12c', title: '¿Por qué no emergencia?',          duration: 120,  color: '#ef4444' },
+  { id: 15,  key: 's13',  title: 'Cierre argumental',                duration: 120,  color: '#7c6dfa' },
 ]
 
 export const TOTAL_DURATION = SECTIONS.reduce((s, x) => s + x.duration, 0) // 1410s = 23.5min

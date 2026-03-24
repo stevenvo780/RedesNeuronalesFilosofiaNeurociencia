@@ -461,7 +461,7 @@ export default function S09_NoSupervisado({ profesorMode, ref }) {
           RECORRIDO GUIADO · {currentStep + 1}/4 modelos · ← → para avanzar
         </div>
         <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-          {MODEL_TABS.map((t, idx) => {
+          {MODEL_TABS.map((t) => {
             const isCurrent = tab === t.id
             const isVisited = visitedTabs.has(t.id)
             return (

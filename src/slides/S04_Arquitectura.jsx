@@ -79,6 +79,21 @@ function nodeY(H, size, i) {
   return H / 2 - ((size - 1) * spacing) / 2 + i * spacing
 }
 
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + width - r, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r)
+  ctx.lineTo(x + width, y + height - r)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
+  ctx.lineTo(x + r, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
+}
+
 export default function S04_Arquitectura({ profesorMode }) {
   const { activations, weights, epoch, data, getActivationsFor, start, stop } = useNeuralNet({ hiddenSizes: [8, 8] })
   const canvasRef   = useRef(null)
@@ -156,6 +171,33 @@ export default function S04_Arquitectura({ profesorMode }) {
     const xStep = W / (nL + 1)
     const lx = layerSizes.map((_, l) => xStep * (l + 1))
     const nodeR = 15
+    const columnWidth = Math.min(172, xStep * 0.78)
+
+    // ── Layer columns + separators ──
+    layerSizes.forEach((_, l) => {
+      const isFocused = animPhase === l
+      const isVisited = animPhase > l || animPhase < 0
+      const color = LAYER_COLORS[l] ?? '#888'
+      const alpha = isFocused ? 0.12 : (isVisited ? 0.07 : 0.035)
+      drawRoundedRect(ctx, lx[l] - columnWidth / 2, 24, columnWidth, H - 54, 18)
+      ctx.fillStyle = `rgba(${hexRgb(color)},${alpha})`
+      ctx.fill()
+      ctx.strokeStyle = `rgba(${hexRgb(color)},${isFocused ? 0.32 : 0.12})`
+      ctx.lineWidth = isFocused ? 1.6 : 1
+      ctx.stroke()
+    })
+
+    for (let l = 0; l < nL - 1; l++) {
+      const separatorX = (lx[l] + lx[l + 1]) / 2
+      ctx.beginPath()
+      ctx.setLineDash([5, 6])
+      ctx.moveTo(separatorX, 28)
+      ctx.lineTo(separatorX, H - 24)
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
 
     // ── Connections ──
     layerSizes.slice(0, -1).forEach((fromSize, l) => {
@@ -163,6 +205,8 @@ export default function S04_Arquitectura({ profesorMode }) {
       const displayFrom = Math.min(fromSize, 10)
       const displayTo   = Math.min(toSize, 10)
       const wMat = weights[l]?.matrix
+      const transitionFocused = animPhase === l + 1
+      const transitionVisited = animPhase > l + 1 || animPhase < 0
 
       for (let i = 0; i < displayFrom; i++) {
         const y1 = nodeY(H, displayFrom, i)
@@ -170,12 +214,15 @@ export default function S04_Arquitectura({ profesorMode }) {
           const y2 = nodeY(H, displayTo, j)
           const w = wMat?.[i]?.[j] ?? 0
           const alpha = showW ? Math.max(0.18, Math.min(Math.abs(w) * 1.2, 0.9)) : 0.18
-          const isActive = animPhase >= l + 1
+          const idle = animPhase < 0
+          const dimFactor = idle ? 1 : (transitionFocused ? 1 : (transitionVisited ? 0.4 : 0.18))
 
-          ctx.strokeStyle = isActive
-            ? `rgba(255,220,50,${Math.max(0.35, alpha)})`
-            : w > 0 ? `rgba(124,109,250,${alpha})` : `rgba(239,68,68,${alpha})`
-          ctx.lineWidth = showW ? Math.max(0.8, Math.abs(w) * 2.8) : 1.0
+          ctx.strokeStyle = transitionFocused
+            ? `rgba(255,220,50,${Math.max(0.45, alpha)})`
+            : w > 0 ? `rgba(124,109,250,${alpha * dimFactor})` : `rgba(239,68,68,${alpha * dimFactor})`
+          ctx.lineWidth = transitionFocused
+            ? Math.max(1.2, Math.abs(w) * 3)
+            : (showW ? Math.max(0.6, Math.abs(w) * (transitionVisited || idle ? 1.5 : 0.9)) : 0.9)
           ctx.beginPath()
           ctx.moveTo(lx[l], y1)
           ctx.lineTo(lx[l + 1], y2)
@@ -188,7 +235,9 @@ export default function S04_Arquitectura({ profesorMode }) {
     layerSizes.forEach((size, l) => {
       const displaySize = Math.min(size, 10)
       const color = LAYER_COLORS[l] ?? '#888'
-      const layerActive = animPhase < 0 || animPhase >= l
+      const layerFocused = animPhase === l
+      const layerVisited = animPhase > l || animPhase < 0
+      const layerAlphaBoost = layerFocused ? 1 : (layerVisited ? 0.78 : 0.35)
 
       for (let i = 0; i < displaySize; i++) {
         const x = lx[l]
@@ -197,10 +246,10 @@ export default function S04_Arquitectura({ profesorMode }) {
         const norm = Math.max(0, Math.min(1, typeof act === 'number' ? act : 0))
 
         // Outer glow for active neurons
-        if (norm > 0.25 && layerActive) {
+        if (norm > 0.25 && layerVisited) {
           ctx.beginPath()
           ctx.arc(x, y, nodeR + 8, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(${hexRgb(color)},${norm * 0.18})`
+          ctx.fillStyle = `rgba(${hexRgb(color)},${norm * (layerFocused ? 0.22 : 0.12)})`
           ctx.fill()
         }
 
@@ -208,27 +257,29 @@ export default function S04_Arquitectura({ profesorMode }) {
         ctx.beginPath()
         ctx.arc(x, y, nodeR, 0, Math.PI * 2)
         const g = ctx.createRadialGradient(x - 4, y - 4, 2, x, y, nodeR)
-        const alpha = layerActive ? 0.25 + norm * 0.75 : 0.1
+        const alpha = (0.18 + norm * 0.72) * layerAlphaBoost
         g.addColorStop(0, `rgba(${hexRgb(color)},${Math.min(alpha + 0.2, 1)})`)
         g.addColorStop(1, `rgba(${hexRgb(color)},${alpha * 0.3})`)
         ctx.fillStyle = g
         ctx.fill()
-        ctx.strokeStyle = layerActive ? color : `${color}55`
-        ctx.lineWidth = animPhase === l ? 2.5 : 1.5
+        ctx.strokeStyle = layerVisited ? color : `${color}55`
+        ctx.lineWidth = layerFocused ? 2.6 : (layerVisited ? 1.6 : 1.2)
         ctx.stroke()
 
         // Activation value label
-        ctx.fillStyle = norm > 0.5 ? '#ffffff' : (norm > 0.15 ? '#dddddd' : '#888888')
+        ctx.fillStyle = layerFocused
+          ? '#ffffff'
+          : (norm > 0.5 ? 'rgba(255,255,255,0.86)' : (norm > 0.15 ? 'rgba(221,221,221,0.78)' : 'rgba(136,136,136,0.72)'))
         ctx.font = 'bold 9px monospace'
         ctx.textAlign = 'center'
         ctx.fillText(norm.toFixed(2), x, y + 3)
       }
 
       // Layer header
-      ctx.fillStyle = layerActive ? color : `${color}66`
-      ctx.font = `${animPhase === l ? 'bold ' : ''}10px sans-serif`
+      ctx.fillStyle = layerVisited ? color : `${color}66`
+      ctx.font = `${layerFocused ? 'bold ' : ''}10px sans-serif`
       ctx.textAlign = 'center'
-      ctx.fillText(LAYER_LABELS[l] ?? `L${l}`, lx[l], 13)
+      ctx.fillText(LAYER_LABELS[l] ?? `L${l}`, lx[l], 16)
     })
 
     // ── Weight value labels on strongest connections (when showW) ──
@@ -247,16 +298,21 @@ export default function S04_Arquitectura({ profesorMode }) {
             if (Math.abs(w) > 0.3) conns.push({ i, j, w })
           }
         conns.sort((a, b) => Math.abs(b.w) - Math.abs(a.w))
-        conns.slice(0, 3).forEach(({ i, j, w }) => {
+        const labelsToShow = animPhase < 0 ? 1 : (animPhase === l + 1 ? 2 : 0)
+        conns.slice(0, labelsToShow).forEach(({ i, j, w }) => {
           const x1 = lx[l],     y1 = nodeY(H, displayFrom, i)
           const x2 = lx[l + 1], y2 = nodeY(H, displayTo, j)
           const mx = (x1 + x2) / 2, my = (y1 + y2) / 2
           ctx.save()
           ctx.font = 'bold 8px monospace'
           ctx.textAlign = 'center'
+          drawRoundedRect(ctx, mx - 17, my - 11, 34, 14, 5)
+          ctx.fillStyle = 'rgba(8,12,24,0.88)'
+          ctx.fill()
           ctx.fillStyle = w > 0 ? 'rgba(167,139,250,0.95)' : 'rgba(248,113,113,0.95)'
-          ctx.shadowColor = '#000'; ctx.shadowBlur = 3
-          ctx.fillText(w.toFixed(2), mx, my - 2)
+          ctx.shadowColor = '#000'
+          ctx.shadowBlur = 3
+          ctx.fillText(w.toFixed(2), mx, my - 1)
           ctx.restore()
         })
       })
@@ -284,7 +340,7 @@ export default function S04_Arquitectura({ profesorMode }) {
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', width: '100%' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title">Arquitectura de tres capas</div>
-        <div className="section-subtitle">Red TF.js en vivio — Propagación hacia adelante</div>
+        <div className="section-subtitle">Red TF.js en vivo — Propagación hacia adelante</div>
       </div>
 
       <div className="quote" style={{ maxWidth: '900px' }}>
