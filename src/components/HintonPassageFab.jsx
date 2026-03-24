@@ -14,6 +14,7 @@ export default function HintonPassageFab({
   left,
   panelLeft,
   mobile = false,
+  withinSlide = false,
 }) {
   const [open, setOpen] = useState(false)
   const passage = HINTON_PASSAGES[slideId]
@@ -31,7 +32,10 @@ export default function HintonPassageFab({
 
   if (!passage) return null
 
-  return (
+  const floatingPosition = withinSlide ? 'absolute' : 'fixed'
+  const panelWidth = withinSlide ? 'min(560px, calc(100% - 2rem))' : 'min(560px, calc(100vw - 2rem))'
+
+  const content = (
     <>
       <MotionButton
         onClick={() => setOpen(true)}
@@ -41,29 +45,30 @@ export default function HintonPassageFab({
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.97 }}
         style={{
-          position: 'fixed',
+          position: floatingPosition,
           right: left ? 'auto' : right,
           left: left ?? 'auto',
           bottom,
           zIndex: 180,
+          pointerEvents: 'auto',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.55rem',
-          padding: mobile ? '0.55rem 0.95rem' : '0.5rem 1rem',
-          borderRadius: '999px',
+          gap: mobile ? '0.55rem' : '0.5rem',
+          padding: mobile ? '0.55rem 0.95rem' : '0.4rem 1rem',
+          borderRadius: mobile ? '999px' : '24px',
           border: '1px solid rgba(6,182,212,0.3)',
           background: 'rgba(8,12,24,0.88)',
           color: '#8be9fd',
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 14px 36px rgba(0,0,0,0.28)',
+          backdropFilter: mobile ? 'blur(12px)' : 'blur(8px)',
+          boxShadow: mobile ? '0 14px 36px rgba(0,0,0,0.28)' : '0 10px 24px rgba(0,0,0,0.24)',
           cursor: 'pointer',
           fontFamily: '"JetBrains Mono", monospace',
-          fontSize: mobile ? '0.72rem' : '0.68rem',
+          fontSize: mobile ? '0.72rem' : '0.7rem',
           whiteSpace: 'nowrap',
         }}
         aria-label={`Abrir pasaje del texto de Hinton para ${passage.topic}`}
       >
-        <BookOpen size={15} strokeWidth={1.9} />
+        <BookOpen size={mobile ? 15 : 14} strokeWidth={1.9} />
         <span>Texto Hinton</span>
       </MotionButton>
 
@@ -76,9 +81,10 @@ export default function HintonPassageFab({
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
               style={{
-                position: 'fixed',
+                position: floatingPosition,
                 inset: 0,
                 zIndex: 190,
+                pointerEvents: 'auto',
                 background: 'rgba(0,0,0,0.42)',
                 backdropFilter: 'blur(4px)',
               }}
@@ -91,14 +97,15 @@ export default function HintonPassageFab({
               transition={{ type: 'spring', stiffness: 260, damping: 24 }}
               onClick={(event) => event.stopPropagation()}
               style={{
-                position: 'fixed',
+                position: floatingPosition,
                 right: panelLeft ? 'auto' : panelRight,
                 left: mobile ? (panelLeft ?? '0.75rem') : (panelLeft ?? 'auto'),
                 bottom: mobile ? '4.8rem' : `calc(${bottom} + 3.4rem)`,
-                width: mobile ? 'auto' : 'min(560px, calc(100vw - 2rem))',
-                maxHeight: mobile ? 'min(68svh, 560px)' : 'min(70vh, 600px)',
+                width: mobile ? 'auto' : panelWidth,
+                maxHeight: mobile ? 'min(68svh, 560px)' : (withinSlide ? 'calc(100% - 6rem)' : 'min(70vh, 600px)'),
                 overflowY: 'auto',
                 zIndex: 200,
+                pointerEvents: 'auto',
                 borderRadius: mobile ? '18px' : '20px',
                 border: '1px solid rgba(139,233,253,0.18)',
                 background: 'linear-gradient(180deg, rgba(8,12,24,0.98) 0%, rgba(14,17,30,0.98) 100%)',
@@ -210,5 +217,20 @@ export default function HintonPassageFab({
         )}
       </AnimatePresence>
     </>
+  )
+
+  if (!withinSlide) return content
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 180,
+        pointerEvents: 'none',
+      }}
+    >
+      {content}
+    </div>
   )
 }

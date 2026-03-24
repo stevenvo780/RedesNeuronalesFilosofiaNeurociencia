@@ -824,14 +824,14 @@ function BackpropEquationLine({ activeStep, mode }) {
 export default function S06_Retropropagacion({ profesorMode, ref }) {
   const { gradMags, activations, weights, epoch, training, start, stop } = useNeuralNet({ hiddenSizes: [8, 8] })
 
-  // Seq state: 0 = Forward, 1 = Backprop Inicio, 2 = Paso 1, 3 = Paso 2, 4 = Paso 3, 5 = Paso 4
+  // Seq state: 0 = Forward, 1 = Paso 1, 2 = Paso 2, 3 = Paso 3, 4 = Paso 4
   const [seqIndex, setSeqIndex] = useState(0)
   const seqRef = useRef(0)
 
   // Omitimos dependencias o usamos ref para evitar stale closures en imperative_handle
   useImperativeHandle(ref, () => ({
     advanceStep() {
-      if (seqRef.current >= 5) return false
+      if (seqRef.current >= 4) return false
       seqRef.current++
       setSeqIndex(seqRef.current)
       return true
@@ -851,7 +851,7 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
 
   // Derived state
   const mode = seqIndex === 0 ? 'forward' : 'backward'
-  const activeStep = seqIndex >= 2 ? seqIndex - 2 : null
+  const activeStep = seqIndex >= 1 ? seqIndex - 1 : null
 
   // Auto-start on slide mount, run indefinitely
   useEffect(() => {
@@ -958,7 +958,7 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
             {STEPS.map((s, i) => (
               <div
                 key={s.id}
-                onClick={() => setStepIdx(i + 2)}
+                onClick={() => setStepIdx(i + 1)}
                 style={{
                   flex: '1 1 120px',
                   background: activeStep === i ? `${s.color}14` : 'var(--bg-3)',

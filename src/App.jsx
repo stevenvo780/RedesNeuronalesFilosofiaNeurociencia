@@ -269,9 +269,10 @@ export default function App() {
           <HintonPassageFab
             key={SLIDES[current].id}
             slideId={SLIDES[current].id}
-            bottom="4.9rem"
+            bottom="1rem"
             left="1rem"
             panelLeft="1rem"
+            withinSlide
           />
         </div>
 

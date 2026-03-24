@@ -1,6 +1,6 @@
 import STTooltip from "../components/st/STTooltip"
 import STFloatingButton from "../components/st/STFloatingButton"
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
 import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
@@ -27,14 +27,52 @@ const TAB_STYLES = {
   default:  { background: 'var(--bg-3)',           border: '1px solid var(--border)', color: 'var(--text-dim)' },
 }
 
-export default function S09_NoSupervisado({ profesorMode }) {
+const MODEL_TABS = [
+  { id: 'pca',         label: '9a — PCA',         tooltip: 'pca',                      accent: '#06b6d4', stepLabel: 'Paso 1' },
+  { id: 'competitive', label: '9b — Competitivo', tooltip: 'aprendizaje_competitivo', accent: '#22c55e', stepLabel: 'Paso 2' },
+  { id: 'kohonen',     label: '9c — Kohonen',     tooltip: 'kohonen',                  accent: '#7c6dfa', stepLabel: 'Paso 3' },
+  { id: 'hebb',        label: '9d — Hebb',        tooltip: 'aprendizaje_hebbiano',    accent: '#a78bfa', stepLabel: 'Paso 4' },
+]
+
+export default function S09_NoSupervisado({ profesorMode, ref }) {
   const [tab, setTab] = useState('pca')
+  const [visitedTabs, setVisitedTabs] = useState(new Set(['pca']))
   const [showTable, setShowTable] = useState(false)
   const pcaRef    = useRef(null)
   const compRef   = useRef(null)
   const kohRef    = useRef(null)
   const hebbRef   = useRef(null)
   const kohMapRef = useRef(null)
+  const stepRef   = useRef(0)
+
+  const syncTab = (nextTab, stepIndex = MODEL_TABS.findIndex(t => t.id === nextTab)) => {
+    if (!nextTab) return
+    setTab(nextTab)
+    setVisitedTabs(prev => {
+      const next = new Set(prev)
+      next.add(nextTab)
+      return next
+    })
+    if (stepIndex >= 0) stepRef.current = stepIndex
+  }
+
+  useImperativeHandle(ref, () => ({
+    advanceStep() {
+      if (stepRef.current >= MODEL_TABS.length - 1) return false
+      const nextIndex = stepRef.current + 1
+      syncTab(MODEL_TABS[nextIndex].id, nextIndex)
+      return true
+    },
+    retreatStep() {
+      if (stepRef.current <= 0) return false
+      const nextIndex = stepRef.current - 1
+      syncTab(MODEL_TABS[nextIndex].id, nextIndex)
+      return true
+    },
+  }))
+
+  const currentStep = MODEL_TABS.findIndex(t => t.id === tab)
+  const nextSuggestedTab = MODEL_TABS[currentStep + 1]?.id ?? null
 
   // ── PCA — animated drifting point cloud ─────────────────────────────────────
   useEffect(() => {
@@ -412,26 +450,63 @@ export default function S09_NoSupervisado({ profesorMode }) {
       </div>
 
       {/* Tabs */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8rem',
+        maxWidth: '1000px', width: '100%',
+      }}>
+        <div style={{
+          fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace',
+          letterSpacing: '0.06em',
+        }}>
+          RECORRIDO GUIADO · {currentStep + 1}/4 modelos · ← → para avanzar
+        </div>
+        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+          {MODEL_TABS.map((t, idx) => {
+            const isCurrent = tab === t.id
+            const isVisited = visitedTabs.has(t.id)
+            return (
+              <div
+                key={t.id}
+                style={{
+                  width: isCurrent ? '22px' : '8px',
+                  height: '8px',
+                  borderRadius: '999px',
+                  background: isCurrent ? t.accent : isVisited ? `${t.accent}cc` : 'var(--border)',
+                  boxShadow: isCurrent ? `0 0 10px ${t.accent}66` : 'none',
+                  opacity: isCurrent || isVisited ? 1 : 0.8,
+                  transition: 'all 0.2s ease',
+                }}
+                aria-hidden="true"
+              />
+            )
+          })}
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '0.6rem', maxWidth: '1000px', width: '100%' }}>
-        {[
-          { id: 'pca',         label: '9a — PCA',        tooltip: 'pca' },
-          { id: 'competitive', label: '9b — Competitivo', tooltip: 'aprendizaje_competitivo' },
-          { id: 'kohonen',     label: '9c — Kohonen',     tooltip: 'kohonen' },
-          { id: 'hebb',        label: '9d — Hebb',        tooltip: 'aprendizaje_hebbiano' },
-        ].map(t => (
+        {MODEL_TABS.map(t => (
           <motion.button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => syncTab(t.id)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             style={{
               flex: 1, padding: '0.65rem', borderRadius: '8px',
               fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer',
               ...(tab === t.id ? TAB_STYLES.selected : TAB_STYLES.default),
+              boxShadow: tab === t.id ? `0 0 0 1px ${t.accent}22 inset` : 'none',
               transition: 'background 0.15s, color 0.15s',
             }}
           >
-            <STTooltip term={t.tooltip}>{t.label}</STTooltip>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+              <STTooltip term={t.tooltip}>{t.label}</STTooltip>
+              <span style={{
+                fontSize: '0.65rem', fontFamily: 'monospace', opacity: 0.78,
+                color: tab === t.id ? t.accent : visitedTabs.has(t.id) ? 'var(--text)' : 'var(--text-dim)',
+              }}>
+                {t.stepLabel}{visitedTabs.has(t.id) ? ' · visto' : nextSuggestedTab === t.id ? ' · siguiente' : ''}
+              </span>
+            </div>
           </motion.button>
         ))}
       </div>
