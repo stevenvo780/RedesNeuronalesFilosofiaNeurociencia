@@ -325,13 +325,13 @@ function NeuronScene({ selected, setSelected }) {
 // ── Slide ─────────────────────────────────────────────────────────────────────
 const PARTS = [
   { id: 'dendrita', label: 'Dendrita',  color: '#a78bfa',
-    info: 'Recibe señales de otras neuronas. La suma de entradas ponderadas determina si el soma se activa. Análogo artificial: el vector de entrada x.' },
+    info: 'Recibe señales de otras neuronas. La conexión típica es: axón de una neurona → botón terminal → sinapsis → dendrita de la neurona siguiente. La dendrita no “envía” la señal: la recibe y la conduce al soma. En el aprendizaje, lo que normalmente se refuerza no es el axón entero, sino la eficacia de esa sinapsis concreta. Análogo artificial: el vector de entrada x.' },
   { id: 'soma',     label: 'Soma',      color: '#7c6dfa',
     info: 'Integra todas las señales. Si la suma supera el umbral → dispara el potencial de acción. Análogo: la función de activación f(Wx + b).' },
   { id: 'axon',     label: 'Axón',      color: '#06b6d4',
     info: 'Conduce el potencial de acción. La mielina acelera la conducción saltatoria entre nodos de Ranvier. Análogo: la salida escalar de la unidad.' },
   { id: 'sinapsis', label: 'Sinapsis',  color: '#eab308',
-    info: 'Transmite la señal a la siguiente neurona mediante neurotransmisores. La eficacia sináptica cambia con el aprendizaje. Análogo: el peso w.' },
+    info: 'Transmite la señal a la siguiente neurona mediante neurotransmisores. La eficacia sináptica cambia con el aprendizaje: una conexión puede volverse más fuerte o más débil según su historia de activación. En este sentido, el “peso” corresponde mejor a la fuerza de la sinapsis que al axón o a la neurona completa. Análogo: el peso w.' },
 ]
 
 // ── Signal flow legend ─────────────────────────────────────────────────────────

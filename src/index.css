@@ -156,7 +156,7 @@ canvas.viz { width: 100% !important; height: 100% !important; display: block; }
   inset: 0;
   background: rgba(0,0,0,0.7);
   backdrop-filter: blur(6px);
-  z-index: 1000;
+  z-index: 9000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,6 +173,8 @@ canvas.viz { width: 100% !important; height: 100% !important; display: block; }
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(124,109,250,0.2);
   animation: fadeUp 0.3s ease;
+  position: relative;
+  z-index: 9001;
 }
 
 

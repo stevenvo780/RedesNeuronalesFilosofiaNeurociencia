@@ -1,13 +1,77 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle, HelpCircle, ChevronDown } from 'lucide-react'
-import { ST_ARGUMENTO, ST_ONTOLOGIA, ST_PRESUPUESTOS, ST_CRITICA, HINTON_CONTEXT } from '../../data/st_results'
+import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle, HelpCircle, ChevronDown, BookOpen, LayoutList } from 'lucide-react'
+import { ST_ARGUMENTO, ST_PRESUPUESTOS, ST_CRITICA, VAR_DEFINITIONS, SLIDE_SUPUESTOS, ST_RESUMEN_NATURAL } from '../../data/st_results'
 
-const ST_DATA = {
-  argumento: ST_ARGUMENTO,
-  ontologia: ST_ONTOLOGIA,
-  presupuestos: ST_PRESUPUESTOS,
-  critica: ST_CRITICA,
+// ── Tooltip chip for variable names ───────────────────────────────────────────
+function VarChip({ varName, value, onClick, size = 'md' }) {
+  const [tipPos, setTipPos] = useState(null)
+  const def = VAR_DEFINITIONS[varName]
+  const btnRef = useRef(null)
+
+  const show = (e) => {
+    if (!def) return
+    setTipPos({ x: e.clientX, y: e.clientY })
+  }
+
+  const fontSz = size === 'sm' ? '0.65rem' : '0.7rem'
+  const isTrue = value === true
+  const isFalse = value === false
+  const hasValue = value !== undefined
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={onClick}
+        onMouseEnter={show}
+        onMouseLeave={() => setTipPos(null)}
+        onMouseMove={show}
+        style={{
+          padding: size === 'sm' ? '0.18rem 0.45rem' : '0.3rem 0.6rem',
+          borderRadius: '4px',
+          fontSize: fontSz,
+          fontFamily: 'monospace',
+          cursor: onClick || def ? 'pointer' : 'default',
+          background: isTrue ? 'rgba(34,197,94,0.15)' : isFalse ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.1)',
+          border: `1px solid ${isTrue ? 'var(--green)' : isFalse ? 'var(--red)' : 'rgba(124,109,250,0.3)'}`,
+          color: isTrue ? 'var(--green)' : isFalse ? 'var(--red)' : 'var(--accent-2)',
+          display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+          transition: 'opacity 0.15s',
+          lineHeight: 1,
+        }}
+      >
+        {def && <span style={{ fontSize: '0.55rem', opacity: 0.55, lineHeight: 1 }}>?</span>}
+        {varName}{hasValue ? `: ${isTrue ? 'V' : 'F'}` : ''}
+      </button>
+
+      {tipPos && def && createPortal(
+        <div style={{
+          position: 'fixed',
+          left: Math.min(tipPos.x + 14, window.innerWidth - 260),
+          top: tipPos.y - 8,
+          width: 240,
+          background: 'rgba(8,8,20,0.97)',
+          border: '1px solid rgba(124,109,250,0.45)',
+          borderRadius: '8px',
+          padding: '0.55rem 0.75rem',
+          fontSize: '0.68rem',
+          color: 'var(--text)',
+          lineHeight: 1.55,
+          zIndex: 99999,
+          pointerEvents: 'none',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+        }}>
+          <div style={{ color: 'var(--accent-2)', fontFamily: 'monospace', marginBottom: '0.25rem', fontSize: '0.72rem', fontWeight: 700 }}>
+            {varName}
+          </div>
+          {def}
+        </div>,
+        document.body
+      )}
+    </>
+  )
 }
 
 /* ── Per-tab help content ── */
@@ -156,12 +220,13 @@ function evalProp(formula, vals) {
 const ATOMS = ['BRAIN_COMP', 'INTERNAL_REPR', 'BACK_BIO', 'GOOD_METRIC', 'CONV_STRONG']
 
 export default function STLogicModal({ isOpen, onClose, context }) {
-  const [tab, setTab] = useState('explorer')
+  const [tab, setTab] = useState('resumen')
   const [vals, setVals] = useState(
     Object.fromEntries(ATOMS.map(a => [a, true]))
   )
   const [evalResult, setEvalResult] = useState('')
   const [customFormula, setCustomFormula] = useState('BRAIN_COMP → INTERNAL_REPR')
+  const [selectedSlide, setSelectedSlide] = useState('S01')
 
   const toggle = useCallback((atom) => {
     setVals(v => ({ ...v, [atom]: !v[atom] }))
@@ -200,8 +265,10 @@ export default function STLogicModal({ isOpen, onClose, context }) {
         <STExplainer />
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
           {[
+            { id: 'resumen',   label: 'Resumen',     Icon: BookOpen },
+            { id: 'slides',    label: 'Por Slide',   Icon: LayoutList },
             { id: 'explorer',  label: 'Explorador',  Icon: GitBranch },
             { id: 'evaluator', label: 'Evaluador',   Icon: Scale },
             { id: 'chains',    label: 'Cadenas',     Icon: Link2 },
@@ -209,19 +276,112 @@ export default function STLogicModal({ isOpen, onClose, context }) {
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{
-                padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem',
+                padding: '0.35rem 0.7rem', borderRadius: '6px', fontSize: '0.72rem',
                 fontFamily: 'monospace', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
                 background: tab === t.id ? 'rgba(124,109,250,0.2)' : 'var(--bg-3)',
                 border: `1px solid ${tab === t.id ? 'var(--accent)' : 'var(--border)'}`,
                 color: tab === t.id ? 'var(--accent-2)' : 'var(--text-dim)',
               }}
-            ><t.Icon size={13} strokeWidth={1.8} />{t.label}</button>
+            ><t.Icon size={12} strokeWidth={1.8} />{t.label}</button>
           ))}
         </div>
 
         {/* Per-tab help */}
         <HelpBanner tab={tab} />
+
+        {/* Resumen tab — natural language explanation */}
+        {tab === 'resumen' && (
+          <div style={{ display: 'grid', gap: '0.8rem' }}>
+            <div style={{
+              background: 'rgba(124,109,250,0.07)',
+              border: '1px solid rgba(124,109,250,0.25)',
+              borderLeft: '4px solid #7c6dfa',
+              borderRadius: '0 8px 8px 0',
+              padding: '0.9rem 1.1rem',
+            }}>
+              <div style={{ fontSize: '0.65rem', color: '#a78bfa', fontFamily: 'monospace', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>
+                ¿QUÉ VALIDÓ ST? — RESUMEN EN LENGUAJE NATURAL
+              </div>
+              {ST_RESUMEN_NATURAL.trim().split('\n\n').map((para, i) => (
+                <p key={i} style={{ fontSize: '0.8rem', color: 'var(--text)', lineHeight: 1.65, margin: i === 0 ? 0 : '0.7rem 0 0' }}>
+                  {para}
+                </p>
+              ))}
+            </div>
+
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+              Variables clave — pasa el cursor sobre cualquier chip para ver su definición:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {Object.keys(VAR_DEFINITIONS).map(v => (
+                <VarChip key={v} varName={v} size="sm" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Slides tab — per-slide supuestos */}
+        {tab === 'slides' && (
+          <div style={{ display: 'grid', gap: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>Diapositiva:</span>
+              <select
+                value={selectedSlide}
+                onChange={e => setSelectedSlide(e.target.value)}
+                style={{
+                  padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem',
+                  fontFamily: 'monospace', background: 'var(--bg-3)',
+                  border: '1px solid var(--border)', color: 'var(--text-h)', cursor: 'pointer',
+                }}
+              >
+                {Object.entries(SLIDE_SUPUESTOS).map(([id, s]) => (
+                  <option key={id} value={id}>{id} — {s.slide}</option>
+                ))}
+              </select>
+            </div>
+
+            {SLIDE_SUPUESTOS[selectedSlide] && (() => {
+              const s = SLIDE_SUPUESTOS[selectedSlide]
+              const tension = ST_CRITICA.tensions.find(t => t.id === s.tension)
+              return (
+                <div style={{ display: 'grid', gap: '0.7rem' }}>
+                  <div style={{
+                    background: 'rgba(124,109,250,0.06)',
+                    border: '1px solid rgba(124,109,250,0.2)',
+                    borderRadius: '8px',
+                    padding: '0.8rem 1rem',
+                  }}>
+                    <div style={{ fontSize: '0.65rem', color: '#a78bfa', fontFamily: 'monospace', marginBottom: '0.5rem' }}>
+                      PRESUPUESTOS ACTIVOS EN ESTA DIAPOSITIVA
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.7rem' }}>
+                      {s.presupuestos.map(p => <VarChip key={p} varName={p} />)}
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>
+                      {s.nota}
+                    </p>
+                  </div>
+
+                  {tension && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div style={{ padding: '0.6rem 0.8rem', background: 'var(--bg)', borderRadius: '6px', borderLeft: '3px solid var(--green)' }}>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--green)', marginBottom: '0.3rem' }}>PRESUPUESTO CENTRAL</div>
+                        <code style={{ fontSize: '0.68rem', color: 'var(--text-h)', display: 'block', marginBottom: '0.2rem' }}>{tension.presupuesto}</code>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text)', lineHeight: 1.45 }}>{tension.presupuestoLabel}</div>
+                      </div>
+                      <div style={{ padding: '0.6rem 0.8rem', background: 'var(--bg)', borderRadius: '6px', borderLeft: '3px solid var(--red)' }}>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--red)', marginBottom: '0.3rem' }}>OBJECIÓN ACTIVA</div>
+                        <code style={{ fontSize: '0.68rem', color: 'var(--text-h)', display: 'block', marginBottom: '0.2rem' }}>{tension.objecion}</code>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text)', lineHeight: 1.45 }}>{tension.objecionLabel}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
 
         {/* Explorer tab */}
         {tab === 'explorer' && (
@@ -256,15 +416,7 @@ export default function STLogicModal({ isOpen, onClose, context }) {
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
               {ATOMS.map(a => (
-                <button key={a} onClick={() => toggle(a)}
-                  style={{
-                    padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.7rem',
-                    fontFamily: 'monospace', cursor: 'pointer',
-                    background: vals[a] ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                    border: `1px solid ${vals[a] ? 'var(--green)' : 'var(--red)'}`,
-                    color: vals[a] ? 'var(--green)' : 'var(--red)',
-                  }}
-                >{a}: {vals[a] ? 'V' : 'F'}</button>
+                <VarChip key={a} varName={a} value={vals[a]} onClick={() => toggle(a)} />
               ))}
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.8rem' }}>

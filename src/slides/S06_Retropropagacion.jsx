@@ -184,31 +184,70 @@ function getY(H, size, i) {
   return H / 2 - ((size - 1) * spacing) / 2 + i * spacing
 }
 
-// ── Gradient magnitude bars ───────────────────────────────────────────────────
-function GradBars({ gradMags }) {
-  if (!gradMags?.length) return null
-  const labels = ['W¹ (entrada→h1)', 'W² (h1→h2)', 'W³ (h2→salida)']
-  const maxRms = Math.max(...gradMags.map(g => g.rms), 0.001)
+// ── Inline Animated Equation (like S03 style) ─────────────────────────────────
+function BackpropEquationLine({ activeStep, mode }) {
+  if (mode === 'forward') {
+    return (
+      <div style={{
+        textAlign: 'center', padding: '0.5rem 0.8rem',
+        fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--text-dim)',
+        transition: 'all 0.4s ease',
+      }}>
+        <span style={{ color: '#22c55e' }}>→ Forward: </span>
+        <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+          <BlockMath math="\textcolor{#22c55e}{y_j} = f\!\left(\sum_i x_i \cdot w_{ij} + b_j\right)" />
+        </span>
+      </div>
+    )
+  }
+
+  // Backward mode: build the chain progressively
+  // Step 0: EA  |  Step 1: EA → EI  |  Step 2: EA → EI → EW  |  Step 3: EA → EI → EW → EA_prev
+  const segments = [
+    { color: '#ef4444', tex: '\\textcolor{#ef4444}{EA_j} = y_j - d_j', label: 'error activación' },
+    { color: '#eab308', tex: '\\textcolor{#eab308}{EI_j} = EA_j \\cdot y_j(1{-}y_j)', label: 'error entrada' },
+    { color: '#7c6dfa', tex: '\\textcolor{#7c6dfa}{EW_{ij}} = EI_j \\cdot y_i', label: 'error peso' },
+    { color: '#a78bfa', tex: '\\textcolor{#a78bfa}{EA_i} = \\sum_j EI_j \\cdot w_{ij}', label: 'propagar' },
+  ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      {gradMags.slice(0, 3).map((g, i) => (
-        <div key={i}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{labels[i]}</span>
-            <span style={{ fontSize: '0.65rem', color: '#ef4444', fontFamily: 'monospace' }}>∥∇∥={g.rms.toFixed(4)}</span>
-          </div>
-          <div style={{ height: '7px', background: '#1e1e30', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%',
-              width: `${(g.rms / maxRms) * 100}%`,
-              background: `linear-gradient(90deg, #ef4444, #ff8c00)`,
-              borderRadius: '3px',
-              transition: 'width 0.3s',
-            }} />
-          </div>
-        </div>
-      ))}
+    <div style={{
+      textAlign: 'center', padding: '0.4rem 0.6rem',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      gap: '0.15rem', flexWrap: 'wrap',
+      transition: 'all 0.4s ease',
+      minHeight: '3.2rem',
+    }}>
+      {segments.map((seg, i) => {
+        const isVisible = activeStep !== null && i <= activeStep
+        const isActive = activeStep === i
+        return (
+          <span key={i} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.15rem',
+            opacity: isVisible ? 1 : 0.15,
+            transform: isVisible ? 'scale(1)' : 'scale(0.92)',
+            transition: 'all 0.45s ease',
+            filter: isActive ? `drop-shadow(0 0 6px ${seg.color})` : 'none',
+          }}>
+            {i > 0 && (
+              <span style={{
+                color: isVisible ? 'var(--text-dim)' : 'transparent',
+                fontSize: '1.1rem', margin: '0 0.2rem',
+                transition: 'color 0.4s',
+              }}>→</span>
+            )}
+            <span style={{
+              background: isActive ? `${seg.color}18` : 'transparent',
+              border: isActive ? `1px solid ${seg.color}55` : '1px solid transparent',
+              borderRadius: '6px', padding: '0.15rem 0.4rem',
+              transition: 'all 0.35s',
+              display: 'inline-flex', alignItems: 'center',
+            }}>
+              <BlockMath math={seg.tex} />
+            </span>
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -253,7 +292,7 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="section-slide" style={{ gap: '1.5rem' }}>
+    <div className="section-slide" style={{ gap: '1rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title"><STTooltip term="backpropagacion">Retropropagación</STTooltip></div>
         <div className="section-subtitle">Gradientes reales fluyendo — TF.js en vivo</div>
@@ -265,116 +304,113 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
       </div>
 
       {/* Timeline */}
-      <div style={{ display: 'flex', gap: '1rem', maxWidth: '1000px', width: '100%', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.8rem', maxWidth: '1000px', width: '100%', alignItems: 'center' }}>
         {HISTORY.map((h, i) => (
           <div key={h.year} style={{ display: 'contents' }}>
-            <div style={{ textAlign: 'center', flex: 1, background: 'var(--bg-3)', border: `1px solid ${h.color}44`, borderLeft: `4px solid ${h.color}`, borderRadius: '8px', padding: '0.8rem 1rem' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: h.color, marginBottom: '0.2rem' }}>{h.label}</div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>{h.desc}</div>
+            <div style={{ textAlign: 'center', flex: 1, background: 'var(--bg-3)', border: `1px solid ${h.color}44`, borderLeft: `4px solid ${h.color}`, borderRadius: '8px', padding: '0.55rem 0.8rem' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: h.color, marginBottom: '0.15rem' }}>{h.label}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{h.desc}</div>
             </div>
-            {i < HISTORY.length - 1 && <div style={{ color: 'var(--border)', fontSize: '1.5rem', flexShrink: 0 }}>→</div>}
+            {i < HISTORY.length - 1 && <div style={{ color: 'var(--border)', fontSize: '1.2rem', flexShrink: 0 }}>→</div>}
           </div>
         ))}
       </div>
 
-      {/* Main area */}
-      <div style={{ display: 'flex', gap: '2rem', width: '100%', maxWidth: '1100px', alignItems: 'flex-start' }}>
-        {/* Network with gradient visualization */}
-        <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          
-          {/* Sequential Controls */}
-          <div style={{ display: 'flex', gap: '0.8rem' }}>
-            <button onClick={() => setStepIdx(0)} style={{
-              flex: 1, padding: '0.6rem', borderRadius: '8px',
-              border: `1px solid ${mode === 'forward' ? '#22c55e' : 'var(--border)'}`,
-              background: mode === 'forward' ? 'rgba(34,197,94,0.12)' : 'var(--bg-3)',
-              color: mode === 'forward' ? '#22c55e' : 'var(--text-dim)',
-              fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
-            }}>
-              <ArrowRight size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward Pass
-            </button>
-            <button onClick={() => setStepIdx(1)} style={{
-              flex: 1, padding: '0.6rem', borderRadius: '8px',
-              border: `1px solid ${mode === 'backward' ? '#ef4444' : 'var(--border)'}`,
-              background: mode === 'backward' ? 'rgba(239,68,68,0.12)' : 'var(--bg-3)',
-              color: mode === 'backward' ? '#ef4444' : 'var(--text-dim)',
-              fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
-            }}>
-              <ArrowLeft size={14} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop Pass
-            </button>
-          </div>
-
-          <div style={{ height: '350px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', position: 'relative', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
-            <GradNetCanvas gradMags={gradMags} activations={activations} weights={weights} mode={mode} activeStep={activeStep} />
-            <div style={{ position: 'absolute', top: 10, right: 12, fontSize: '0.85rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-              época {epoch}
-            </div>
-          </div>
-
-          {/* Training control */}
-          <div style={{ display: 'flex', gap: '0.8rem' }}>
-            <button onClick={() => training ? stop() : start()} style={{
-              flex: 1, padding: '0.8rem', borderRadius: '8px',
-              border: `2px solid ${training ? '#ef4444' : 'var(--accent)'}`,
-              background: training ? 'rgba(239,68,68,0.12)' : 'rgba(124,109,250,0.12)',
-              color: training ? '#ef4444' : 'var(--accent-2)',
-              fontSize: '1rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
-              display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center',
-            }}>
-              {training
-                ? <><Pause size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar Flujo</>
-                : <><Play  size={15} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar (ver gradientes en vivo)</>}
-            </button>
-          </div>
-
-          {/* Gradient magnitude bars */}
-          {mode === 'backward' && <GradBars gradMags={gradMags} />}
+      {/* ── Full-width animation card (like S03) ── */}
+      <div style={{
+        width: '100%', maxWidth: '1000px',
+        background: 'var(--bg-3)', border: '1px solid var(--border)',
+        borderRadius: '12px', padding: '0.8rem 1.2rem',
+      }}>
+        {/* Sequential Controls inside card */}
+        <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.6rem' }}>
+          <button onClick={() => setStepIdx(0)} style={{
+            flex: 1, padding: '0.45rem', borderRadius: '8px',
+            border: `1px solid ${mode === 'forward' ? '#22c55e' : 'var(--border)'}`,
+            background: mode === 'forward' ? 'rgba(34,197,94,0.12)' : 'transparent',
+            color: mode === 'forward' ? '#22c55e' : 'var(--text-dim)',
+            fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
+          }}>
+            <ArrowRight size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward Pass
+          </button>
+          <button onClick={() => setStepIdx(1)} style={{
+            flex: 1, padding: '0.45rem', borderRadius: '8px',
+            border: `1px solid ${mode === 'backward' ? '#ef4444' : 'var(--border)'}`,
+            background: mode === 'backward' ? 'rgba(239,68,68,0.12)' : 'transparent',
+            color: mode === 'backward' ? '#ef4444' : 'var(--text-dim)',
+            fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
+          }}>
+            <ArrowLeft size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop Pass
+          </button>
         </div>
 
-        {/* Steps panel */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginBottom: '0.4rem' }}>
-            Fórmulas de Hinton 1992 — 4 pasos del algoritmo:
+        {/* Canvas */}
+        <div style={{ height: '320px', borderRadius: '8px', overflow: 'hidden', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+          <GradNetCanvas gradMags={gradMags} activations={activations} weights={weights} mode={mode} activeStep={activeStep} />
+          <div style={{ position: 'absolute', top: 8, right: 10, fontSize: '0.78rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+            época {epoch}
           </div>
-          {STEPS.map((s, i) => (
-            <div
-              key={s.id}
-              onClick={() => setStepIdx(i + 2)}
-              style={{
-                background: activeStep === i ? `${s.color}14` : 'var(--bg-3)',
-                border: `1px solid ${activeStep === i ? s.color : 'var(--border)'}`,
-                borderLeft: `4px solid ${s.color}`,
-                borderRadius: '8px', padding: '0.8rem 1rem',
-                cursor: 'pointer', transition: 'all 0.15s',
-              }}
-            >
-              <div style={{ fontSize: '0.95rem', color: s.color, fontWeight: 600, marginBottom: '0.3rem' }}>
-                Paso {i + 1}: {s.label}
+          {/* Play/Pause overlay */}
+          <button onClick={() => training ? stop() : start()} style={{
+            position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+            padding: '0.3rem 1rem', borderRadius: '20px',
+            border: `1px solid ${training ? 'rgba(239,68,68,0.5)' : 'rgba(124,109,250,0.5)'}`,
+            background: training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
+            backdropFilter: 'blur(8px)',
+            color: training ? '#ef4444' : 'var(--accent-2)',
+            fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '0.35rem', zIndex: 2,
+          }}>
+            {training
+              ? <><Pause size={11} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar</>
+              : <><Play  size={11} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar</>}
+          </button>
+        </div>
+
+        {/* Equation line (like S03) */}
+        <BackpropEquationLine activeStep={activeStep} mode={mode} />
+      </div>
+
+      {/* ── 4 steps as horizontal row below ── */}
+      <div style={{ display: 'flex', gap: '0.6rem', maxWidth: '1000px', width: '100%', flexWrap: 'wrap' }}>
+        {STEPS.map((s, i) => (
+          <div
+            key={s.id}
+            onClick={() => setStepIdx(i + 2)}
+            style={{
+              flex: '1 1 160px',
+              background: activeStep === i ? `${s.color}14` : 'var(--bg-3)',
+              border: `1px solid ${activeStep === i ? s.color : 'var(--border)'}`,
+              borderTop: `3px solid ${s.color}`,
+              borderRadius: '8px', padding: '0.6rem 0.8rem',
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            <div style={{ fontSize: '0.82rem', color: s.color, fontWeight: 600, marginBottom: '0.2rem' }}>
+              Paso {i + 1}: {s.label}
+            </div>
+            {profesorMode && (
+              <div style={{ fontSize: '0.88rem', fontFamily: 'monospace', color: 'var(--text-h)', marginBottom: '0.2rem' }}>
+                <code>{s.formula}</code>
               </div>
-              {profesorMode && (
-                <div style={{ fontSize: '1.05rem', fontFamily: 'monospace', color: 'var(--text-h)', marginBottom: '0.3rem' }}>
-                  <code>{s.formula}</code>
-                </div>
-              )}
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>{s.desc}</div>
-            </div>
-          ))}
-
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <STModalBadge symbol="T" content="BIO_PLAUSIBILITY_TRADE" title="Plausibilidad Biológica" />
+            )}
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{s.desc}</div>
           </div>
-        </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+        <STModalBadge symbol="T" content="BIO_PLAUSIBILITY_TRADE" title="Plausibilidad Biológica" />
       </div>
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '0.95rem', lineHeight: 1.6 }}>
+        <div className="st-card" style={{ maxWidth: '1000px', width: '100%', fontSize: '0.9rem', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--accent-2)' }}>Lo que ves:</strong>{' '}
           <span style={{ color: 'var(--text)' }}>
             En modo Backprop, las conexiones se colorean según la magnitud real del gradiente (rojo brillante = mayor responsabilidad de <STTooltip term="error">error</STTooltip>).
             Las partículas animadas muestran el flujo de la <STTooltip term="derivada_del_error">derivada</STTooltip> de derecha a izquierda.
-            Las barras muestran ∥∇W∥ real de cada capa — calculado por TF.js con <code>tf.variableGrads()</code>.
           </span>
           <br /><br />
           <strong style={{ color: '#eab308' }}>El problema de la <STTooltip term="plausibilidad_biologica">Plausibilidad Biológica</STTooltip>:</strong>{' '}

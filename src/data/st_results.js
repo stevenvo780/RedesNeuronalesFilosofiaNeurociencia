@@ -134,6 +134,124 @@ export const ST_CRITICA = {
   ],
 }
 
+// ── Definiciones en lenguaje natural de cada variable proposicional ────────────
+export const VAR_DEFINITIONS = {
+  BRAIN_COMP:    'El cerebro puede tratarse como un sistema computacionalmente inteligible. Es el presupuesto ontológico fundacional del conexionismo — posiblemente verdadero, pero no lógicamente necesario.',
+  INTERNAL_REPR: 'Las representaciones internas (las activaciones en capas ocultas) son entidades explicativas legítimas, no meros artefactos del modelo. Sin esto, la red "funciona" pero no "explica".',
+  BACK_BIO:      'La retropropagación tiene un análogo biológicamente plausible en el cerebro. Cuestionado: requiere simetría de pesos y señal de error global que no se han identificado en neuronas reales.',
+  GOOD_METRIC:   'Existe una métrica válida para evaluar representaciones: económica (pocas unidades activas) + reconstructiva (se puede recuperar el input). Sin esta métrica, "buena representación" es indefinida.',
+  CONV_STRONG:   'La convergencia entre computación y biología es empíricamente fuerte y justificable — no solo una esperanza programática. Andersen & Zipser (1988) son la evidencia más sólida disponible.',
+  METAPHOR_ONLY: 'El modelo cerebro-computadora es solo una metáfora heurística de época (cf. Daugman 1992), sin compromiso ontológico real sobre cómo funciona el cerebro.',
+  REPR_INSTR:    'La representación es un recurso instrumental del modelo — útil para predecir, pero sin referente real en el sistema cognitivo. Posición instrumentalista (vs. realista).',
+  BACK_IMPL:     'La retropropagación es computacionalmente eficaz pero biológicamente implausible. Su éxito como herramienta no implica que el cerebro haga algo similar.',
+  CONV_WEAK:     'La convergencia es solo una esperanza programática — un resultado que el programa de investigación aspira a lograr, no algo ya establecido empíricamente.',
+  INFO_REAL:     'El procesamiento de información es una descripción real del cerebro, no solo una metáfora conveniente del lenguaje cognitivo.',
+  GOOD_ECON:     'Una buena representación es económica: describe el input con muchos menos parámetros que el input mismo (compresión significativa).',
+  GOOD_RECON:    'Una buena representación es reconstructiva: a partir de la representación es posible recuperar aproximadamente el input original.',
+  ROBUST_REAL:   'La robustez ante pérdida de neuronas es una propiedad real de los códigos poblacionales biológicos, demostrada en el experimento de Sparks (colículo superior).',
+  SPATIAL_COMP:  'El procesamiento espacial (orientación, posición) es computacionalmente modelable con redes artificiales — apoyado por Andersen & Zipser.',
+  UNSUP_NEC:     'El aprendizaje no supervisado es necesario para capturar la estructura estadística del mundo sin instructor externo — motivación directa de PCA, Kohonen y Hebb.',
+}
+
+// ── Resumen ST en lenguaje natural ─────────────────────────────────────────────
+export const ST_RESUMEN_NATURAL = `El motor ST validó la estructura lógica del argumento de Hinton (1992) en tres niveles:
+
+1. VÁLIDO (proposicional): Las conclusiones principales se siguen necesariamente de las premisas. Si aceptas que el cerebro es computacionalmente inteligible (BRAIN_COMP) y que hay procesamiento real de información (INFO_REAL), entonces las representaciones internas son centrales (INTERNAL_REPR). Esta cadena es lógicamente sólida.
+
+2. SATISFACIBLE pero no necesario (Modal K): La convergencia entre cerebro y red artificial es posible (◇CONV_POSS), pero no necesaria (¬□CONV). Esto significa que Hinton hace una apuesta empírica, no una afirmación lógicamente inevitable. Que las redes funcionen bien no prueba que el cerebro funcione igual.
+
+3. CONTINGENTE (empírico): Los presupuestos centrales — BRAIN_COMP, INTERNAL_REPR, BACK_BIO — son empíricamente cuestionables. Las objeciones (METAPHOR_ONLY, REPR_INSTR, BACK_IMPL) son lógicamente compatibles y no han sido refutadas. La tensión no es decorativa: es una apertura filosófica real que el texto de 1992 no cierra.
+
+Conclusión ST: El argumento de Hinton es formalmente coherente pero descansa en presupuestos que podrían ser falsos. Su valor es programático — abre un programa de investigación progresivo — no demostrativo.`
+
+// ── Supuestos activos por slide ────────────────────────────────────────────────
+export const SLIDE_SUPUESTOS = {
+  S01: {
+    slide: 'Apertura — ¿El cerebro es una computadora?',
+    presupuestos: ['BRAIN_COMP', 'METAPHOR_ONLY'],
+    tension: 'brain_comp',
+    nota: 'Esta slide pone en juego el presupuesto fundacional: ¿el cerebro es computacionalmente inteligible o es solo una metáfora útil? Daugman (1992) sugiere que cada época interpreta el cerebro con su tecnología dominante — lo que no refuta BRAIN_COMP, pero lo relativiza históricamente.',
+  },
+  S02: {
+    slide: 'Neurona real — Biología vs. artificialidad',
+    presupuestos: ['BRAIN_COMP'],
+    tension: 'brain_comp',
+    nota: 'Mostrar la neurona biológica y luego la artificial presupone que la comparación es pertinente — que hay suficiente analogía estructural para que una explique la otra. Este es BRAIN_COMP en su versión más directa.',
+  },
+  S03: {
+    slide: 'Neurona artificial — Idealización',
+    presupuestos: ['BRAIN_COMP', 'GOOD_METRIC'],
+    tension: 'brain_comp',
+    nota: 'La idealización (suma ponderada + sigmoide) es ya una decisión teórica. Presupone que la biología puede simplificarse sin perder lo esencial (BRAIN_COMP) y que los pesos capturan algo significativo sobre representación (GOOD_METRIC).',
+  },
+  S04: {
+    slide: 'Arquitectura MLP — Capas y forward pass',
+    presupuestos: ['BRAIN_COMP', 'INTERNAL_REPR'],
+    tension: 'internal_repr',
+    nota: 'Las capas ocultas son la apuesta central de INTERNAL_REPR: se asume que las activaciones de la capa 2 representan algo real sobre el input, no son solo transformaciones matemáticas intermedias.',
+  },
+  S05: {
+    slide: 'Entrenamiento supervisado — Ciclo de 4 fases',
+    presupuestos: ['BACK_BIO', 'GOOD_METRIC'],
+    tension: 'back_bio',
+    nota: 'El entrenamiento supervisado presupone que existe una señal de error válida (GOOD_METRIC) y que el ajuste de pesos tiene algún análogo biológico (BACK_BIO). Sin BACK_BIO, el entrenamiento es útil como ingeniería pero no como modelo del cerebro.',
+  },
+  S06: {
+    slide: 'Retropropagación — Gradientes y plausibilidad',
+    presupuestos: ['BACK_BIO'],
+    tension: 'back_bio',
+    nota: 'Esta slide expone directamente el presupuesto más cuestionado. La retropropagación requiere simetría de pesos y acceso global al error — nada de esto tiene un mecanismo neural conocido. BACK_BIO está bajo máxima tensión aquí.',
+  },
+  S07: {
+    slide: 'Alcances y crítica — ¿Explica o solo funciona?',
+    presupuestos: ['BRAIN_COMP', 'INTERNAL_REPR', 'CONV_STRONG'],
+    tension: 'internal_repr',
+    nota: 'La pregunta central de esta slide es exactamente la tensión entre INTERNAL_REPR y REPR_INSTR. Un clasificador que funciona bien no necesariamente "representa" en el sentido filosófico. Daugman cierra el círculo: el éxito funcional no valida la ontología.',
+  },
+  S08: {
+    slide: 'Límites — Los 4 problemas de la retropropagación',
+    presupuestos: ['BACK_BIO', 'GOOD_METRIC', 'CONV_STRONG'],
+    tension: 'back_bio',
+    nota: 'Los cuatro límites (supervisor, costo O(n³), mínimos locales, implausibilidad biológica) atacan directamente BACK_BIO y CONV_STRONG. Esta es la slide más crítica: señala que el programa de investigación tiene obstáculos empíricos no resueltos.',
+  },
+  S09: {
+    slide: 'Aprendizaje no supervisado — PCA, Kohonen, Hebb',
+    presupuestos: ['INTERNAL_REPR', 'GOOD_METRIC', 'UNSUP_NEC'],
+    tension: 'internal_repr',
+    nota: 'El aprendizaje no supervisado presupone UNSUP_NEC (la estructura existe sin supervisor) y que las representaciones emergentes son significativas (INTERNAL_REPR). Hebb es el más biológicamente plausible; PCA y Kohonen son más instrumentales.',
+  },
+  S10: {
+    slide: 'Representaciones distribuidas — Local vs. distribuida',
+    presupuestos: ['INTERNAL_REPR', 'BRAIN_COMP'],
+    tension: 'internal_repr',
+    nota: 'La representación distribuida es la tesis más fuerte de INTERNAL_REPR: el conocimiento no está en neuronas individuales sino en patrones. Esto conecta directamente con Bechtel (2001) y su pregunta sobre qué constituye una representación.',
+  },
+  S11: {
+    slide: 'Códigos demográficos — Experimento de Sparks',
+    presupuestos: ['INTERNAL_REPR', 'ROBUST_REAL', 'BRAIN_COMP'],
+    tension: 'internal_repr',
+    nota: 'Evidencia biológica directa: el experimento de Sparks apoya ROBUST_REAL e INTERNAL_REPR en el colículo superior. Pero atención: confirma que hay código poblacional, no que sea idéntico al mecanismo de las redes artificiales.',
+  },
+  S12: {
+    slide: 'De 1992 a hoy — Historia y realizabilidad múltiple',
+    presupuestos: ['CONV_STRONG', 'BRAIN_COMP'],
+    tension: 'brain_comp',
+    nota: 'La historia 1992–2024 es ambivalente: el programa conexionista fue enormemente exitoso como ingeniería, pero ¿siguió siendo progresivo como neurofilosofía? Putnam/Fodor (realizabilidad múltiple) abren la posibilidad de que BRAIN_COMP no requiera identidad de implementación.',
+  },
+  S12b: {
+    slide: 'Convergencia — Andersen & Zipser',
+    presupuestos: ['CONV_STRONG', 'INTERNAL_REPR', 'SPATIAL_COMP'],
+    tension: 'brain_comp',
+    nota: 'La evidencia más fuerte a favor de CONV_STRONG: redes entrenadas en tareas espaciales desarrollan unidades similares a neuronas parietales. Pero cuidado: similaridad no es identidad. ◇CONV_POSS es satisfacible; □CONV no lo es.',
+  },
+  S13: {
+    slide: 'Cierre argumental — Tesis, arco, pregunta',
+    presupuestos: ['BRAIN_COMP', 'INTERNAL_REPR', 'BACK_BIO', 'CONV_STRONG'],
+    tension: 'brain_comp',
+    nota: 'Todos los presupuestos están en juego. La tesis central no afirma que el cerebro sea una red neuronal — afirma que las redes son una apuesta en un programa de investigación. Su valor explicativo depende de si el programa genera predicciones nuevas, corroborables y sorprendentes sobre cognición real.',
+  },
+}
+
 export const HINTON_CONTEXT = `
 TEXTO DE REFERENCIA
 Hinton, G. E. (1992). "How Neural Networks Learn from Experience." Scientific American, 267(3), 144-151.
