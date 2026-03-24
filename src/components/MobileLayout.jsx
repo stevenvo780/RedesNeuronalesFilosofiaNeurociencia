@@ -4,6 +4,7 @@ import { BotMessageSquare, ChevronRight, ChevronLeft, HelpCircle } from 'lucide-
 import { SLIDE_SUMMARIES } from '../data/slideSummaries'
 import AIPanel from './AIPanel'
 import QAModal from './QAModal'
+import HintonPassageFab from './HintonPassageFab'
 
 const MotionDiv = motion.div
 
@@ -155,6 +156,14 @@ export default function MobileLayout({ slides, profesorMode }) {
             </div>
           )}
         </div>
+        <HintonPassageFab
+          key={currentSlideData.id}
+          slideId={currentSlideData.id}
+          bottom="1rem"
+          left="0.9rem"
+          panelLeft="0.9rem"
+          mobile
+        />
 
         {/* AI overlay (same as below) */}
         <AnimatePresence>

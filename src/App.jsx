@@ -19,6 +19,7 @@ import S12_De1992AHoy from './slides/S12_De1992AHoy'
 import S12b_Convergencia from './slides/S12b_Convergencia'
 import S13_CierreArgumental from './slides/S13_CierreArgumental'
 import QAModal from './components/QAModal'
+import HintonPassageFab from './components/HintonPassageFab'
 
 const MotionDiv = motion.div
 
@@ -356,6 +357,13 @@ export default function App() {
               <Component ref={slideRef} profesorMode={profesorMode} />
             </MotionDiv>
           </AnimatePresence>
+          <HintonPassageFab
+            key={SLIDES[current].id}
+            slideId={SLIDES[current].id}
+            bottom="4.9rem"
+            left="1rem"
+            panelLeft="1rem"
+          />
         </div>
 
         {/* Bottom bar */}
