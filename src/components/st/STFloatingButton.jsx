@@ -27,7 +27,7 @@ export default function STFloatingButton({ slideId }) {
         onMouseLeave={() => setHovered(false)}
         initial={{ opacity: 0, scale: 0.5, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay: 1.2, type: 'spring', stiffness: 200, damping: 15 }}
+        transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
         whileHover={{ scale: 1.08, boxShadow: '0 0 24px rgba(124,109,250,0.4)' }}
         whileTap={{ scale: 0.95 }}
         style={{

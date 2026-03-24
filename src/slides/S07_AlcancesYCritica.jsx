@@ -6,6 +6,7 @@ import {
   Layers, Wind, Footprints, Leaf, Droplets, Thermometer, Moon,
   HelpCircle, LoaderCircle, CheckCircle2, RefreshCw, ChevronDown,
   Plus, Minus, SlidersHorizontal, Settings2, X, Maximize2, Minimize2,
+  Cat, Bird, Fish, Worm, Bug, CircleX,
 } from 'lucide-react'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
@@ -28,12 +29,12 @@ const FEATURES = [
 ]
 
 const ANIMALS = [
-  { name: 'Gato',       emoji: '🐱', color: '#a78bfa', features: [1,0,0,1,0,0,1,1] },
-  { name: 'Águila',     emoji: '🦅', color: '#06b6d4', features: [0,1,0,0,1,0,1,0] },
-  { name: 'Pez',        emoji: '🐟', color: '#22c55e', features: [0,0,1,0,0,1,0,0] },
-  { name: 'Serpiente',  emoji: '🐍', color: '#eab308', features: [0,0,1,0,0,0,0,1] },
-  { name: 'Rana',       emoji: '🐸', color: '#10b981', features: [0,0,0,1,0,1,0,1] },
-  { name: 'Murciélago', emoji: '🦇', color: '#f97316', features: [1,0,0,0,1,0,1,1] },
+  { name: 'Gato',       Icon: Cat,   color: '#a78bfa', features: [1,0,0,1,0,0,1,1] },
+  { name: 'Águila',     Icon: Bird,  color: '#06b6d4', features: [0,1,0,0,1,0,1,0] },
+  { name: 'Pez',        Icon: Fish,  color: '#22c55e', features: [0,0,1,0,0,1,0,0] },
+  { name: 'Serpiente',  Icon: Worm,  color: '#eab308', features: [0,0,1,0,0,0,0,1] },
+  { name: 'Rana',       Icon: Bug,   color: '#10b981', features: [0,0,0,1,0,1,0,1] },
+  { name: 'Murciélago', Icon: Moon,  color: '#f97316', features: [1,0,0,0,1,0,1,1] },
 ]
 
 const N_FEAT = 8
@@ -579,11 +580,17 @@ export default function S07_AlcancesYCritica({ profesorMode, ref }) {
                   >
                     <div style={{ paddingTop: '0.55rem', marginTop: '0.45rem', borderTop: `1px solid ${a.color}33`, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                       <div>
-                        <span style={{ fontSize: '0.6rem', color: '#22c55e', fontFamily: 'monospace' }}>FUNCIONA ✓</span>
+                        <span style={{ fontSize: '0.6rem', color: '#22c55e', fontFamily: 'monospace', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <CheckCircle2 size={11} strokeWidth={2} />
+                          FUNCIONA
+                        </span>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text)', lineHeight: 1.45, margin: '0.1rem 0 0' }}>{a.funciona}</p>
                       </div>
                       <div>
-                        <span style={{ fontSize: '0.6rem', color: '#ef4444', fontFamily: 'monospace' }}>NO EXPLICA ✗</span>
+                        <span style={{ fontSize: '0.6rem', color: '#ef4444', fontFamily: 'monospace', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <CircleX size={11} strokeWidth={2} />
+                          NO EXPLICA
+                        </span>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', lineHeight: 1.45, margin: '0.1rem 0 0', fontStyle: 'italic' }}>{a.explica}</p>
                       </div>
                     </div>
@@ -662,7 +669,8 @@ export default function S07_AlcancesYCritica({ profesorMode, ref }) {
                   display: 'flex', alignItems: 'center', gap: '3px',
                 }}
               >
-                <span>{a.emoji}</span> {a.name}
+                <span style={{ display: 'flex', alignItems: 'center' }}><a.Icon size={14} strokeWidth={1.9} /></span>
+                {a.name}
               </MotionButton>
             ))}
           </div>
@@ -729,8 +737,15 @@ export default function S07_AlcancesYCritica({ profesorMode, ref }) {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: '2.2rem', lineHeight: 1 }}>
-                {ready && bestIdx >= 0 ? ANIMALS[bestIdx].emoji : <HelpCircle size={36} strokeWidth={1.5} color="var(--text-dim)" />}
+              <div style={{ lineHeight: 1, display: 'flex', justifyContent: 'center' }}>
+                {ready && bestIdx >= 0 ? (() => {
+                  const BestAnimalIcon = ANIMALS[bestIdx].Icon
+                  return (
+                    <span style={{ display: 'flex', alignItems: 'center', color: ANIMALS[bestIdx].color }}>
+                      <BestAnimalIcon size={40} strokeWidth={1.8} />
+                    </span>
+                  )
+                })() : <HelpCircle size={36} strokeWidth={1.5} color="var(--text-dim)" />}
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: ready && bestIdx >= 0 ? ANIMALS[bestIdx].color : 'var(--text-dim)', marginTop: '0.3rem' }}>
                 {ready && bestIdx >= 0 ? ANIMALS[bestIdx].name : training ? 'Entrenando…' : '—'}
@@ -750,7 +765,9 @@ export default function S07_AlcancesYCritica({ profesorMode, ref }) {
               const isBest = i === bestIdx && ready
               return (
                 <div key={a.name} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '0.85rem', width: '20px', textAlign: 'center' }}>{a.emoji}</span>
+                  <span style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color }}>
+                    <a.Icon size={14} strokeWidth={1.9} />
+                  </span>
                   <div style={{ flex: 1, height: '10px', background: '#111122', borderRadius: '3px', overflow: 'hidden' }}>
                     <motion.div
                       animate={{ width: `${(ready ? p : 0) * 100}%` }}

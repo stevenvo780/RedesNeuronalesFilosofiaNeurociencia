@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
+import { Check, ChevronRight } from 'lucide-react'
 import STTooltip from '../components/st/STTooltip'
 import STFloatingButton from '../components/st/STFloatingButton'
 
@@ -482,8 +483,16 @@ export default function S03_NeuronasArtificial({ profesorMode, ref }) {
                     boxShadow: isNext && !active ? `0 0 6px ${c}33` : 'none',
                   }}
                 >
-                  {done && <span style={{ marginRight: '0.2rem', fontSize: '0.6rem' }}>✓</span>}
-                  {isNext && !active && !done && <span style={{ marginRight: '0.2rem', fontSize: '0.6rem' }}>›</span>}
+                  {done && (
+                    <span style={{ marginRight: '0.2rem', display: 'inline-flex', verticalAlign: 'middle' }}>
+                      <Check size={11} strokeWidth={2.4} />
+                    </span>
+                  )}
+                  {isNext && !active && !done && (
+                    <span style={{ marginRight: '0.2rem', display: 'inline-flex', verticalAlign: 'middle' }}>
+                      <ChevronRight size={11} strokeWidth={2.4} />
+                    </span>
+                  )}
                   {label}
                 </button>
               )
@@ -524,8 +533,16 @@ export default function S03_NeuronasArtificial({ profesorMode, ref }) {
                   boxShadow: isNext && !active ? `0 0 6px ${b.color}33` : 'none',
                 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  {done && !active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
-                  {isNext && !active && !done && <span style={{ fontSize: '0.6rem', color: b.color }}>›</span>}
+                  {done && !active && (
+                    <span style={{ display: 'inline-flex', color: b.color }}>
+                      <Check size={11} strokeWidth={2.4} />
+                    </span>
+                  )}
+                  {isNext && !active && !done && (
+                    <span style={{ display: 'inline-flex', color: b.color }}>
+                      <ChevronRight size={11} strokeWidth={2.4} />
+                    </span>
+                  )}
                   <span style={{ fontSize: '0.7rem', color: b.color, fontWeight: 600 }}>{b.bio}</span>
                 </div>
                 <div style={{ fontSize: '0.6rem', color: '#555', marginBottom: '0.28rem' }}>{b.bio_sub}</div>

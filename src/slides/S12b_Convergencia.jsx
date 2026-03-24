@@ -2,6 +2,7 @@ import STTooltip from '../components/st/STTooltip'
 import STFloatingButton from '../components/st/STFloatingButton'
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { CheckCircle2, CircleX } from 'lucide-react'
 
 void motion
 
@@ -401,7 +402,7 @@ export default function S12b_Convergencia({ profesorMode }) {
               background: b.status === 'yes' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
               color: b.status === 'yes' ? 'var(--green)' : 'var(--red)',
             }}>
-              {b.status === 'yes' ? '✓' : '✗'}
+              {b.status === 'yes' ? <CheckCircle2 size={14} strokeWidth={2.2} /> : <CircleX size={14} strokeWidth={2.2} />}
             </span>
             <div>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-h)' }}>{b.label}</div>

@@ -357,8 +357,14 @@ export default function App() {
             padding: '0.3rem 0.45rem',
             borderRadius: '6px',
             border: '1px solid rgba(255,255,255,0.06)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
           }}>
-            N / ☰ = índice · P = profesor · A = IA · Q = Q&A
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              N / <Menu size={12} strokeWidth={2} />
+            </span>
+            = índice · P = profesor · A = IA · Q = Q&A
           </div>
         )}
       </main>

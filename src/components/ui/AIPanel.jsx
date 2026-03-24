@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { ArrowRight, X } from 'lucide-react'
 
 const OLLAMA_URL = 'https://ollama.humanizar-dev.cloud/api/chat/completions'
 const OLLAMA_KEY = 'sk-bac7ed4eba894e0d8f14eade1dc589fe'
@@ -64,7 +65,14 @@ export default function AIPanel({ open, onClose }) {
           <div className="text-sm font-semibold text-[var(--text-h)]">Asistente IA</div>
           <div className="text-xs text-[var(--text-dim)] font-mono">{MODEL}</div>
         </div>
-        <button onClick={onClose} className="text-[var(--text-dim)] hover:text-[var(--text-h)] text-lg">✕</button>
+        <button
+          onClick={onClose}
+          className="text-[var(--text-dim)] hover:text-[var(--text-h)]"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          aria-label="Cerrar panel IA"
+        >
+          <X size={18} strokeWidth={2} />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 scroll-y">
@@ -113,9 +121,10 @@ export default function AIPanel({ open, onClose }) {
             onClick={send}
             disabled={loading}
             className="px-3 py-2 rounded text-xs font-semibold"
-            style={{ background: 'var(--accent)', color: '#fff', opacity: loading ? 0.5 : 1 }}
+            style={{ background: 'var(--accent)', color: '#fff', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label="Enviar pregunta"
           >
-            →
+            <ArrowRight size={16} strokeWidth={2.3} />
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import STTooltip from "../components/st/STTooltip"
 import STFloatingButton from "../components/st/STFloatingButton"
 import { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
+import { X } from 'lucide-react'
 import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
 
@@ -604,7 +605,9 @@ export default function S09_NoSupervisado({ profesorMode, ref }) {
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-            >✕</button>
+            >
+              <X size={18} strokeWidth={2.1} />
+            </button>
             
             <h3 style={{ marginTop: 0, color: 'var(--accent-2)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.4rem' }}>
               <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">

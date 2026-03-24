@@ -96,25 +96,25 @@ export const STTensionData = [
   {
     presupuesto: 'BRAIN_COMP — El cerebro puede tratarse como sistema computacionalmente inteligible',
     objecion: 'METAPHOR_ONLY — El cerebro-computadora puede ser solo una metáfora heurística',
-    derive: 'METAPHOR_ONLY → ¬BRAIN_COMP  ✓ válida',
+    derive: 'METAPHOR_ONLY → ¬BRAIN_COMP · válida',
     modal: '◇(¬BRAIN_COMP) satisfacible en Modal K',
   },
   {
     presupuesto: 'INTERNAL_REPR — Las representaciones internas son entidades explicativas legítimas',
     objecion: 'REPR_INSTR — La representación puede ser un recurso instrumental, no una entidad real',
-    derive: 'REPR_INSTR → ¬INTERNAL_REPR  ✓ válida',
+    derive: 'REPR_INSTR → ¬INTERNAL_REPR · válida',
     modal: '◇(¬INTERNAL_REPR) satisfacible en Modal K',
   },
   {
     presupuesto: 'BACK_BIO — La retropropagación es biológicamente plausible',
     objecion: 'BACK_IMPL — La retropropagación puede ser eficaz pero biológicamente implausible',
-    derive: 'BACK_IMPL → ¬BACK_BIO  ✓ válida',
+    derive: 'BACK_IMPL → ¬BACK_BIO · válida',
     modal: '◇(¬BACK_BIO) satisfacible en Modal K',
   },
   {
     presupuesto: 'CONV_STRONG — La convergencia computacional-biológica es fuerte y justificable',
     objecion: 'CONV_WEAK — La convergencia puede ser solo una esperanza programática',
-    derive: 'CONV_WEAK → ¬CONV_STRONG  ✓ válida',
+    derive: 'CONV_WEAK → ¬CONV_STRONG · válida',
     modal: '◇(CONV_POSS) satisfacible en Modal K',
   },
 ]

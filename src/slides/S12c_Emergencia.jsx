@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import 'katex/dist/katex.min.css'
 import { InlineMath, BlockMath } from 'react-katex'
 import { useState } from 'react'
+import { Ban, BrainCircuit, BrainCog, Check, GitFork, Orbit, Scale, Sigma, Sprout } from 'lucide-react'
 
 void motion
 void AnimatePresence
@@ -22,37 +23,37 @@ const STEPS = [
     key: 'elephant',
     title: '¿Por qué Hinton nunca habla de emergencia?',
     accent: '#ef4444',
-    icon: '🐘',
+    Icon: BrainCircuit,
   },
   {
     key: 'formal',
     title: 'El problema formal de P',
     accent: '#f59e0b',
-    icon: '∑',
+    Icon: Sigma,
   },
   {
     key: 'sleight',
     title: 'La jugada de Hinton: reducción a información',
     accent: '#7c6dfa',
-    icon: '♟',
+    Icon: BrainCog,
   },
   {
     key: 'continuous',
     title: 'Emergencia continua: una ontología no dicha',
     accent: '#22c55e',
-    icon: '∂',
+    Icon: Orbit,
   },
   {
     key: 'fork',
     title: 'La bifurcación epistemológica',
     accent: '#06b6d4',
-    icon: '⑂',
+    Icon: GitFork,
   },
   {
     key: 'st',
     title: 'ST: Reduccionismo informacional vs Emergentismo débil',
     accent: '#a78bfa',
-    icon: '⚖',
+    Icon: Scale,
   },
 ]
 
@@ -164,8 +165,9 @@ function StepSleight() {
             borderRadius: '10px', padding: '1rem 1.2rem',
           }}
         >
-          <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#ef4444', marginBottom: '0.5rem' }}>
-            🚫 LO QUE HINTON EVITA
+          <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#ef4444', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Ban size={14} strokeWidth={2} />
+            LO QUE HINTON EVITA
           </div>
           <div style={{ fontSize: '1rem', color: 'var(--text-h)', fontWeight: 600 }}>
             "¿Qué <em>emerge</em>?"
@@ -194,8 +196,9 @@ function StepSleight() {
             borderRadius: '10px', padding: '1rem 1.2rem',
           }}
         >
-          <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#7c6dfa', marginBottom: '0.5rem' }}>
-            ♟ LO QUE HINTON HACE
+          <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#7c6dfa', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <BrainCog size={14} strokeWidth={2} />
+            LO QUE HINTON HACE
           </div>
           <div style={{ fontSize: '1rem', color: 'var(--text-h)', fontWeight: 600 }}>
             "¿Qué <em>información</em> se codifica?"
@@ -340,8 +343,9 @@ function StepFork() {
           <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#7c6dfa', marginBottom: '0.4rem' }}>
             NIVEL ONTOLÓGICO
           </div>
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#7c6dfa', marginBottom: '0.6rem' }}>
-            Monismo ✓
+          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#7c6dfa', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+            <Check size={16} strokeWidth={2.4} />
+            Monismo
           </div>
           <BlockMath math="P \equiv g(\mathbf{R})" />
           <div style={{ fontSize: '0.88rem', color: 'var(--text-dim)', lineHeight: 1.5, marginTop: '0.5rem' }}>
@@ -363,8 +367,9 @@ function StepFork() {
           <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#22c55e', marginBottom: '0.4rem' }}>
             NIVEL EPISTÉMICO
           </div>
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#22c55e', marginBottom: '0.6rem' }}>
-            Emergencia ✓
+          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#22c55e', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+            <Check size={16} strokeWidth={2.4} />
+            Emergencia
           </div>
           <BlockMath math="P \not\leftarrow \{N_i\} \;\text{sin simular}\; \mathbf{R}" />
           <div style={{ fontSize: '0.88rem', color: 'var(--text-dim)', lineHeight: 1.5, marginTop: '0.5rem' }}>
@@ -456,13 +461,21 @@ function StepST() {
                 Dimensión
               </th>
               <th style={{ padding: '0.8rem 1rem', textAlign: 'center', color: '#7c6dfa', fontFamily: 'monospace', fontSize: '0.75rem', borderBottom: '1px solid var(--border)', background: 'rgba(124,109,250,0.05)' }}>
-                ♟ REDUCT_INFO
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                  <BrainCog size={14} strokeWidth={2} />
+                  REDUCT_INFO
+                </div>
               </th>
               <th style={{ padding: '0.8rem 1rem', textAlign: 'center', color: '#22c55e', fontFamily: 'monospace', fontSize: '0.75rem', borderBottom: '1px solid var(--border)', background: 'rgba(34,197,94,0.05)' }}>
-                🌱 EMERG_WEAK
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                  <Sprout size={14} strokeWidth={2} />
+                  EMERG_WEAK
+                </div>
               </th>
               <th style={{ padding: '0.8rem 1rem', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'monospace', fontSize: '0.75rem', borderBottom: '1px solid var(--border)' }}>
-                ⚖
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Scale size={14} strokeWidth={2} />
+                </div>
               </th>
             </tr>
           </thead>
@@ -492,9 +505,9 @@ function StepST() {
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{row.emergLabel}</div>
                 </td>
                 <td style={{ padding: '0.7rem 1rem', textAlign: 'center', fontSize: '1.1rem' }}>
-                  {row.winner === 'reduct' ? <span style={{ color: '#7c6dfa' }}>♟</span>
-                    : row.winner === 'emerg' ? <span style={{ color: '#22c55e' }}>🌱</span>
-                    : <span style={{ color: '#f59e0b' }}>≈</span>}
+                  {row.winner === 'reduct' ? <BrainCog size={18} strokeWidth={2.2} color="#7c6dfa" />
+                    : row.winner === 'emerg' ? <Sprout size={18} strokeWidth={2.2} color="#22c55e" />
+                    : <Scale size={18} strokeWidth={2.2} color="#f59e0b" />}
                 </td>
               </motion.tr>
             ))}
@@ -583,6 +596,7 @@ export default function S12c_Emergencia({ profesorMode, ref: externalRef }) {
   }))
 
   const StepContent = STEP_COMPONENTS[step]
+  const ActiveStepIcon = STEPS[step].Icon
 
   return (
     <div className="section-slide" style={{ gap: '1.2rem', position: 'relative', overflow: 'hidden' }}>
@@ -605,31 +619,36 @@ export default function S12c_Emergencia({ profesorMode, ref: externalRef }) {
         display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center',
         position: 'relative', zIndex: 1, flexWrap: 'wrap',
       }}>
-        {STEPS.map((s, i) => (
-          <motion.button
-            key={s.key}
-            onClick={() => setStep(i)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            animate={{
-              background: i === step ? `${s.accent}22` : 'var(--bg-3)',
-              borderColor: i === step ? s.accent : 'var(--border)',
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
-              padding: '0.4rem 0.8rem', borderRadius: '20px',
-              border: `1px solid ${i <= step ? s.accent + '55' : 'var(--border)'}`,
-              cursor: 'pointer', fontSize: '0.75rem',
-              color: i === step ? s.accent : i < step ? 'var(--text-dim)' : 'var(--text-dim)',
-              fontFamily: 'monospace', transition: 'all 0.3s',
-              opacity: i <= step ? 1 : 0.5,
-            }}
-          >
-            <span style={{ fontSize: '0.9rem' }}>{s.icon}</span>
-            <span style={{ display: i === step ? 'inline' : 'none' }}>{s.title.length > 20 ? s.title.slice(0, 20) + '…' : s.title}</span>
-            {i < step && <span style={{ color: '#22c55e', fontSize: '0.7rem' }}>✓</span>}
-          </motion.button>
-        ))}
+        {STEPS.map((s, i) => {
+          const StepIcon = s.Icon
+          return (
+            <motion.button
+              key={s.key}
+              onClick={() => setStep(i)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{
+                background: i === step ? `${s.accent}22` : 'var(--bg-3)',
+                borderColor: i === step ? s.accent : 'var(--border)',
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.4rem 0.8rem', borderRadius: '20px',
+                border: `1px solid ${i <= step ? s.accent + '55' : 'var(--border)'}`,
+                cursor: 'pointer', fontSize: '0.75rem',
+                color: i === step ? s.accent : i < step ? 'var(--text-dim)' : 'var(--text-dim)',
+                fontFamily: 'monospace', transition: 'all 0.3s',
+                opacity: i <= step ? 1 : 0.5,
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <StepIcon size={15} strokeWidth={2.2} />
+              </span>
+              <span style={{ display: i === step ? 'inline' : 'none' }}>{s.title.length > 20 ? s.title.slice(0, 20) + '…' : s.title}</span>
+              {i < step && <Check size={14} strokeWidth={2.4} color="#22c55e" />}
+            </motion.button>
+          )
+        })}
       </div>
 
       {/* Step title */}
@@ -652,9 +671,10 @@ export default function S12c_Emergencia({ profesorMode, ref: externalRef }) {
           </span>
           <div style={{
             fontSize: '1.3rem', fontWeight: 700, color: STEPS[step].accent,
-            marginTop: '0.3rem',
+            marginTop: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem',
           }}>
-            {STEPS[step].icon} {STEPS[step].title}
+            <ActiveStepIcon size={20} strokeWidth={2.2} />
+            {STEPS[step].title}
           </div>
         </motion.div>
       </AnimatePresence>

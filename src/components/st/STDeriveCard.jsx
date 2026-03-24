@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CheckCircle2 } from 'lucide-react'
 
 export default function STDeriveCard({ derive }) {
   const [showFormal, setShowFormal] = useState(false)
@@ -8,7 +9,10 @@ export default function STDeriveCard({ derive }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
         <div style={{ flex: 1 }}>
           <div style={{ color: 'var(--green)', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
-            ✓ DERIVACIÓN VÁLIDA · tableau FOL
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <CheckCircle2 size={14} strokeWidth={2} />
+              DERIVACIÓN VÁLIDA · tableau FOL
+            </span>
           </div>
           {showFormal ? (
             <code style={{ fontSize: '0.78rem', color: 'var(--text-h)', display: 'block', lineHeight: 1.5 }}>

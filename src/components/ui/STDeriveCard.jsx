@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CheckCircle2, ChevronDown } from 'lucide-react'
 
 export default function STDeriveCard({ derive }) {
   const [open, setOpen] = useState(false)
@@ -10,10 +11,18 @@ export default function STDeriveCard({ derive }) {
         onClick={() => setOpen(o => !o)}
       >
         <div>
-          <span className="st-satisfiable font-mono text-xs">✓ derive</span>
+          <span className="st-satisfiable font-mono text-xs" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <CheckCircle2 size={12} strokeWidth={2} />
+            derive
+          </span>
           <span className="text-xs text-[var(--text-dim)] ml-2">{derive.readableConclusion}</span>
         </div>
-        <span className="text-[var(--text-dim)] text-xs">{open ? '▲' : '▼'}</span>
+        <span
+          className="text-[var(--text-dim)] text-xs"
+          style={{ display: 'flex', alignItems: 'center', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+        >
+          <ChevronDown size={14} strokeWidth={2} />
+        </span>
       </div>
 
       {open && (
@@ -25,7 +34,10 @@ export default function STDeriveCard({ derive }) {
             <div key={i} className="font-mono text-xs text-[var(--text)]">{line}</div>
           ))}
           <div className="mt-2 pt-2 border-t border-[var(--border)]">
-            <span className="st-badge">FOL tableau ✓</span>
+            <span className="st-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <CheckCircle2 size={12} strokeWidth={2} />
+              FOL tableau
+            </span>
           </div>
         </div>
       )}

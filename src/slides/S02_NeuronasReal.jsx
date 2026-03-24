@@ -3,6 +3,7 @@ import { useRef, useState, useEffect, useImperativeHandle, Suspense } from 'reac
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { Check, ChevronRight, Zap } from 'lucide-react'
 import * as THREE from 'three'
 import STTooltip from '../components/st/STTooltip'
 
@@ -305,8 +306,9 @@ function NeuronScene({ selected, setSelected }) {
         </div>
       </Html>
       <Html position={[4.5, -0.6, 0]} distanceFactor={10} style={{ pointerEvents: 'none' }}>
-        <div style={{ color: '#00f5ff', fontSize: '10px', fontFamily: 'monospace', background: 'rgba(5,5,15,0.80)', padding: '2px 6px', borderRadius: '4px' }}>
-          ⚡ potencial de acción
+        <div style={{ color: '#00f5ff', fontSize: '10px', fontFamily: 'monospace', background: 'rgba(5,5,15,0.80)', padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <Zap size={11} strokeWidth={2.2} />
+          potencial de acción
         </div>
       </Html>
 
@@ -463,8 +465,16 @@ export default function S02_NeuronasReal({ profesorMode, ref }) {
                 boxShadow: isNext && !active ? `0 0 8px ${p.color}33` : 'none',
               }}
             >
-              {done && !active && <span style={{ marginRight: '0.3rem', fontSize: '0.7rem' }}>✓</span>}
-              {isNext && !active && !done && <span style={{ marginRight: '0.3rem', fontSize: '0.7rem' }}>›</span>}
+              {done && !active && (
+                <span style={{ marginRight: '0.3rem', display: 'inline-flex', verticalAlign: 'middle' }}>
+                  <Check size={12} strokeWidth={2.4} />
+                </span>
+              )}
+              {isNext && !active && !done && (
+                <span style={{ marginRight: '0.3rem', display: 'inline-flex', verticalAlign: 'middle' }}>
+                  <ChevronRight size={12} strokeWidth={2.4} />
+                </span>
+              )}
               {p.label}
             </button>
           )

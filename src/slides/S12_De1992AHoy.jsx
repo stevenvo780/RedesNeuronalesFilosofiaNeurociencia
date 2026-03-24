@@ -2,6 +2,7 @@ import STTooltip from "../components/st/STTooltip"
 import STFloatingButton from "../components/st/STFloatingButton"
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Star } from 'lucide-react'
 import STModalBadge from '../components/st/STModalBadge'
 
 void motion
@@ -314,9 +315,10 @@ export default function S12_De1992AHoy({ profesorMode }) {
                           fontSize: '0.58rem', fontFamily: 'monospace', fontWeight: 700,
                           color: '#0a0a1a', background: '#a78bfa',
                           padding: '2px 7px', borderRadius: '0 0 6px 6px',
-                          letterSpacing: '0.1em',
+                          letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '0.25rem',
                         }}>
-                          ★ PROTAGONISTA
+                          <Star size={11} strokeWidth={2.2} />
+                          PROTAGONISTA
                         </div>
                       )}
                       <div style={{ fontSize: t.label === 'Hinton' ? '1.1rem' : '1rem', color: t.label === 'Hinton' ? '#a78bfa' : t.color, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.02em' }}>{t.year}</div>

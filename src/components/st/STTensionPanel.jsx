@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Microscope } from 'lucide-react'
+import { AlertTriangle, Microscope } from 'lucide-react'
 import { ST_CRITICA } from '../../data/st_results'
 import STLogicModal from './STLogicModal'
 
@@ -28,7 +28,10 @@ export default function STTensionPanel({ tensions = ST_CRITICA.tensions, showCon
                 <div style={{ fontSize: compact ? '0.5rem' : '0.55rem', color: 'var(--text)', marginTop: '0.1rem' }}>{t.presupuestoLabel}</div>
               </div>
               <div className="st-card st-tension-right" style={{ padding: '0.3rem 0.5rem' }}>
-                <div style={{ fontSize: compact ? '0.5rem' : '0.55rem', color: 'var(--red)', marginBottom: '0.1rem' }}>✓ OBJECIÓN</div>
+                <div style={{ fontSize: compact ? '0.5rem' : '0.55rem', color: 'var(--red)', marginBottom: '0.1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <AlertTriangle size={compact ? 10 : 11} strokeWidth={2} />
+                  OBJECIÓN
+                </div>
                 <code style={{ fontSize: compact ? '0.55rem' : '0.6rem', color: 'var(--text-h)', display: 'block' }}>{t.objecion}</code>
                 <div style={{ fontSize: compact ? '0.5rem' : '0.55rem', color: 'var(--text)', marginTop: '0.1rem' }}>{t.objecionLabel}</div>
               </div>

@@ -1,16 +1,34 @@
+import {
+  Brain,
+  Target,
+  Zap,
+  Calculator,
+  Network,
+  TrendingDown,
+  RefreshCw,
+  Scale,
+  Construction,
+  Orbit,
+  Globe,
+  Eye,
+  Calendar,
+  Microscope,
+  Flag,
+} from 'lucide-react'
+
 // Summaries shown to mobile users as readable cards (one per slide).
 // Each entry matches the SLIDES array index in App.jsx.
 
 export const SLIDE_SUMMARIES = [
   {
     title: 'Introducción',
-    emoji: '🧠',
+    Icon: Brain,
     hook: '',
     bullets: ['Animación de apertura', 'Contexto visual del curso'],
   },
   {
     title: 'Apertura filosófica',
-    emoji: '🎯',
+    Icon: Target,
     hook: 'La máquina… que aprende… a ser… cerebro.',
     bullets: [
       'Hinton instala un marco computacional-representacional con compromisos ontológicos fuertes.',
@@ -20,7 +38,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'La neurona real',
-    emoji: '⚡',
+    Icon: Zap,
     hook: '¿Dónde vive la información?',
     bullets: [
       'Dendrita → soma → axón → terminal sináptica.',
@@ -31,7 +49,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'La neurona artificial',
-    emoji: '🔢',
+    Icon: Calculator,
     hook: 'Hinton no copia la neurona — la idealiza.',
     bullets: [
       'Suma ponderada → función de transferencia → salida.',
@@ -42,7 +60,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Arquitectura de tres capas',
-    emoji: '🏗️',
+    Icon: Network,
     hook: 'Las unidades ocultas descubren solas qué representar.',
     bullets: [
       'Red 2→8→8→1 con TensorFlow.js en vivo.',
@@ -53,7 +71,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Entrenamiento supervisado',
-    emoji: '📉',
+    Icon: TrendingDown,
     hook: 'El aprendizaje no es magia — es una curva de error cayendo.',
     bullets: [
       '4 fases: PRESENTAR → EVALUAR → CALCULAR ERROR → ACTUALIZAR pesos.',
@@ -64,7 +82,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Retropropagación',
-    emoji: '🔄',
+    Icon: RefreshCw,
     hook: 'Werbos 1974 → Rumelhart 1982 → Hinton 1986. ¿Por qué costó 12 años?',
     bullets: [
       'Flujo forward (verde →) vs. flujo de error backward (rojo ←).',
@@ -75,7 +93,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Alcances + primera crítica',
-    emoji: '⚖️',
+    Icon: Scale,
     hook: '¿Está explicando cómo aprende el cerebro, o simplemente funciona?',
     bullets: [
       'Reconoce dígitos, predice tasas, detecta células precancerosas.',
@@ -87,7 +105,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Límites del modelo',
-    emoji: '🚧',
+    Icon: Construction,
     hook: 'Hinton mismo los dice. No hay que ir lejos para encontrar las grietas.',
     bullets: [
       '1. Requiere instructor con la salida correcta.',
@@ -98,7 +116,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Aprendizaje no supervisado',
-    emoji: '🌀',
+    Icon: Orbit,
     hook: '¿Cómo puede una red representar el mundo si nadie le dice qué es?',
     bullets: [
       'Buena representación: económica + reconstructiva (contingente, no necesario).',
@@ -109,7 +127,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Repr. distribuidas y recurrentes',
-    emoji: '🌐',
+    Icon: Globe,
     hook: '¿Cuántas neuronas para representar un concepto? ¿Una? ¿Mil?',
     bullets: [
       'Distribuida: muchas unidades activas juntas (PCA).',
@@ -120,7 +138,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Códigos demográficos',
-    emoji: '👁️',
+    Icon: Eye,
     hook: 'Sparks anestesió neuronas: el ojo se movió al promedio de las que quedaban.',
     bullets: [
       'Bump de actividad distribuida sobre una población.',
@@ -131,7 +149,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'De 1992 a hoy',
-    emoji: '📅',
+    Icon: Calendar,
     hook: 'Treinta años después: ¿computación y biología convergieron?',
     bullets: [
       'Línea: 1943 McCulloch-Pitts → 1992 Hinton → 2017 Transformers → 2024 LLMs.',
@@ -142,7 +160,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Convergencia empírica',
-    emoji: '🔬',
+    Icon: Microscope,
     hook: 'La convergencia entre redes artificiales y biología: evidencia reciente.',
     bullets: [
       'Interpretabilidad mecanicista: qué computan las capas internas.',
@@ -153,7 +171,7 @@ export const SLIDE_SUMMARIES = [
   },
   {
     title: 'Cierre argumental',
-    emoji: '🏁',
+    Icon: Flag,
     hook: 'Hinton apuesta, no demuestra. Los ST lo hacen visible.',
     bullets: [
       'INTERNAL_REPR se sostiene desde 5 caminos independientes.',

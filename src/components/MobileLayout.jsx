@@ -228,6 +228,7 @@ export default function MobileLayout({ slides, profesorMode }) {
         {slides.map((slide, i) => {
           const summary = SLIDE_SUMMARIES[i]
           if (!summary) return null
+          const SummaryIcon = summary.Icon
           return (
             <div
               key={slide.id}
@@ -242,7 +243,9 @@ export default function MobileLayout({ slides, profesorMode }) {
             >
               {/* Card header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>{summary.emoji}</span>
+                <span style={{ display: 'flex', alignItems: 'center', color: 'var(--accent-2)' }}>
+                  <SummaryIcon size={24} strokeWidth={1.85} />
+                </span>
                 <div style={{ flex: 1 }}>
                   <div style={{
                     fontSize: '0.65rem', color: 'var(--text-dim)', fontFamily: 'monospace',

@@ -188,9 +188,9 @@ function LossScene() {
       <GDTrail path={GD_PATH}  color="#00f5ff" label="SGD → mínimo global" speed={0.013} />
       <GDTrail path={GD_PATH2} color="#ff7700" label="SGD atrapado en mínimo local" speed={0.010} />
 
-      <MinMarker x={-0.3} z={0.1}  label="mínimo global ✓" color="#22c55e" />
-      <MinMarker x={-1.5} z={2.8}  label="mínimo local ✗"  color="#ef4444" />
-      <MinMarker x={1.8}  z={-1.2} label="mínimo local ✗"  color="#eab308" />
+      <MinMarker x={-0.3} z={0.1}  label="mínimo global" color="#22c55e" />
+      <MinMarker x={-1.5} z={2.8}  label="mínimo local"  color="#ef4444" />
+      <MinMarker x={1.8}  z={-1.2} label="mínimo local"  color="#eab308" />
 
       <OrbitControls enablePan autoRotate autoRotateSpeed={0.4} minDistance={5} maxDistance={20} target={[0, 0.8, 0]} />
     </>

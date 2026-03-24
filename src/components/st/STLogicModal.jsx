@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle, HelpCircle, ChevronDown, BookOpen, LayoutList } from 'lucide-react'
+import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle, HelpCircle, ChevronDown, BookOpen, LayoutList, CheckCircle2, CircleX } from 'lucide-react'
 import { ST_ARGUMENTO, ST_PRESUPUESTOS, ST_CRITICA, VAR_DEFINITIONS, SLIDE_SUPUESTOS, ST_RESUMEN_NATURAL } from '../../data/st_results'
 
 void motion
@@ -407,7 +407,10 @@ export default function STLogicModal({ isOpen, onClose, context, slideId }) {
               <div key={i} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
                 <code style={{ color: c.valid ? 'var(--green)' : 'var(--red)', fontSize: '0.75rem', flex: 1 }}>{c.formula}</code>
                 <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>{c.pattern}</span>
-                <span style={{ fontSize: '0.7rem', color: c.valid ? 'var(--green)' : 'var(--red)' }}>{c.valid ? '✓ VÁLIDA' : '✗'}</span>
+                <span style={{ fontSize: '0.7rem', color: c.valid ? 'var(--green)' : 'var(--red)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  {c.valid ? <CheckCircle2 size={13} strokeWidth={2} /> : <CircleX size={13} strokeWidth={2} />}
+                  {c.valid ? 'VÁLIDA' : 'INVÁLIDA'}
+                </span>
               </div>
             ))}
             <div style={{ fontSize: '0.7rem', color: 'var(--yellow)', fontFamily: 'monospace', marginTop: '0.5rem' }}>
