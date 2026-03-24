@@ -160,7 +160,7 @@ export default function S13_CierreArgumental({ profesorMode }) {
       </div>
 
       {/* Tensión final */}
-      <STFloatingButton />
+      <STFloatingButton slideId="S13" />
 
       {/* Pregunta para la discusión */}
       <motion.div

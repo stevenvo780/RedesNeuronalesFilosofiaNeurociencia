@@ -201,7 +201,7 @@ export default function S10_ReprDistribuidas({ profesorMode }) {
         "¿Dónde reside el concepto de 'abuela' en la red? ¿En una sola <STTooltip term="neurona_biologica">neurona</STTooltip> (<em>célula de la abuela</em>) o distribuida holográficamente en mil <STTooltip term="peso">sinapsis</STTooltip>? Hinton y Barlow buscaban el punto medio ontológico."
       </div>
 
-      <STFloatingButton />
+      <STFloatingButton slideId="S10" />
 
       {/* Tres tipos de representación — animated */}
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', maxWidth: '1100px', justifyContent: 'center' }}>

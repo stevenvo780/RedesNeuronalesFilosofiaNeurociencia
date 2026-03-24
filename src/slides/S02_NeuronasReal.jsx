@@ -522,7 +522,7 @@ export default function S02_NeuronasReal({ profesorMode, ref }) {
         </div>
       </div>
 
-      <STFloatingButton />
+      <STFloatingButton slideId="S02" />
 
       {/* Key insight */}
       <div className="st-card" style={{ maxWidth: '1000px', width: '100%' }}>

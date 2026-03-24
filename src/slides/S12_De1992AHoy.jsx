@@ -398,7 +398,7 @@ export default function S12_De1992AHoy({ profesorMode }) {
           </div>
         )}
 
-        <STFloatingButton />
+        <STFloatingButton slideId="S12" />
       </div>
     </div>
   )

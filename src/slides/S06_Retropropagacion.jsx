@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect, useImperativeHandle } from 'react'
 import { Play, Pause, ArrowRight, ArrowLeft } from 'lucide-react'
-import { BlockMath } from 'react-katex'
-import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
@@ -184,70 +182,471 @@ function getY(H, size, i) {
   return H / 2 - ((size - 1) * spacing) / 2 + i * spacing
 }
 
-// ── Inline Animated Equation (like S03 style) ─────────────────────────────────
+// ── Per-equation animated canvas ──────────────────────────────────────────────
+// Each step gets its OWN canvas with CYCLIC pulse animation showing recurrence
+// HiDPI-aware rendering + interactive tooltips on hover
+
+const CYCLE_PERIOD = 2200 // ms for one full pulse cycle
+const REVEAL_DURATION = 900 // ms for initial staggered reveal
+
+const EQ_CONFIGS = [
+  // Step 0: EA_j = y_j − d_j
+  {
+    BW: 600, BH: 140,
+    nodes: [
+      { x: 70,  y: 40,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: 18,
+        tip: 'Salida real de la neurona j. Es el valor que la red produjo tras el forward pass.' },
+      { x: 200, y: 70,  label: '−',     sub: '',            color: '#ef4444', r: 13, isOp: true,
+        tip: 'Resta: se calcula la diferencia entre la salida real y la deseada.' },
+      { x: 70,  y: 100, label: 'd_j',   sub: 'deseada',     color: '#06b6d4', r: 18,
+        tip: 'Valor deseado (target). Lo que el profesor le dice a la red que debería haber producido.' },
+      { x: 350, y: 70,  label: '=',     sub: '',            color: '#888',    r: 13, isOp: true,
+        tip: 'Resultado de la operación.' },
+      { x: 510, y: 70,  label: 'EA_j',  sub: 'error de activación', color: '#ef4444', r: 22, isResult: true,
+        tip: 'Error de activación: cuánto se equivocó la neurona j. Es la señal que inicia todo el backprop.' },
+    ],
+    edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
+    title: 'Paso 1: Error de activación',
+    desc: 'Diferencia entre lo que la red produjo y lo que debería haber producido',
+  },
+  // Step 1: EI_j = EA_j · y_j(1−y_j)
+  {
+    BW: 600, BH: 140,
+    nodes: [
+      { x: 60,  y: 45,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: 18,
+        tip: 'Error de activación del paso anterior. Cuánto se equivocó la neurona.' },
+      { x: 190, y: 70,  label: '×',          sub: '',                 color: '#eab308', r: 13, isOp: true,
+        tip: 'Multiplicación: el error se pondera por la derivada de la sigmoide.' },
+      { x: 60,  y: 95,  label: "y_j(1−y_j)", sub: "derivada σ'",     color: '#22c55e', r: 18, wide: true,
+        tip: "Derivada de la sigmoide evaluada en y_j. Mide la 'pendiente' de la activación: si es plana, el error no pasa." },
+      { x: 350, y: 70,  label: '=',          sub: '',                 color: '#888',    r: 13, isOp: true,
+        tip: 'Resultado de la operación.' },
+      { x: 510, y: 70,  label: 'EI_j',       sub: 'error de entrada', color: '#eab308', r: 22, isResult: true,
+        tip: 'Error de entrada: cuánto debe cambiar la entrada total de la neurona j para reducir el error.' },
+    ],
+    edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
+    title: 'Paso 2: Error de entrada',
+    desc: 'Pondera el error por la pendiente de la función de activación',
+  },
+  // Step 2: EW_ij = EI_j · y_i
+  {
+    BW: 600, BH: 140,
+    nodes: [
+      { x: 70,  y: 45,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: 18,
+        tip: 'Error de entrada de la neurona j. Viene del paso anterior.' },
+      { x: 200, y: 70,  label: '×',     sub: '',                   color: '#7c6dfa', r: 13, isOp: true,
+        tip: 'Multiplicación: el error de entrada se multiplica por la activación que llegó por esa conexión.' },
+      { x: 70,  y: 95,  label: 'y_i',   sub: 'activación origen',  color: '#22c55e', r: 18,
+        tip: 'Activación de la neurona i (capa anterior). Si fue alta, esa conexión tuvo más responsabilidad en el error.' },
+      { x: 350, y: 70,  label: '=',     sub: '',                   color: '#888',    r: 13, isOp: true,
+        tip: 'Resultado de la operación.' },
+      { x: 510, y: 70,  label: 'EW_ij', sub: 'error del peso',    color: '#7c6dfa', r: 22, isResult: true,
+        tip: 'Error del peso w_ij: cuánto y en qué dirección debe cambiar esta conexión específica. Es el gradiente.' },
+    ],
+    edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
+    title: 'Paso 3: Error del peso',
+    desc: 'Cuánto debe cambiar cada conexión para reducir el error',
+  },
+  // Step 3: EA_i = Σ_j EI_j · w_ij
+  {
+    BW: 600, BH: 140,
+    nodes: [
+      { x: 60,  y: 45,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: 16,
+        tip: 'Error de entrada de la neurona j. Puede haber varios j que se suman.' },
+      { x: 60,  y: 95,  label: 'w_ij',   sub: 'peso',          color: '#7c6dfa', r: 16,
+        tip: 'Peso de la conexión entre i y j. Las conexiones más fuertes transmiten más error hacia atrás.' },
+      { x: 190, y: 70,  label: '×',      sub: '',               color: '#a78bfa', r: 13, isOp: true,
+        tip: 'Multiplicación: cada error de entrada se pondera por el peso de esa conexión.' },
+      { x: 310, y: 70,  label: 'Σ_j',    sub: 'sumar',          color: '#a78bfa', r: 16, isOp: true,
+        tip: 'Sumatoria sobre todas las neuronas j de la capa siguiente. Se acumula la culpa de todas las conexiones salientes.' },
+      { x: 400, y: 70,  label: '=',      sub: '',               color: '#888',    r: 13, isOp: true,
+        tip: 'Resultado de la operación.' },
+      { x: 520, y: 70,  label: 'EA_i',   sub: 'error → capa anterior', color: '#a78bfa', r: 22, isResult: true,
+        tip: 'Error de activación de la neurona i (capa anterior). Este valor vuelve al Paso 1 para esa capa — es la recurrencia del backprop.' },
+    ],
+    edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5]],
+    title: 'Paso 4: Propagar atrás',
+    desc: 'El error se transmite a la capa anterior — el ciclo se repite',
+  },
+]
+
+function SingleEquationCanvas({ config, isActive }) {
+  const canvasRef = useRef(null)
+  const wrapRef = useRef(null)
+  const mountRef = useRef(0)
+  const [tooltip, setTooltip] = useState(null) // { x, y, text, color }
+
+  useEffect(() => {
+    mountRef.current = performance.now()
+    setTooltip(null)
+  }, [isActive])
+
+  // Mouse hit-test for tooltips
+  useEffect(() => {
+    const wrap = wrapRef.current
+    const canvas = canvasRef.current
+    if (!wrap || !canvas) return
+    const { BW, nodes } = config
+
+    const onMove = (e) => {
+      const rect = canvas.getBoundingClientRect()
+      const scaleX = BW / rect.width
+      // Convert mouse to BW-space coordinates
+      const mx = (e.clientX - rect.left) * scaleX
+      const my = (e.clientY - rect.top) * scaleX // uniform scale since aspect preserved
+
+      let hit = null
+      for (const node of nodes) {
+        const hitR = (node.r || 14) + 8 // generous hit area
+        const dx = mx - node.x, dy = my - node.y
+        if (dx * dx + dy * dy < hitR * hitR) {
+          hit = node
+          break
+        }
+      }
+
+      if (hit && hit.tip) {
+        setTooltip({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          text: hit.tip,
+          color: hit.color,
+          label: hit.label,
+        })
+      } else {
+        setTooltip(null)
+      }
+    }
+    const onLeave = () => setTooltip(null)
+
+    wrap.addEventListener('mousemove', onMove)
+    wrap.addEventListener('mouseleave', onLeave)
+    return () => {
+      wrap.removeEventListener('mousemove', onMove)
+      wrap.removeEventListener('mouseleave', onLeave)
+    }
+  }, [config])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    let raf
+    let W = 0, H = 0
+    const { BW, BH, nodes, edges } = config
+    const dpr = window.devicePixelRatio || 1
+
+    const setSize = () => {
+      const logicalW = canvas.offsetWidth || BW
+      const logicalH = Math.round(logicalW * BH / BW)
+      const pixelW = Math.round(logicalW * dpr)
+      const pixelH = Math.round(logicalH * dpr)
+      if (pixelW !== W || pixelH !== H) {
+        W = pixelW; H = pixelH
+        canvas.width = W; canvas.height = H
+        canvas.style.height = logicalH + 'px'
+      }
+    }
+    setSize()
+    const ro = new ResizeObserver(setSize); ro.observe(canvas)
+
+    function draw(ts) {
+      if (!W || !H) { raf = requestAnimationFrame(draw); return }
+      const ctx = canvas.getContext('2d')
+      // Scale factor: maps BW virtual coords → physical pixels
+      const s = W / BW
+      ctx.clearRect(0, 0, W, H)
+
+      const elapsed = ts - mountRef.current
+      const revealPerNode = REVEAL_DURATION / nodes.length
+      const getNodeAlpha = (ni) => {
+        if (!isActive) return 0.15
+        const nodeStart = ni * revealPerNode
+        return Math.min(Math.max((elapsed - nodeStart) / 350, 0), 1)
+      }
+
+      const allRevealed = elapsed > REVEAL_DURATION + 400
+      const cycleT = allRevealed ? ((elapsed - REVEAL_DURATION) % CYCLE_PERIOD) / CYCLE_PERIOD : -1
+
+      // ── Edges ──
+      edges.forEach(([from, to], ei) => {
+        const n1 = nodes[from], n2 = nodes[to]
+        const alphaFrom = getNodeAlpha(from)
+        const alphaTo = getNodeAlpha(to)
+        const edgeAlpha = Math.min(alphaFrom, alphaTo)
+
+        if (edgeAlpha > 0.01) {
+          ctx.beginPath()
+          ctx.moveTo(n1.x * s, n1.y * s)
+          ctx.lineTo(n2.x * s, n2.y * s)
+          ctx.strokeStyle = n2.color || '#555'
+          ctx.globalAlpha = edgeAlpha * 0.45
+          ctx.lineWidth = 2 * s
+          ctx.stroke()
+          ctx.globalAlpha = 1
+
+          // Arrow head
+          const dx = n2.x - n1.x, dy = n2.y - n1.y
+          const len = Math.sqrt(dx * dx + dy * dy)
+          if (len > 0) {
+            const ux = dx / len, uy = dy / len
+            const tipX = (n2.x - ux * ((n2.r || 14) + 5)) * s
+            const tipY = (n2.y - uy * ((n2.r || 14) + 5)) * s
+            const as = 5 * s
+            ctx.beginPath()
+            ctx.moveTo(tipX + ux * as, tipY + uy * as)
+            ctx.lineTo(tipX - uy * as * 0.55, tipY + ux * as * 0.55)
+            ctx.lineTo(tipX + uy * as * 0.55, tipY - ux * as * 0.55)
+            ctx.closePath()
+            ctx.fillStyle = n2.color || '#555'
+            ctx.globalAlpha = edgeAlpha * 0.6
+            ctx.fill()
+            ctx.globalAlpha = 1
+          }
+
+          // ── Cyclic pulse traveling along each edge ──
+          if (isActive && cycleT >= 0) {
+            const edgeFrac = ei / edges.length
+            const localT = (cycleT - edgeFrac + 1) % 1
+            const pulseWindow = 0.4
+            if (localT < pulseWindow) {
+              const t = localT / pulseWindow
+              const px = (n1.x + (n2.x - n1.x) * t) * s
+              const py = (n1.y + (n2.y - n1.y) * t) * s
+              const pulseAlpha = Math.sin(t * Math.PI) * 0.9
+              const pulseR = (4 + Math.sin(t * Math.PI) * 2) * s
+              ctx.beginPath()
+              ctx.arc(px, py, pulseR, 0, Math.PI * 2)
+              ctx.fillStyle = n2.color
+              ctx.globalAlpha = pulseAlpha
+              ctx.shadowColor = n2.color
+              ctx.shadowBlur = 14 * s
+              ctx.fill()
+              ctx.shadowBlur = 0
+              ctx.globalAlpha = 1
+            }
+          }
+
+          // Pulse during initial reveal
+          if (isActive && !allRevealed && edgeAlpha > 0.05 && edgeAlpha < 0.95) {
+            const t = edgeAlpha
+            const px = (n1.x + (n2.x - n1.x) * t) * s
+            const py = (n1.y + (n2.y - n1.y) * t) * s
+            ctx.beginPath()
+            ctx.arc(px, py, 5 * s, 0, Math.PI * 2)
+            ctx.fillStyle = n2.color
+            ctx.globalAlpha = Math.sin(t * Math.PI) * 0.85
+            ctx.shadowColor = n2.color
+            ctx.shadowBlur = 12 * s
+            ctx.fill()
+            ctx.shadowBlur = 0
+            ctx.globalAlpha = 1
+          }
+        }
+      })
+
+      // ── Nodes ──
+      nodes.forEach((node, ni) => {
+        const alpha = getNodeAlpha(ni)
+        const p = node
+        const r = (p.r || 14) * s
+        const isResult = p.isResult
+        const isOp = p.isOp
+        const wide = p.wide
+
+        // Cyclic glow for result node
+        if (isResult && isActive && allRevealed) {
+          const arrivalT = ((cycleT - 0.85 + 1) % 1)
+          const glowI = arrivalT < 0.3 ? Math.sin((arrivalT / 0.3) * Math.PI) : 0
+          const baseGlow = 0.15 + Math.sin(ts * 0.003) * 0.08
+          const glow = baseGlow + glowI * 0.35
+          ctx.beginPath()
+          ctx.arc(p.x * s, p.y * s, r + 10 * s, 0, Math.PI * 2)
+          ctx.fillStyle = node.color
+          ctx.globalAlpha = glow
+          ctx.fill()
+          ctx.globalAlpha = 1
+        }
+
+        // Glow during reveal
+        if (isResult && alpha >= 0.95 && isActive && !allRevealed) {
+          const gp = 0.3 + Math.sin(ts * 0.004) * 0.2
+          ctx.beginPath()
+          ctx.arc(p.x * s, p.y * s, r + 8 * s, 0, Math.PI * 2)
+          ctx.fillStyle = node.color
+          ctx.globalAlpha = gp * 0.2
+          ctx.fill()
+          ctx.globalAlpha = 1
+        }
+
+        // Non-result nodes: subtle pulse when cycle passes
+        if (!isResult && !isOp && isActive && allRevealed) {
+          const niFrac = ni / nodes.length
+          const dist = Math.abs(((cycleT - niFrac + 1) % 1))
+          if (dist < 0.15) {
+            const hit = 1 - dist / 0.15
+            ctx.beginPath()
+            ctx.arc(p.x * s, p.y * s, r + 5 * s, 0, Math.PI * 2)
+            ctx.fillStyle = node.color
+            ctx.globalAlpha = hit * 0.2
+            ctx.fill()
+            ctx.globalAlpha = 1
+          }
+        }
+
+        // Node shape
+        if (wide) {
+          const rw = 80 * s, rh = 28 * s, rx = p.x * s - rw / 2, ry = p.y * s - rh / 2, br = 7 * s
+          ctx.beginPath()
+          ctx.moveTo(rx + br, ry)
+          ctx.lineTo(rx + rw - br, ry)
+          ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + br)
+          ctx.lineTo(rx + rw, ry + rh - br)
+          ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - br, ry + rh)
+          ctx.lineTo(rx + br, ry + rh)
+          ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - br)
+          ctx.lineTo(rx, ry + br)
+          ctx.quadraticCurveTo(rx, ry, rx + br, ry)
+          ctx.closePath()
+        } else {
+          ctx.beginPath()
+          ctx.arc(p.x * s, p.y * s, r, 0, Math.PI * 2)
+        }
+
+        ctx.fillStyle = '#0c0c20'
+        ctx.globalAlpha = Math.max(alpha, 0.08)
+        ctx.fill()
+        ctx.strokeStyle = node.color
+        ctx.lineWidth = (isResult ? 2.5 : isOp ? 1.2 : 1.8) * s
+        ctx.globalAlpha = Math.max(alpha, 0.12)
+        ctx.stroke()
+        ctx.globalAlpha = 1
+
+        // Label
+        const fontSize = isResult ? 12 : isOp ? 11 : 10
+        ctx.fillStyle = node.color
+        ctx.globalAlpha = Math.max(alpha, 0.1)
+        ctx.font = `${isResult ? 'bold ' : ''}${fontSize * s}px monospace`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(node.label, p.x * s, p.y * s + (isOp ? 0 : 1 * s))
+        ctx.globalAlpha = 1
+
+        // Sub label
+        if (node.sub && alpha > 0.5) {
+          ctx.fillStyle = '#666'
+          ctx.globalAlpha = alpha * 0.85
+          ctx.font = `${7 * s}px monospace`
+          ctx.textBaseline = 'top'
+          ctx.fillText(node.sub, p.x * s, (p.y + (p.r || 14) + 4) * s)
+          ctx.globalAlpha = 1
+        }
+      })
+
+      // ── Cycle indicator ──
+      if (isActive && allRevealed) {
+        const cx = (BW - 25) * s, cy = (BH - 18) * s, cr = 8 * s
+        ctx.beginPath()
+        ctx.arc(cx, cy, cr, 0, Math.PI * 2)
+        ctx.strokeStyle = '#333'
+        ctx.lineWidth = 1.5 * s
+        ctx.globalAlpha = 0.4
+        ctx.stroke()
+        ctx.globalAlpha = 1
+        ctx.beginPath()
+        ctx.arc(cx, cy, cr, -Math.PI / 2, -Math.PI / 2 + cycleT * Math.PI * 2)
+        ctx.strokeStyle = nodes[nodes.length - 1].color
+        ctx.lineWidth = 2 * s
+        ctx.globalAlpha = 0.7
+        ctx.stroke()
+        ctx.globalAlpha = 1
+        ctx.fillStyle = '#888'
+        ctx.globalAlpha = 0.5
+        ctx.font = `${7 * s}px monospace`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('↻', cx, cy + 0.5 * s)
+        ctx.globalAlpha = 1
+      }
+
+      raf = requestAnimationFrame(draw)
+    }
+    raf = requestAnimationFrame(draw)
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
+  }, [config, isActive])
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', cursor: 'crosshair' }}>
+      <canvas ref={canvasRef} style={{ width: '100%', display: 'block' }} />
+      {tooltip && (
+        <div style={{
+          position: 'absolute',
+          left: Math.min(tooltip.x, (wrapRef.current?.offsetWidth || 400) - 220),
+          top: tooltip.y < 60 ? tooltip.y + 16 : tooltip.y - 70,
+          maxWidth: '220px', padding: '0.5rem 0.65rem',
+          background: 'rgba(10,10,30,0.95)', backdropFilter: 'blur(8px)',
+          border: `1px solid ${tooltip.color}55`, borderRadius: '8px',
+          pointerEvents: 'none', zIndex: 10,
+          boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 8px ${tooltip.color}22`,
+        }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: tooltip.color, marginBottom: '0.2rem', fontFamily: 'monospace' }}>
+            {tooltip.label}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#ccc', lineHeight: 1.4 }}>
+            {tooltip.text}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function BackpropEquationLine({ activeStep, mode }) {
   if (mode === 'forward') {
     return (
       <div style={{
-        textAlign: 'center', padding: '0.5rem 0.8rem',
-        fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--text-dim)',
-        transition: 'all 0.4s ease',
+        aspectRatio: '600 / 140', maxHeight: '130px',
+        borderRadius: '8px', overflow: 'hidden',
+        background: '#0a0a1e', border: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#22c55e', fontFamily: 'monospace', fontSize: '0.95rem',
+        gap: '0.5rem',
       }}>
-        <span style={{ color: '#22c55e' }}>→ Forward: </span>
-        <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
-          <BlockMath math="\textcolor{#22c55e}{y_j} = f\!\left(\sum_i x_i \cdot w_{ij} + b_j\right)" />
-        </span>
+        <ArrowRight size={14} /> y_j = f( Σ x_i · w_ij + b_j )
       </div>
     )
   }
 
-  // Backward mode: build the chain progressively
-  // Step 0: EA  |  Step 1: EA → EI  |  Step 2: EA → EI → EW  |  Step 3: EA → EI → EW → EA_prev
-  const segments = [
-    { color: '#ef4444', tex: '\\textcolor{#ef4444}{EA_j} = y_j - d_j', label: 'error activación' },
-    { color: '#eab308', tex: '\\textcolor{#eab308}{EI_j} = EA_j \\cdot y_j(1{-}y_j)', label: 'error entrada' },
-    { color: '#7c6dfa', tex: '\\textcolor{#7c6dfa}{EW_{ij}} = EI_j \\cdot y_i', label: 'error peso' },
-    { color: '#a78bfa', tex: '\\textcolor{#a78bfa}{EA_i} = \\sum_j EI_j \\cdot w_{ij}', label: 'propagar' },
-  ]
+  if (activeStep === null) {
+    return (
+      <div style={{
+        aspectRatio: '600 / 140', maxHeight: '130px',
+        borderRadius: '8px', overflow: 'hidden',
+        background: '#0a0a1e', border: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--text-dim)', fontFamily: 'monospace', fontSize: '0.8rem',
+      }}>
+        ← Selecciona un paso para ver la ecuación animada
+      </div>
+    )
+  }
+
+  const eq = EQ_CONFIGS[activeStep]
+  if (!eq) return null
 
   return (
-    <div style={{
-      textAlign: 'center', padding: '0.4rem 0.6rem',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      gap: '0.15rem', flexWrap: 'wrap',
-      transition: 'all 0.4s ease',
-      minHeight: '3.2rem',
-    }}>
-      {segments.map((seg, i) => {
-        const isVisible = activeStep !== null && i <= activeStep
-        const isActive = activeStep === i
-        return (
-          <span key={i} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.15rem',
-            opacity: isVisible ? 1 : 0.15,
-            transform: isVisible ? 'scale(1)' : 'scale(0.92)',
-            transition: 'all 0.45s ease',
-            filter: isActive ? `drop-shadow(0 0 6px ${seg.color})` : 'none',
-          }}>
-            {i > 0 && (
-              <span style={{
-                color: isVisible ? 'var(--text-dim)' : 'transparent',
-                fontSize: '1.1rem', margin: '0 0.2rem',
-                transition: 'color 0.4s',
-              }}>→</span>
-            )}
-            <span style={{
-              background: isActive ? `${seg.color}18` : 'transparent',
-              border: isActive ? `1px solid ${seg.color}55` : '1px solid transparent',
-              borderRadius: '6px', padding: '0.15rem 0.4rem',
-              transition: 'all 0.35s',
-              display: 'inline-flex', alignItems: 'center',
-            }}>
-              <BlockMath math={seg.tex} />
-            </span>
-          </span>
-        )
-      })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span style={{ fontSize: '0.78rem', color: STEPS[activeStep]?.color || '#888', fontWeight: 700 }}>
+          {eq.title}
+        </span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>— {eq.desc}</span>
+      </div>
+      <div style={{
+        borderRadius: '8px', overflow: 'hidden',
+        background: '#0a0a1e', border: `1px solid ${STEPS[activeStep]?.color || 'var(--border)'}44`,
+      }}>
+        <SingleEquationCanvas config={eq} isActive={true} key={activeStep} />
+      </div>
     </div>
   )
 }
@@ -292,113 +691,127 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="section-slide" style={{ gap: '1rem' }}>
+    <div className="section-slide" style={{ gap: '0.7rem' }}>
       <div style={{ textAlign: 'center' }}>
         <div className="section-title"><STTooltip term="backpropagacion">Retropropagación</STTooltip></div>
         <div className="section-subtitle">Gradientes reales fluyendo — TF.js en vivo</div>
       </div>
 
-      <div className="quote" style={{ maxWidth: '900px' }}>
+      <div className="quote" style={{ maxWidth: '95%' }}>
         "En 1974 Werbos lo descubrió. Nadie lo escuchó.
         En 1986 Hinton lo popularizó. ¿Por qué costó 12 años?"
       </div>
 
-      {/* Timeline */}
-      <div style={{ display: 'flex', gap: '0.8rem', maxWidth: '1000px', width: '100%', alignItems: 'center' }}>
-        {HISTORY.map((h, i) => (
-          <div key={h.year} style={{ display: 'contents' }}>
-            <div style={{ textAlign: 'center', flex: 1, background: 'var(--bg-3)', border: `1px solid ${h.color}44`, borderLeft: `4px solid ${h.color}`, borderRadius: '8px', padding: '0.55rem 0.8rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: h.color, marginBottom: '0.15rem' }}>{h.label}</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{h.desc}</div>
-            </div>
-            {i < HISTORY.length - 1 && <div style={{ color: 'var(--border)', fontSize: '1.2rem', flexShrink: 0 }}>→</div>}
-          </div>
-        ))}
-      </div>
+      {/* ── Main layout: sidebar timeline + content ── */}
+      <div style={{ display: 'flex', gap: '0.8rem', width: '100%', maxWidth: '100%', padding: '0 0.6rem', flex: 1, minHeight: 0 }}>
 
-      {/* ── Full-width animation card (like S03) ── */}
-      <div style={{
-        width: '100%', maxWidth: '1000px',
-        background: 'var(--bg-3)', border: '1px solid var(--border)',
-        borderRadius: '12px', padding: '0.8rem 1.2rem',
-      }}>
-        {/* Sequential Controls inside card */}
-        <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.6rem' }}>
-          <button onClick={() => setStepIdx(0)} style={{
-            flex: 1, padding: '0.45rem', borderRadius: '8px',
-            border: `1px solid ${mode === 'forward' ? '#22c55e' : 'var(--border)'}`,
-            background: mode === 'forward' ? 'rgba(34,197,94,0.12)' : 'transparent',
-            color: mode === 'forward' ? '#22c55e' : 'var(--text-dim)',
-            fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
-          }}>
-            <ArrowRight size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward Pass
-          </button>
-          <button onClick={() => setStepIdx(1)} style={{
-            flex: 1, padding: '0.45rem', borderRadius: '8px',
-            border: `1px solid ${mode === 'backward' ? '#ef4444' : 'var(--border)'}`,
-            background: mode === 'backward' ? 'rgba(239,68,68,0.12)' : 'transparent',
-            color: mode === 'backward' ? '#ef4444' : 'var(--text-dim)',
-            fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center',
-          }}>
-            <ArrowLeft size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop Pass
-          </button>
-        </div>
-
-        {/* Canvas */}
-        <div style={{ height: '320px', borderRadius: '8px', overflow: 'hidden', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-          <GradNetCanvas gradMags={gradMags} activations={activations} weights={weights} mode={mode} activeStep={activeStep} />
-          <div style={{ position: 'absolute', top: 8, right: 10, fontSize: '0.78rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-            época {epoch}
-          </div>
-          {/* Play/Pause overlay */}
-          <button onClick={() => training ? stop() : start()} style={{
-            position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-            padding: '0.3rem 1rem', borderRadius: '20px',
-            border: `1px solid ${training ? 'rgba(239,68,68,0.5)' : 'rgba(124,109,250,0.5)'}`,
-            background: training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
-            backdropFilter: 'blur(8px)',
-            color: training ? '#ef4444' : 'var(--accent-2)',
-            fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
-            display: 'flex', alignItems: 'center', gap: '0.35rem', zIndex: 2,
-          }}>
-            {training
-              ? <><Pause size={11} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar</>
-              : <><Play  size={11} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar</>}
-          </button>
-        </div>
-
-        {/* Equation line (like S03) */}
-        <BackpropEquationLine activeStep={activeStep} mode={mode} />
-      </div>
-
-      {/* ── 4 steps as horizontal row below ── */}
-      <div style={{ display: 'flex', gap: '0.6rem', maxWidth: '1000px', width: '100%', flexWrap: 'wrap' }}>
-        {STEPS.map((s, i) => (
-          <div
-            key={s.id}
-            onClick={() => setStepIdx(i + 2)}
-            style={{
-              flex: '1 1 160px',
-              background: activeStep === i ? `${s.color}14` : 'var(--bg-3)',
-              border: `1px solid ${activeStep === i ? s.color : 'var(--border)'}`,
-              borderTop: `3px solid ${s.color}`,
-              borderRadius: '8px', padding: '0.6rem 0.8rem',
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}
-          >
-            <div style={{ fontSize: '0.82rem', color: s.color, fontWeight: 600, marginBottom: '0.2rem' }}>
-              Paso {i + 1}: {s.label}
-            </div>
-            {profesorMode && (
-              <div style={{ fontSize: '0.88rem', fontFamily: 'monospace', color: 'var(--text-h)', marginBottom: '0.2rem' }}>
-                <code>{s.formula}</code>
+        {/* ── Vertical Timeline Sidebar ── */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: '0.5rem',
+          width: '110px', minWidth: '110px', flexShrink: 0,
+        }}>
+          {HISTORY.map((h, i) => (
+            <div key={h.year} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+              <div style={{
+                width: '100%', background: 'var(--bg-3)',
+                border: `1px solid ${h.color}33`, borderLeft: `3px solid ${h.color}`,
+                borderRadius: '6px', padding: '0.35rem 0.5rem',
+              }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: h.color }}>{h.label}</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)', lineHeight: 1.3 }}>{h.desc}</div>
               </div>
-            )}
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{s.desc}</div>
+              {i < HISTORY.length - 1 && <div style={{ color: 'var(--border)', fontSize: '0.7rem' }}>↓</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* ── Main content area ── */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {/* Forward / Backprop toggle + Canvas */}
+          <div style={{
+            background: 'var(--bg-3)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '0.6rem 0.8rem',
+          }}>
+            {/* Sequential Controls */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <button onClick={() => setStepIdx(0)} style={{
+                flex: 1, padding: '0.35rem', borderRadius: '8px',
+                border: `1px solid ${mode === 'forward' ? '#22c55e' : 'var(--border)'}`,
+                background: mode === 'forward' ? 'rgba(34,197,94,0.12)' : 'transparent',
+                color: mode === 'forward' ? '#22c55e' : 'var(--text-dim)',
+                fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'center',
+              }}>
+                <ArrowRight size={12} strokeWidth={2} style={{ flexShrink: 0 }} /> Forward
+              </button>
+              <button onClick={() => setStepIdx(1)} style={{
+                flex: 1, padding: '0.35rem', borderRadius: '8px',
+                border: `1px solid ${mode === 'backward' ? '#ef4444' : 'var(--border)'}`,
+                background: mode === 'backward' ? 'rgba(239,68,68,0.12)' : 'transparent',
+                color: mode === 'backward' ? '#ef4444' : 'var(--text-dim)',
+                fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'center',
+              }}>
+                <ArrowLeft size={12} strokeWidth={2} style={{ flexShrink: 0 }} /> Backprop
+              </button>
+            </div>
+
+            {/* Network Canvas */}
+            <div style={{ height: '260px', borderRadius: '8px', overflow: 'hidden', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+              <GradNetCanvas gradMags={gradMags} activations={activations} weights={weights} mode={mode} activeStep={activeStep} />
+              <div style={{ position: 'absolute', top: 6, right: 8, fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+                época {epoch}
+              </div>
+              <button onClick={() => training ? stop() : start()} style={{
+                position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)',
+                padding: '0.25rem 0.8rem', borderRadius: '20px',
+                border: `1px solid ${training ? 'rgba(239,68,68,0.5)' : 'rgba(124,109,250,0.5)'}`,
+                background: training ? 'rgba(239,68,68,0.15)' : 'rgba(124,109,250,0.15)',
+                backdropFilter: 'blur(8px)',
+                color: training ? '#ef4444' : 'var(--accent-2)',
+                fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', gap: '0.3rem', zIndex: 2,
+              }}>
+                {training
+                  ? <><Pause size={10} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar</>
+                  : <><Play  size={10} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar</>}
+              </button>
+            </div>
+
+            {/* Per-equation animated canvas */}
+            <div style={{ marginTop: '0.5rem' }}>
+              <BackpropEquationLine activeStep={activeStep} mode={mode} />
+            </div>
           </div>
-        ))}
+
+          {/* ── 4 step selector cards ── */}
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {STEPS.map((s, i) => (
+              <div
+                key={s.id}
+                onClick={() => setStepIdx(i + 2)}
+                style={{
+                  flex: '1 1 120px',
+                  background: activeStep === i ? `${s.color}14` : 'var(--bg-3)',
+                  border: `1px solid ${activeStep === i ? s.color : 'var(--border)'}`,
+                  borderTop: `3px solid ${s.color}`,
+                  borderRadius: '6px', padding: '0.4rem 0.6rem',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: s.color, fontWeight: 600, marginBottom: '0.15rem' }}>
+                  Paso {i + 1}: {s.label}
+                </div>
+                {profesorMode && (
+                  <div style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: 'var(--text-h)', marginBottom: '0.15rem' }}>
+                    <code>{s.formula}</code>
+                  </div>
+                )}
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
@@ -406,7 +819,7 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
       </div>
 
       {profesorMode && (
-        <div className="st-card" style={{ maxWidth: '1000px', width: '100%', fontSize: '0.9rem', lineHeight: 1.6 }}>
+        <div className="st-card" style={{ width: '100%', fontSize: '0.85rem', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--accent-2)' }}>Lo que ves:</strong>{' '}
           <span style={{ color: 'var(--text)' }}>
             En modo Backprop, las conexiones se colorean según la magnitud real del gradiente (rojo brillante = mayor responsabilidad de <STTooltip term="error">error</STTooltip>).

@@ -997,7 +997,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
         <STModalBadge symbol="O" content="EPISTEMOLOGICAL_GAP" title="Brecha Epistemológica" />
       </div>
 
-      <STFloatingButton />
+      <STFloatingButton slideId="S07" />
 
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1100px', width: '100%', fontSize: '0.9rem', lineHeight: 1.6 }}>

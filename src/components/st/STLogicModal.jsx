@@ -219,18 +219,30 @@ function evalProp(formula, vals) {
 
 const ATOMS = ['BRAIN_COMP', 'INTERNAL_REPR', 'BACK_BIO', 'GOOD_METRIC', 'CONV_STRONG']
 
-export default function STLogicModal({ isOpen, onClose, context }) {
-  const [tab, setTab] = useState('resumen')
+export default function STLogicModal({ isOpen, onClose, context, slideId }) {
+  // If a slideId is provided, open directly to that slide's supuestos; otherwise open to Resumen
+  const [tab, setTab] = useState(slideId ? 'slides' : 'resumen')
   const [vals, setVals] = useState(
     Object.fromEntries(ATOMS.map(a => [a, true]))
   )
   const [evalResult, setEvalResult] = useState('')
   const [customFormula, setCustomFormula] = useState('BRAIN_COMP → INTERNAL_REPR')
-  const [selectedSlide, setSelectedSlide] = useState('S01')
+  const [selectedSlide, setSelectedSlide] = useState(slideId || 'S01')
 
   const toggle = useCallback((atom) => {
     setVals(v => ({ ...v, [atom]: !v[atom] }))
   }, [])
+
+  // Re-sync when modal opens with a new slideId (e.g. navigating between slides)
+  useEffect(() => {
+    if (!isOpen) return
+    if (slideId) {
+      setTab('slides')
+      setSelectedSlide(slideId)
+    } else {
+      setTab('resumen')
+    }
+  }, [isOpen, slideId])
 
   useEffect(() => {
     if (!isOpen) return

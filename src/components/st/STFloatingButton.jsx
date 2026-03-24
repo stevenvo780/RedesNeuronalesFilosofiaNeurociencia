@@ -12,7 +12,7 @@ const QUOTES = [
   '□ necesario vs ◇ posible',
 ]
 
-export default function STFloatingButton() {
+export default function STFloatingButton({ slideId }) {
   const [open, setOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)]
@@ -79,7 +79,7 @@ export default function STFloatingButton() {
           }}
         />
       </motion.button>
-      <STLogicModal isOpen={open} onClose={() => setOpen(false)} context="Explorador de supuestos formales — ST Hinton 1992" />
+      <STLogicModal isOpen={open} onClose={() => setOpen(false)} context="Explorador de supuestos formales — ST Hinton 1992" slideId={slideId} />
     </>
   )
 }

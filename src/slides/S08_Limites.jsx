@@ -541,7 +541,7 @@ export default function S08_Limites({ profesorMode }) {
         </motion.div>
       </div>
 
-      <STFloatingButton />
+      <STFloatingButton slideId="S08" />
 
       {/* Alternativa: Hebb */}
       <div style={{

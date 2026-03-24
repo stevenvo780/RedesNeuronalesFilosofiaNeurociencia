@@ -430,7 +430,7 @@ export default function S12b_Convergencia({ profesorMode }) {
       )}
 
       {/* ST FloatingButton — consistent with other slides */}
-      <STFloatingButton />
+      <STFloatingButton slideId="S12b" />
     </motion.div>
   )
 }

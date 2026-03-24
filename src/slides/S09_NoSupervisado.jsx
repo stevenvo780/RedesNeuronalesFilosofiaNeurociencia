@@ -448,7 +448,7 @@ export default function S09_NoSupervisado({ profesorMode }) {
         </table>
       </div>
 
-      <STFloatingButton />
+      <STFloatingButton slideId="S09" />
     </div>
   )
 }

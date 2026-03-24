@@ -608,7 +608,7 @@ export default function S11_CodigosDemograficos({ profesorMode }) {
         </div>
       </div>
 
-      <STFloatingButton />
+      <STFloatingButton slideId="S11" />
 
       {profesorMode && (
         <div style={{ width: '100%', maxWidth: '1100px' }}>
