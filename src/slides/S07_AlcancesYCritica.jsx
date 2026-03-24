@@ -167,8 +167,12 @@ function useAnimalNet(hiddenLayersCfg, totalEpochs) {
 
   // Start training on mount
   useEffect(() => {
-    train()
+    const timeoutId = window.setTimeout(() => {
+      train()
+    }, 0)
+
     return () => {
+      window.clearTimeout(timeoutId)
       stopRef.current = true
       disposeModel(modelRef.current)
     }
@@ -470,7 +474,11 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   // Predict when features change or model ready
   useEffect(() => {
     if (!ready) return
-    syncPrediction()
+    const frameId = window.requestAnimationFrame(() => {
+      syncPrediction()
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
   }, [ready, syncPrediction])
 
   // ESC to close fullscreen network
@@ -620,7 +628,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
             {ANIMALS.map((a, i) => (
-              <motion.button
+              <MotionButton
                 key={a.name}
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
@@ -635,7 +643,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                 }}
               >
                 <span>{a.emoji}</span> {a.name}
-              </motion.button>
+              </MotionButton>
             ))}
           </div>
         </div>
@@ -959,11 +967,11 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                     </span>
                   )}
                 </div>
-                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                <MotionButton whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
                   onClick={() => setShowNetFullscreen(false)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', display: 'flex' }}>
                   <Minimize2 size={18} strokeWidth={2} />
-                </motion.button>
+                </MotionButton>
               </div>
 
               {/* Large Network Canvas */}
@@ -972,7 +980,6 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                 layerConfig={hiddenLayers}
                 width={Math.min(1600, Math.round(window.innerWidth * 0.88))}
                 height={Math.min(800, Math.round(window.innerHeight * 0.72))}
-                modelRef={modelRef}
               />
 
               {/* Compact info bar */}
