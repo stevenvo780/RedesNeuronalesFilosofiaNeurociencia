@@ -157,6 +157,12 @@ export default function ConwayLifeBg() {
       stampPattern(LIFE_PATTERNS.lwss, Math.round(cols * 0.82), Math.round(rows * 0.12), { hue: LIFE_PALETTE[2], flipX: true })
       stampPattern(LIFE_PATTERNS.glider, Math.round(cols * 0.45), Math.round(rows * 0.18), { hue: LIFE_PALETTE[3] })
       stampPattern(LIFE_PATTERNS.glider, Math.round(cols * 0.6), Math.round(rows * 0.8), { hue: LIFE_PALETTE[4], flipX: true, flipY: true })
+
+      // Four extra corner colonies keep the field alive from the edges inward.
+      stampPattern(LIFE_PATTERNS.glider, Math.round(cols * 0.08), Math.round(rows * 0.1), { hue: LIFE_PALETTE[5] })
+      stampPattern(LIFE_PATTERNS.glider, Math.round(cols * 0.92), Math.round(rows * 0.1), { hue: LIFE_PALETTE[1], flipX: true })
+      stampPattern(LIFE_PATTERNS.lwss, Math.round(cols * 0.1), Math.round(rows * 0.88), { hue: LIFE_PALETTE[3] })
+      stampPattern(LIFE_PATTERNS.lwss, Math.round(cols * 0.9), Math.round(rows * 0.88), { hue: LIFE_PALETTE[0], flipX: true })
     }
 
     const pulseGarden = () => {
