@@ -6,15 +6,15 @@ import STFloatingButton from '../components/st/STFloatingButton'
 
 const HISTORY = [
   { year: 1974, label: 'Werbos 1974', color: '#6b6b88', desc: 'Descubierto. Ignorado por una década.' },
-  { year: 1982, label: '1982 (×2)',   color: '#eab308', desc: 'Redescubierto independientemente.' },
+  { year: 1982, label: '1982 (×2)', color: '#eab308', desc: 'Redescubierto independientemente.' },
   { year: 1986, label: 'Hinton 1986', color: '#7c6dfa', desc: 'Publicado. El mundo lo escucha.' },
 ]
 
 const STEPS = [
-  { id: 'ea',      label: 'Error de activación',  color: '#ef4444', formula: 'EA_j = y_j - d_j',                  desc: 'Diferencia entre salida real y deseada.' },
-  { id: 'ei',      label: 'Error de entrada',      color: '#eab308', formula: 'EI_j = EA_j \\cdot y_j(1-y_j)',    desc: 'Ponderado por la derivada de la sigmoide.' },
-  { id: 'ew',      label: 'Error del peso',        color: '#7c6dfa', formula: 'EW_{ij} = EI_j \\cdot y_i',        desc: 'Responsabilidad de cada conexión en el error.' },
-  { id: 'ea_prev', label: 'Propagar atrás',        color: '#a78bfa', formula: 'EA_i = \\sum_j EI_j \\cdot w_{ij}', desc: 'El error fluye hacia la capa anterior.' },
+  { id: 'ea', label: 'Error de activación', color: '#ef4444', formula: 'EA_j = y_j - d_j', desc: 'Diferencia entre salida real y deseada.' },
+  { id: 'ei', label: 'Error de entrada', color: '#eab308', formula: 'EI_j = EA_j \\cdot y_j(1-y_j)', desc: 'Ponderado por la derivada de la sigmoide.' },
+  { id: 'ew', label: 'Error del peso', color: '#7c6dfa', formula: 'EW_{ij} = EI_j \\cdot y_i', desc: 'Responsabilidad de cada conexión en el error.' },
+  { id: 'ea_prev', label: 'Propagar atrás', color: '#a78bfa', formula: 'EA_i = \\sum_j EI_j \\cdot w_{ij}', desc: 'El error fluye hacia la capa anterior.' },
 ]
 
 // ── Gradient flow network canvas ──────────────────────────────────────────────
@@ -109,9 +109,9 @@ function GradNetCanvas({ gradMags, activations, weights, mode, activeStep }) {
         particlesRef.current.forEach(p => {
           const l = p.layer
           const fromSize = layers[l]
-          const toSize   = layers[l + 1]
+          const toSize = layers[l + 1]
           const x1 = lx[l + 1]; const y1 = getY(H, toSize, p.toNode)
-          const x2 = lx[l];     const y2 = getY(H, fromSize, p.fromNode)
+          const x2 = lx[l]; const y2 = getY(H, fromSize, p.fromNode)
           const px = x1 + (x2 - x1) * p.t
           const py = y1 + (y2 - y1) * p.t
           const mag = gradMags[l]?.rms ?? 0.1
@@ -171,7 +171,7 @@ function GradNetCanvas({ gradMags, activations, weights, mode, activeStep }) {
 
 function hexRgb(hex) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '124,109,250'
+  return r ? `${parseInt(r[1], 16)},${parseInt(r[2], 16)},${parseInt(r[3], 16)}` : '124,109,250'
 }
 function getY(H, size, i) {
   const spacing = Math.min(60, (H - 60) / Math.max(size - 1, 1))
@@ -185,30 +185,56 @@ function getY(H, size, i) {
 const CYCLE_PERIOD = 2200 // ms for one full pulse cycle
 const REVEAL_DURATION = 900 // ms for initial staggered reveal
 const EQ_MAX_WIDTH = '100%' // max width of equation containers (controls visual size)
-const EQ_BW = 900  // virtual width of equation canvas
-const EQ_BH = 300  // virtual height of equation canvas
+const EQ_BW = 550  // virtual width of equation canvas
+const EQ_BH = 340  // virtual height of equation canvas
+
+function getEquationLayout(width, height, BW, BH) {
+  const safeWidth = Math.max(width || BW, 1)
+  const safeHeight = Math.max(height || BH, 1)
+  const scale = Math.min(safeWidth / BW, safeHeight / BH)
+  const contentWidth = BW * scale
+  const contentHeight = BH * scale
+
+  return {
+    scale,
+    offsetX: (safeWidth - contentWidth) / 2,
+    offsetY: (safeHeight - contentHeight) / 2,
+    contentWidth,
+    contentHeight,
+  }
+}
 
 // ── Radios centralizados para Nodos de Ecuaciones ──
-const R_VAR = 35
-const R_OP = 25
-const R_RES = 45
-const R_WIDE = 35
+const R_VAR = 15
+const R_OP = 10
+const R_RES = 19
+const R_WIDE = 15
 
 const EQ_CONFIGS = [
   // Step 0: EA_j = y_j − d_j
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 105,  y: 120,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: R_VAR,
-        tip: 'Salida real de la neurona j. Es el valor que la red produjo tras el forward pass.' },
-      { x: 300, y: 120,  label: '−',     sub: '',            color: '#ef4444', r: R_OP, isOp: true,
-        tip: 'Resta: se calcula la diferencia entre la salida real y la deseada.' },
-      { x: 105,  y: 180,  label: 'd_j',   sub: 'deseada',     color: '#06b6d4', r: R_VAR,
-        tip: 'Valor deseado (target). Lo que el profesor le dice a la red que debería haber producido.' },
-      { x: 525, y: 120,  label: '=',     sub: '',            color: '#888',    r: R_OP, isOp: true,
-        tip: 'Resultado de la operación.' },
-      { x: 765, y: 120,  label: 'EA_j',  sub: 'error de activación', color: '#ef4444', r: R_RES, isResult: true,
-        tip: 'Error de activación: cuánto se equivocó la neurona j. Es la señal que inicia todo el backprop.' },
+      {
+        x: 64, y: 56, label: 'y_j', sub: 'salida real', color: '#22c55e', r: R_VAR,
+        tip: 'Salida real de la neurona j. Es el valor que la red produjo tras el forward pass.'
+      },
+      {
+        x: 183, y: 56, label: '−', sub: '', color: '#ef4444', r: R_OP, isOp: true,
+        tip: 'Resta: se calcula la diferencia entre la salida real y la deseada.'
+      },
+      {
+        x: 64, y: 84, label: 'd_j', sub: 'deseada', color: '#06b6d4', r: R_VAR,
+        tip: 'Valor deseado (target). Lo que el profesor le dice a la red que debería haber producido.'
+      },
+      {
+        x: 321, y: 56, label: '=', sub: '', color: '#888', r: R_OP, isOp: true,
+        tip: 'Resultado de la operación.'
+      },
+      {
+        x: 468, y: 56, label: 'EA_j', sub: 'error de activación', color: '#ef4444', r: R_RES, isResult: true,
+        tip: 'Error de activación: cuánto se equivocó la neurona j. Es la señal que inicia todo el backprop.'
+      },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
     title: 'Paso 1: Error de activación',
@@ -218,16 +244,26 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 90,  y: 120,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: R_VAR,
-        tip: 'Error de activación del paso anterior. Cuánto se equivocó la neurona.' },
-      { x: 285, y: 120,  label: '×',          sub: '',                 color: '#eab308', r: R_OP, isOp: true,
-        tip: 'Multiplicación: el error se pondera por la derivada de la sigmoide.' },
-      { x: 90,  y: 180,  label: "y_j(1−y_j)", sub: "derivada σ'",     color: '#22c55e', r: R_WIDE, wide: true,
-        tip: "Derivada de la sigmoide evaluada en y_j. Mide la 'pendiente' de la activación: si es plana, el error no pasa." },
-      { x: 525, y: 120,  label: '=',          sub: '',                 color: '#888',    r: R_OP, isOp: true,
-        tip: 'Resultado de la operación.' },
-      { x: 765, y: 120,  label: 'EI_j',       sub: 'error de entrada', color: '#eab308', r: R_RES, isResult: true,
-        tip: 'Error de entrada: cuánto debe cambiar la entrada total de la neurona j para reducir el error.' },
+      {
+        x: 55, y: 56, label: 'EA_j', sub: 'error activación', color: '#ef4444', r: R_VAR,
+        tip: 'Error de activación del paso anterior. Cuánto se equivocó la neurona.'
+      },
+      {
+        x: 174, y: 56, label: '×', sub: '', color: '#eab308', r: R_OP, isOp: true,
+        tip: 'Multiplicación: el error se pondera por la derivada de la sigmoide.'
+      },
+      {
+        x: 55, y: 84, label: "y_j(1−y_j)", sub: "derivada σ'", color: '#22c55e', r: R_WIDE, wide: true,
+        tip: "Derivada de la sigmoide evaluada en y_j. Mide la 'pendiente' de la activación: si es plana, el error no pasa."
+      },
+      {
+        x: 321, y: 56, label: '=', sub: '', color: '#888', r: R_OP, isOp: true,
+        tip: 'Resultado de la operación.'
+      },
+      {
+        x: 468, y: 56, label: 'EI_j', sub: 'error de entrada', color: '#eab308', r: R_RES, isResult: true,
+        tip: 'Error de entrada: cuánto debe cambiar la entrada total de la neurona j para reducir el error.'
+      },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
     title: 'Paso 2: Error de entrada',
@@ -237,16 +273,26 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 105,  y: 120,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: R_VAR,
-        tip: 'Error de entrada de la neurona j. Viene del paso anterior.' },
-      { x: 300, y: 120,  label: '×',     sub: '',                   color: '#7c6dfa', r: R_OP, isOp: true,
-        tip: 'Multiplicación: el error de entrada se multiplica por la activación que llegó por esa conexión.' },
-      { x: 105,  y: 180,  label: 'y_i',   sub: 'activación origen',  color: '#22c55e', r: R_VAR,
-        tip: 'Activación de la neurona i (capa anterior). Si fue alta, esa conexión tuvo más responsabilidad en el error.' },
-      { x: 525, y: 120,  label: '=',     sub: '',                   color: '#888',    r: R_OP, isOp: true,
-        tip: 'Resultado de la operación.' },
-      { x: 765, y: 120,  label: 'EW_ij', sub: 'error del peso',    color: '#7c6dfa', r: R_RES, isResult: true,
-        tip: 'Error del peso w_ij: cuánto y en qué dirección debe cambiar esta conexión específica. Es el gradiente.' },
+      {
+        x: 64, y: 56, label: 'EI_j', sub: 'error entrada', color: '#eab308', r: R_VAR,
+        tip: 'Error de entrada de la neurona j. Viene del paso anterior.'
+      },
+      {
+        x: 183, y: 56, label: '×', sub: '', color: '#7c6dfa', r: R_OP, isOp: true,
+        tip: 'Multiplicación: el error de entrada se multiplica por la activación que llegó por esa conexión.'
+      },
+      {
+        x: 64, y: 84, label: 'y_i', sub: 'activación origen', color: '#22c55e', r: R_VAR,
+        tip: 'Activación de la neurona i (capa anterior). Si fue alta, esa conexión tuvo más responsabilidad en el error.'
+      },
+      {
+        x: 321, y: 56, label: '=', sub: '', color: '#888', r: R_OP, isOp: true,
+        tip: 'Resultado de la operación.'
+      },
+      {
+        x: 468, y: 56, label: 'EW_ij', sub: 'error del peso', color: '#7c6dfa', r: R_RES, isResult: true,
+        tip: 'Error del peso w_ij: cuánto y en qué dirección debe cambiar esta conexión específica. Es el gradiente.'
+      },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
     title: 'Paso 3: Error del peso',
@@ -256,18 +302,30 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 90,  y: 120,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: R_VAR,
-        tip: 'Error de entrada de la neurona j. Puede haber varios j que se suman.' },
-      { x: 90,  y: 180,  label: 'w_ij',   sub: 'peso',          color: '#7c6dfa', r: R_VAR,
-        tip: 'Peso de la conexión entre i y j. Las conexiones más fuertes transmiten más error hacia atrás.' },
-      { x: 285, y: 120,  label: '×',      sub: '',               color: '#a78bfa', r: R_OP, isOp: true,
-        tip: 'Multiplicación: cada error de entrada se pondera por el peso de esa conexión.' },
-      { x: 465, y: 120,  label: 'Σ_j',    sub: 'sumar',          color: '#a78bfa', r: R_VAR, isOp: true,
-        tip: 'Sumatoria sobre todas las neuronas j de la capa siguiente. Se acumula la culpa de todas las conexiones salientes.' },
-      { x: 600, y: 120,  label: '=',      sub: '',               color: '#888',    r: R_OP, isOp: true,
-        tip: 'Resultado de la operación.' },
-      { x: 780, y: 120,  label: 'EA_i',   sub: 'error → anterior', color: '#a78bfa', r: R_RES, isResult: true,
-        tip: 'Error de activación de la neurona i (capa anterior). Este valor vuelve al Paso 1 para esa capa — es la recurrencia del backprop.' },
+      {
+        x: 55, y: 56, label: 'EI_j', sub: 'error entrada', color: '#eab308', r: R_VAR,
+        tip: 'Error de entrada de la neurona j. Puede haber varios j que se suman.'
+      },
+      {
+        x: 55, y: 84, label: 'w_ij', sub: 'peso', color: '#7c6dfa', r: R_VAR,
+        tip: 'Peso de la conexión entre i y j. Las conexiones más fuertes transmiten más error hacia atrás.'
+      },
+      {
+        x: 174, y: 56, label: '×', sub: '', color: '#a78bfa', r: R_OP, isOp: true,
+        tip: 'Multiplicación: cada error de entrada se pondera por el peso de esa conexión.'
+      },
+      {
+        x: 284, y: 56, label: 'Σ_j', sub: 'sumar', color: '#a78bfa', r: R_VAR, isOp: true,
+        tip: 'Sumatoria sobre todas las neuronas j de la capa siguiente. Se acumula la culpa de todas las conexiones salientes.'
+      },
+      {
+        x: 367, y: 56, label: '=', sub: '', color: '#888', r: R_OP, isOp: true,
+        tip: 'Resultado de la operación.'
+      },
+      {
+        x: 477, y: 56, label: 'EA_i', sub: 'error → anterior', color: '#a78bfa', r: R_RES, isResult: true,
+        tip: 'Error de activación de la neurona i (capa anterior). Este valor vuelve al Paso 1 para esa capa — es la recurrencia del backprop.'
+      },
     ],
     edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5]],
     title: 'Paso 4: Propagar atrás',
@@ -294,22 +352,25 @@ function SingleEquationCanvas({ config, isActive }) {
     const wrap = wrapRef.current
     const canvas = canvasRef.current
     if (!wrap || !canvas) return
-    const { BW, nodes } = config
+    const { BW, BH, nodes } = config
 
     const onMove = (e) => {
       const rect = canvas.getBoundingClientRect()
-      const scaleX = BW / rect.width
-      // Convert mouse to BW-space coordinates
-      const mx = (e.clientX - rect.left) * scaleX
-      const my = (e.clientY - rect.top) * scaleX // uniform scale since aspect preserved
+      const { scale, offsetX, offsetY } = getEquationLayout(rect.width, rect.height, BW, BH)
+      const localX = e.clientX - rect.left
+      const localY = e.clientY - rect.top
+      const mx = (localX - offsetX) / scale
+      const my = (localY - offsetY) / scale
 
       let hit = null
-      for (const node of nodes) {
-        const hitR = (node.r || 14) + 8 // generous hit area
-        const dx = mx - node.x, dy = my - node.y
-        if (dx * dx + dy * dy < hitR * hitR) {
-          hit = node
-          break
+      if (mx >= 0 && mx <= BW && my >= 0 && my <= BH) {
+        for (const node of nodes) {
+          const hitR = (node.r || 14) + 8 // generous hit area
+          const dx = mx - node.x, dy = my - node.y
+          if (dx * dx + dy * dy < hitR * hitR) {
+            hit = node
+            break
+          }
         }
       }
 
@@ -339,6 +400,7 @@ function SingleEquationCanvas({ config, isActive }) {
 
   useEffect(() => {
     const canvas = canvasRef.current
+    const wrap = wrapRef.current
     if (!canvas) return
     let raf
     let W = 0, H = 0
@@ -346,24 +408,28 @@ function SingleEquationCanvas({ config, isActive }) {
     const dpr = window.devicePixelRatio || 1
 
     const setSize = () => {
-      const logicalW = canvas.offsetWidth || BW
-      const logicalH = Math.round(logicalW * BH / BW)
+      const logicalW = wrap?.clientWidth || canvas.offsetWidth || BW
+      const logicalH = wrap?.clientHeight || canvas.offsetHeight || BH
       const pixelW = Math.round(logicalW * dpr)
       const pixelH = Math.round(logicalH * dpr)
       if (pixelW !== W || pixelH !== H) {
         W = pixelW; H = pixelH
         canvas.width = W; canvas.height = H
-        canvas.style.height = logicalH + 'px'
       }
     }
     setSize()
-    const ro = new ResizeObserver(setSize); ro.observe(canvas)
+    const ro = new ResizeObserver(setSize)
+    if (wrap) ro.observe(wrap)
 
     function draw(ts) {
       if (!W || !H) { raf = requestAnimationFrame(draw); return }
       const ctx = canvas.getContext('2d')
-      // Scale factor: maps BW virtual coords → physical pixels
-      const s = W / BW
+      const logicalW = W / dpr
+      const logicalH = H / dpr
+      const { scale, offsetX, offsetY } = getEquationLayout(logicalW, logicalH, BW, BH)
+      const s = scale * dpr
+      const ox = offsetX * dpr
+      const oy = offsetY * dpr
       ctx.clearRect(0, 0, W, H)
 
       const elapsed = ts - mountRef.current
@@ -386,8 +452,8 @@ function SingleEquationCanvas({ config, isActive }) {
 
         if (edgeAlpha > 0.01) {
           ctx.beginPath()
-          ctx.moveTo(n1.x * s, n1.y * s)
-          ctx.lineTo(n2.x * s, n2.y * s)
+          ctx.moveTo(ox + n1.x * s, oy + n1.y * s)
+          ctx.lineTo(ox + n2.x * s, oy + n2.y * s)
           ctx.strokeStyle = n2.color || '#555'
           ctx.globalAlpha = edgeAlpha * 0.45
           ctx.lineWidth = 2 * s
@@ -399,8 +465,8 @@ function SingleEquationCanvas({ config, isActive }) {
           const len = Math.sqrt(dx * dx + dy * dy)
           if (len > 0) {
             const ux = dx / len, uy = dy / len
-            const tipX = (n2.x - ux * ((n2.r || 14) + 5)) * s
-            const tipY = (n2.y - uy * ((n2.r || 14) + 5)) * s
+            const tipX = ox + (n2.x - ux * ((n2.r || 14) + 5)) * s
+            const tipY = oy + (n2.y - uy * ((n2.r || 14) + 5)) * s
             const as = 5 * s
             ctx.beginPath()
             ctx.moveTo(tipX + ux * as, tipY + uy * as)
@@ -420,8 +486,8 @@ function SingleEquationCanvas({ config, isActive }) {
             const pulseWindow = 0.4
             if (localT < pulseWindow) {
               const t = localT / pulseWindow
-              const px = (n1.x + (n2.x - n1.x) * t) * s
-              const py = (n1.y + (n2.y - n1.y) * t) * s
+              const px = ox + (n1.x + (n2.x - n1.x) * t) * s
+              const py = oy + (n1.y + (n2.y - n1.y) * t) * s
               const pulseAlpha = Math.sin(t * Math.PI) * 0.9
               const pulseR = (4 + Math.sin(t * Math.PI) * 2) * s
               ctx.beginPath()
@@ -439,8 +505,8 @@ function SingleEquationCanvas({ config, isActive }) {
           // Pulse during initial reveal
           if (isActive && !allRevealed && edgeAlpha > 0.05 && edgeAlpha < 0.95) {
             const t = edgeAlpha
-            const px = (n1.x + (n2.x - n1.x) * t) * s
-            const py = (n1.y + (n2.y - n1.y) * t) * s
+            const px = ox + (n1.x + (n2.x - n1.x) * t) * s
+            const py = oy + (n1.y + (n2.y - n1.y) * t) * s
             ctx.beginPath()
             ctx.arc(px, py, 5 * s, 0, Math.PI * 2)
             ctx.fillStyle = n2.color
@@ -470,7 +536,7 @@ function SingleEquationCanvas({ config, isActive }) {
           const baseGlow = 0.15 + Math.sin(ts * 0.003) * 0.08
           const glow = baseGlow + glowI * 0.35
           ctx.beginPath()
-          ctx.arc(p.x * s, p.y * s, r + 10 * s, 0, Math.PI * 2)
+          ctx.arc(ox + p.x * s, oy + p.y * s, r + 10 * s, 0, Math.PI * 2)
           ctx.fillStyle = node.color
           ctx.globalAlpha = glow
           ctx.fill()
@@ -481,7 +547,7 @@ function SingleEquationCanvas({ config, isActive }) {
         if (isResult && alpha >= 0.95 && isActive && !allRevealed) {
           const gp = 0.3 + Math.sin(ts * 0.004) * 0.2
           ctx.beginPath()
-          ctx.arc(p.x * s, p.y * s, r + 8 * s, 0, Math.PI * 2)
+          ctx.arc(ox + p.x * s, oy + p.y * s, r + 8 * s, 0, Math.PI * 2)
           ctx.fillStyle = node.color
           ctx.globalAlpha = gp * 0.2
           ctx.fill()
@@ -495,7 +561,7 @@ function SingleEquationCanvas({ config, isActive }) {
           if (dist < 0.15) {
             const hit = 1 - dist / 0.15
             ctx.beginPath()
-            ctx.arc(p.x * s, p.y * s, r + 5 * s, 0, Math.PI * 2)
+            ctx.arc(ox + p.x * s, oy + p.y * s, r + 5 * s, 0, Math.PI * 2)
             ctx.fillStyle = node.color
             ctx.globalAlpha = hit * 0.2
             ctx.fill()
@@ -505,7 +571,7 @@ function SingleEquationCanvas({ config, isActive }) {
 
         // Node shape
         if (wide) {
-          const rw = 80 * s, rh = 28 * s, rx = p.x * s - rw / 2, ry = p.y * s - rh / 2, br = 7 * s
+          const rw = 58 * s, rh = 20 * s, rx = ox + p.x * s - rw / 2, ry = oy + p.y * s - rh / 2, br = 7 * s
           ctx.beginPath()
           ctx.moveTo(rx + br, ry)
           ctx.lineTo(rx + rw - br, ry)
@@ -519,42 +585,42 @@ function SingleEquationCanvas({ config, isActive }) {
           ctx.closePath()
         } else {
           ctx.beginPath()
-          ctx.arc(p.x * s, p.y * s, r, 0, Math.PI * 2)
+          ctx.arc(ox + p.x * s, oy + p.y * s, r, 0, Math.PI * 2)
         }
 
         ctx.fillStyle = '#0c0c20'
         ctx.globalAlpha = Math.max(alpha, 0.08)
         ctx.fill()
         ctx.strokeStyle = node.color
-        ctx.lineWidth = (isResult ? 2.5 : isOp ? 1.2 : 1.8) * s
+        ctx.lineWidth = (isResult ? 2 : isOp ? 1 : 1.5) * s
         ctx.globalAlpha = Math.max(alpha, 0.12)
         ctx.stroke()
         ctx.globalAlpha = 1
 
         // Label
-        const fontSize = isResult ? 28 : isOp ? 24 : 22
+        const fontSize = isResult ? 17 : isOp ? 15 : 14
         ctx.fillStyle = node.color
         ctx.globalAlpha = Math.max(alpha, 0.1)
         ctx.font = `${isResult ? 'bold ' : ''}${fontSize * s}px monospace`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(node.label, p.x * s, p.y * s + (isOp ? 0 : 1 * s))
+        ctx.fillText(node.label, ox + p.x * s, oy + p.y * s + (isOp ? 0 : 1 * s))
         ctx.globalAlpha = 1
 
         // Sub label
         if (node.sub && alpha > 0.5) {
           ctx.fillStyle = '#666'
           ctx.globalAlpha = alpha * 0.85
-          ctx.font = `${14 * s}px monospace`
+          ctx.font = `${10 * s}px monospace`
           ctx.textBaseline = 'top'
-          ctx.fillText(node.sub, p.x * s, (p.y + (p.r || 35) + 20) * s)
+          ctx.fillText(node.sub, ox + p.x * s, oy + (p.y + (p.r || 20) + 5) * s)
           ctx.globalAlpha = 1
         }
       })
 
       // ── Cycle indicator ──
       if (isActive && allRevealed) {
-        const cx = (BW - 25) * s, cy = (BH - 18) * s, cr = 8 * s
+        const cx = ox + (BW - 25) * s, cy = oy + (BH - 18) * s, cr = 8 * s
         ctx.beginPath()
         ctx.arc(cx, cy, cr, 0, Math.PI * 2)
         ctx.strokeStyle = '#333'
@@ -585,8 +651,8 @@ function SingleEquationCanvas({ config, isActive }) {
   }, [config, isActive])
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: '100%', cursor: 'crosshair' }}>
-      <canvas ref={canvasRef} style={{ width: '100%', display: 'block' }} />
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', cursor: 'crosshair', borderRadius: '8px' }}>
+      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       {tooltip && (
         <div style={{
           position: 'absolute',
@@ -614,20 +680,34 @@ function SingleEquationCanvas({ config, isActive }) {
 const FORWARD_CONFIG = {
   BW: EQ_BW, BH: EQ_BH,
   nodes: [
-    { x: 90,  y: 120,  label: 'x_i',  sub: 'entradas',       color: '#06b6d4', r: R_VAR,
-      tip: 'Valores de entrada a la neurona. Pueden ser datos crudos o activaciones de la capa anterior.' },
-    { x: 90,  y: 180,  label: 'w_ij',  sub: 'pesos',          color: '#a78bfa', r: R_VAR,
-      tip: 'Pesos sinápticos: la fuerza de cada conexión. Son los parámetros que el backprop va a ajustar.' },
-    { x: 210, y: 120,  label: '×',     sub: '',                color: '#eab308', r: R_OP, isOp: true,
-      tip: 'Cada entrada se multiplica por su peso correspondiente.' },
-    { x: 345, y: 120,  label: 'Σ',     sub: 'suma',           color: '#eab308', r: R_OP + 4, isOp: true,
-      tip: 'Suma ponderada: se suman todos los productos x_i · w_ij más el sesgo b_j.' },
-    { x: 480, y: 120,  label: '+ b_j', sub: 'sesgo',          color: '#94a3b8', r: R_OP + 2, isOp: true,
-      tip: 'Sesgo (bias): un valor que desplaza la activación. Permite que la neurona se active incluso sin entrada.' },
-    { x: 630, y: 120,  label: 'f(·)',  sub: 'activación',     color: '#22c55e', r: R_WIDE + 1, wide: true,
-      tip: 'Función de activación (sigmoide, ReLU, etc.). Introduce no-linealidad: sin ella, la red sería una simple regresión lineal.' },
-    { x: 810, y: 120,  label: 'y_j',   sub: 'salida',         color: '#22c55e', r: R_RES, isResult: true,
-      tip: 'Salida de la neurona j. Este valor se propaga a la siguiente capa o es la predicción final de la red.' },
+    {
+      x: 55, y: 56, label: 'x_i', sub: 'entradas', color: '#06b6d4', r: R_VAR,
+      tip: 'Valores de entrada a la neurona. Pueden ser datos crudos o activaciones de la capa anterior.'
+    },
+    {
+      x: 55, y: 84, label: 'w_ij', sub: 'pesos', color: '#a78bfa', r: R_VAR,
+      tip: 'Pesos sinápticos: la fuerza de cada conexión. Son los parámetros que el backprop va a ajustar.'
+    },
+    {
+      x: 128, y: 56, label: '×', sub: '', color: '#eab308', r: R_OP, isOp: true,
+      tip: 'Cada entrada se multiplica por su peso correspondiente.'
+    },
+    {
+      x: 211, y: 56, label: 'Σ', sub: 'suma', color: '#eab308', r: R_OP + 4, isOp: true,
+      tip: 'Suma ponderada: se suman todos los productos x_i · w_ij más el sesgo b_j.'
+    },
+    {
+      x: 293, y: 56, label: '+ b_j', sub: 'sesgo', color: '#94a3b8', r: R_OP + 2, isOp: true,
+      tip: 'Sesgo (bias): un valor que desplaza la activación. Permite que la neurona se active incluso sin entrada.'
+    },
+    {
+      x: 385, y: 56, label: 'f(·)', sub: 'activación', color: '#22c55e', r: R_WIDE + 1, wide: true,
+      tip: 'Función de activación (sigmoide, ReLU, etc.). Introduce no-linealidad: sin ella, la red sería una simple regresión lineal.'
+    },
+    {
+      x: 495, y: 56, label: 'y_j', sub: 'salida', color: '#22c55e', r: R_RES, isResult: true,
+      tip: 'Salida de la neurona j. Este valor se propaga a la siguiente capa o es la predicción final de la red.'
+    },
   ],
   edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]],
   title: 'Forward Pass',
@@ -637,7 +717,7 @@ const FORWARD_CONFIG = {
 function BackpropEquationLine({ activeStep, mode }) {
   if (mode === 'forward') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%', flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <span style={{ fontSize: '0.78rem', color: '#22c55e', fontWeight: 700 }}>
             {FORWARD_CONFIG.title}
@@ -647,7 +727,7 @@ function BackpropEquationLine({ activeStep, mode }) {
         <div style={{
           borderRadius: '8px', overflow: 'hidden',
           background: '#0a0a1e', border: '1px solid #22c55e44',
-          maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
+          width: '100%', flex: 1, minHeight: 0,
         }}>
           <SingleEquationCanvas config={FORWARD_CONFIG} isActive={true} key="forward" />
         </div>
@@ -658,7 +738,7 @@ function BackpropEquationLine({ activeStep, mode }) {
   if (activeStep === null) {
     return (
       <div style={{
-        height: '350px', maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
+        height: '100%', maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
         borderRadius: '8px', overflow: 'hidden',
         background: '#0a0a1e', border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -673,7 +753,7 @@ function BackpropEquationLine({ activeStep, mode }) {
   if (!eq) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%', flex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         <span style={{ fontSize: '0.78rem', color: STEPS[activeStep]?.color || '#888', fontWeight: 700 }}>
           {eq.title}
@@ -683,7 +763,7 @@ function BackpropEquationLine({ activeStep, mode }) {
       <div style={{
         borderRadius: '8px', overflow: 'hidden',
         background: '#0a0a1e', border: `1px solid ${STEPS[activeStep]?.color || 'var(--border)'}44`,
-        maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
+        width: '100%', flex: 1, minHeight: 0,
       }}>
         <SingleEquationCanvas config={eq} isActive={true} key={activeStep} />
       </div>
@@ -694,7 +774,7 @@ function BackpropEquationLine({ activeStep, mode }) {
 // ── Main slide ────────────────────────────────────────────────────────────────
 export default function S06_Retropropagacion({ profesorMode, ref }) {
   const { gradMags, activations, weights, epoch, training, start, stop } = useNeuralNet({ hiddenSizes: [8, 8] })
-  
+
   // Seq state: 0 = Forward, 1 = Backprop Inicio, 2 = Paso 1, 3 = Paso 2, 4 = Paso 3, 5 = Paso 4
   const [seqIndex, setSeqIndex] = useState(0)
   const seqRef = useRef(0)
@@ -797,7 +877,7 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
             </div>
 
             {/* Network Canvas */}
-            <div style={{ padding: 1, height: '420px', borderRadius: '8px', overflow: 'hidden', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+            <div style={{ padding: 1, height: '38vh', minHeight: '180px', borderRadius: '8px', overflow: 'hidden', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
               <GradNetCanvas gradMags={gradMags} activations={activations} weights={weights} mode={mode} activeStep={activeStep} />
               <div style={{ position: 'absolute', top: 6, right: 8, fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
                 época {epoch}
@@ -814,12 +894,12 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
               }}>
                 {training
                   ? <><Pause size={10} strokeWidth={2} style={{ flexShrink: 0 }} /> Pausar</>
-                  : <><Play  size={10} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar</>}
+                  : <><Play size={10} strokeWidth={2} style={{ flexShrink: 0 }} /> Entrenar</>}
               </button>
             </div>
 
             {/* Per-equation animated canvas */}
-            <div style={{ marginTop: '0.5rem' }}>
+            <div style={{ height: '32vh', marginTop: '0.3rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <BackpropEquationLine activeStep={activeStep} mode={mode} />
             </div>
           </div>
