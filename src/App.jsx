@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Radio, BotMessageSquare, HelpCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Radio, BotMessageSquare, HelpCircle, Menu, X } from 'lucide-react'
 import AIPanel from './components/AIPanel'
 import MobileLayout from './components/MobileLayout'
 import S00_Intro from './slides/S00_Intro'
@@ -46,7 +46,7 @@ export default function App() {
   const [profesorMode, setProfesorMode] = useState(false)
   const [aiVisible, setAiVisible] = useState(false)
   const [qaOpen, setQaOpen] = useState(false)
-  const [navVisible, setNavVisible] = useState(true)
+  const [navVisible, setNavVisible] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
 
   // Ref for slide sub-step navigation (advanceStep / retreatStep)
@@ -74,6 +74,14 @@ export default function App() {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       if (e.key === 'Escape' && qaOpen) {
         setQaOpen(false)
+        return
+      }
+      if (e.key === 'Escape' && navVisible) {
+        setNavVisible(false)
+        return
+      }
+      if (e.key === 'Escape' && aiVisible) {
+        setAiVisible(false)
         return
       }
 
@@ -127,7 +135,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [current, goTo, qaOpen])
+  }, [aiVisible, current, goTo, navVisible, qaOpen])
 
   // ── Media Session API: watch / headphones / lock-screen controls ──
   // Start silent audio on first user interaction (auto-play policy)
@@ -204,140 +212,41 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100svh', overflow: 'hidden', background: 'var(--bg)' }}>
-      {/* Sidebar nav */}
-      {navVisible && (
-        <nav style={{
-          width: 'clamp(240px, 18vw, 320px)',
-          flexShrink: 0,
-          background: 'rgba(17, 17, 24, 0.65)',
-          backdropFilter: 'blur(12px)',
-          borderRight: '1px solid var(--border)',
+    <div style={{ position: 'relative', height: '100svh', overflow: 'hidden', background: 'var(--bg)' }}>
+      <button
+        onClick={() => setNavVisible(v => !v)}
+        aria-label={navVisible ? 'Cerrar índice de slides' : 'Abrir índice de slides'}
+        title={navVisible ? 'Cerrar índice (N / Esc)' : 'Abrir índice (N)'}
+        style={{
+          position: 'absolute',
+          top: '1rem',
+          left: '1rem',
+          zIndex: 130,
+          border: `1px solid ${navVisible ? 'rgba(167,139,250,0.42)' : 'rgba(124,109,250,0.28)'}`,
+          background: navVisible ? 'rgba(124,109,250,0.22)' : 'rgba(10,10,15,0.76)',
+          color: navVisible ? 'var(--text-h)' : 'var(--accent-2)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: navVisible ? '0 10px 30px rgba(124,109,250,0.22)' : '0 10px 24px rgba(0,0,0,0.28)',
+          borderRadius: '999px',
+          padding: '0.55rem 0.9rem',
           display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          zIndex: 50,
-        }}>
-          {/* Header */}
-          <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-h)', lineHeight: 1.3 }}>
-              Hinton 1992
-            </div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>
-              Redes Neuronales
-            </div>
-          </div>
-
-          {/* Slide list */}
-          <div className="scroll-y" style={{ flex: 1 }}>
-            {SLIDES.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => goTo(i)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.8rem',
-                  padding: '0.8rem 1.5rem',
-                  background: current === i ? 'rgba(124,109,250,0.1)' : 'transparent',
-                  border: 'none',
-                  borderLeft: `4px solid ${current === i ? 'var(--accent)' : 'transparent'}`,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <span style={{
-                  fontSize: '0.9rem',
-                  fontFamily: 'monospace',
-                  color: current === i ? 'var(--accent-2)' : 'var(--text-dim)',
-                  width: '24px',
-                  flexShrink: 0,
-                }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span style={{
-                  fontSize: '1rem',
-                  color: current === i ? 'var(--text-h)' : 'var(--text-dim)',
-                  lineHeight: 1.3,
-                  flex: 1,
-                  fontWeight: current === i ? 600 : 400,
-                }}>
-                  {s.label}
-                </span>
-                {s.time && (
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', flexShrink: 0 }}>
-                    {s.time}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Footer controls */}
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            <button
-              onClick={() => setProfesorMode(m => !m)}
-              style={{
-                padding: '0.6rem 0.8rem',
-                borderRadius: '6px',
-                border: `1px solid ${profesorMode ? 'var(--accent)' : 'var(--border)'}`,
-                background: profesorMode ? 'rgba(124,109,250,0.2)' : 'none',
-                color: profesorMode ? 'var(--accent-2)' : 'var(--text-dim)',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: '0.45rem',
-              }}
-            >
-              <Radio size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-              {profesorMode ? 'Modo profesor' : 'Modo público'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(P)</span>
-            </button>
-            <button
-              onClick={() => setAiVisible(v => !v)}
-              style={{
-                padding: '0.6rem 0.8rem',
-                borderRadius: '6px',
-                border: `1px solid ${aiVisible ? 'var(--cyan)' : 'var(--border)'}`,
-                background: aiVisible ? 'rgba(6,182,212,0.1)' : 'none',
-                color: aiVisible ? 'var(--cyan)' : 'var(--text-dim)',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: '0.45rem',
-              }}
-            >
-              <BotMessageSquare size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-              {aiVisible ? 'IA activa' : 'Panel IA'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(A)</span>
-            </button>
-            <button
-              onClick={() => setQaOpen(true)}
-              style={{
-                padding: '0.6rem 0.8rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'none',
-                color: 'var(--text-dim)',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: '0.45rem',
-              }}
-            >
-              <HelpCircle size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-              Q&A <span style={{ opacity: 0.5, fontWeight: 400 }}>(Q)</span>
-            </button>
-          </div>
-        </nav>
-      )}
+          alignItems: 'center',
+          gap: '0.5rem',
+          cursor: 'pointer',
+          fontSize: '0.82rem',
+          fontWeight: 700,
+          letterSpacing: '0.01em',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {navVisible ? <X size={16} strokeWidth={2.1} /> : <Menu size={16} strokeWidth={2.1} />}
+        {navVisible ? 'Cerrar índice' : 'Índice'}
+      </button>
 
       {/* Main content */}
       <main style={{
-        flex: 1,
+        width: '100%',
+        height: '100%',
         overflow: 'hidden',
         position: 'relative',
         marginRight: aiVisible ? '340px' : 0,
@@ -436,19 +345,199 @@ export default function App() {
         {!navVisible && (
           <div style={{
             position: 'absolute',
-            top: '0.5rem',
-            left: '0.5rem',
+            top: '4.35rem',
+            left: '1rem',
             fontSize: '0.65rem',
             color: 'var(--text-dim)',
             fontFamily: 'monospace',
             background: 'rgba(10,10,15,0.8)',
-            padding: '2px 6px',
-            borderRadius: '4px',
+            padding: '0.3rem 0.45rem',
+            borderRadius: '6px',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
-            N=nav · P=profesor · A=IA · Q=Q&A · ←→=slide
+            N / ☰ = índice · P = profesor · A = IA · Q = Q&A
           </div>
         )}
       </main>
+
+      <AnimatePresence>
+        {navVisible && (
+          <>
+            <MotionDiv
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setNavVisible(false)}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 110,
+                background: 'linear-gradient(90deg, rgba(6,6,10,0.46) 0%, rgba(6,6,10,0.1) 36%, rgba(6,6,10,0) 62%)',
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+
+            <MotionDiv
+              initial={{ x: '-110%', opacity: 0.7 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-110%', opacity: 0.7 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                left: '1rem',
+                bottom: '1rem',
+                width: 'clamp(260px, 22vw, 320px)',
+                maxWidth: 'calc(100vw - 2rem)',
+                background: 'rgba(17, 17, 24, 0.78)',
+                backdropFilter: 'blur(18px)',
+                border: '1px solid rgba(124,109,250,0.2)',
+                borderRadius: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                zIndex: 120,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.42)',
+              }}
+            >
+              {/* Header */}
+              <div style={{ padding: '1.15rem 1.25rem 1rem', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-h)', lineHeight: 1.3 }}>
+                      Hinton 1992
+                    </div>
+                    <div style={{ fontSize: '0.88rem', color: 'var(--text-dim)' }}>
+                      Índice flotante · no empuja las slides
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '0.68rem',
+                    color: 'var(--accent-2)',
+                    border: '1px solid rgba(124,109,250,0.22)',
+                    background: 'rgba(124,109,250,0.12)',
+                    borderRadius: '999px',
+                    padding: '0.2rem 0.5rem',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    N / Esc
+                  </div>
+                </div>
+              </div>
+
+              {/* Slide list */}
+              <div className="scroll-y" style={{ flex: 1, padding: '0.35rem 0' }}>
+                {SLIDES.map((s, i) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      goTo(i)
+                      setNavVisible(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.8rem',
+                      padding: '0.78rem 1.25rem',
+                      background: current === i ? 'rgba(124,109,250,0.12)' : 'transparent',
+                      border: 'none',
+                      borderLeft: `4px solid ${current === i ? 'var(--accent)' : 'transparent'}`,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '0.9rem',
+                      fontFamily: 'monospace',
+                      color: current === i ? 'var(--accent-2)' : 'var(--text-dim)',
+                      width: '24px',
+                      flexShrink: 0,
+                    }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span style={{
+                      fontSize: '0.98rem',
+                      color: current === i ? 'var(--text-h)' : 'var(--text-dim)',
+                      lineHeight: 1.3,
+                      flex: 1,
+                      fontWeight: current === i ? 600 : 400,
+                    }}>
+                      {s.label}
+                    </span>
+                    {s.time && (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', flexShrink: 0 }}>
+                        {s.time}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Footer controls */}
+              <div style={{ padding: '1rem 1.25rem 1.15rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <button
+                  onClick={() => setProfesorMode(m => !m)}
+                  style={{
+                    padding: '0.65rem 0.8rem',
+                    borderRadius: '10px',
+                    border: `1px solid ${profesorMode ? 'var(--accent)' : 'var(--border)'}`,
+                    background: profesorMode ? 'rgba(124,109,250,0.2)' : 'none',
+                    color: profesorMode ? 'var(--accent-2)' : 'var(--text-dim)',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '0.45rem',
+                  }}
+                >
+                  <Radio size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                  {profesorMode ? 'Modo profesor' : 'Modo público'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(P)</span>
+                </button>
+                <button
+                  onClick={() => setAiVisible(v => !v)}
+                  style={{
+                    padding: '0.65rem 0.8rem',
+                    borderRadius: '10px',
+                    border: `1px solid ${aiVisible ? 'var(--cyan)' : 'var(--border)'}`,
+                    background: aiVisible ? 'rgba(6,182,212,0.1)' : 'none',
+                    color: aiVisible ? 'var(--cyan)' : 'var(--text-dim)',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '0.45rem',
+                  }}
+                >
+                  <BotMessageSquare size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                  {aiVisible ? 'IA activa' : 'Panel IA'} <span style={{ opacity: 0.5, fontWeight: 400 }}>(A)</span>
+                </button>
+                <button
+                  onClick={() => setQaOpen(true)}
+                  style={{
+                    padding: '0.65rem 0.8rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    background: 'none',
+                    color: 'var(--text-dim)',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '0.45rem',
+                  }}
+                >
+                  <HelpCircle size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                  Q&A <span style={{ opacity: 0.5, fontWeight: 400 }}>(Q)</span>
+                </button>
+              </div>
+            </MotionDiv>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* AI Panel */}
       <AIPanel visible={aiVisible} onClose={() => setAiVisible(false)} currentSlide={SLIDES[current]} />
