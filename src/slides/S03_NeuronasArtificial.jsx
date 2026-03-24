@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
 import STTooltip from '../components/st/STTooltip'
-import STModalBadge from '../components/st/STModalBadge'
+import STFloatingButton from '../components/st/STFloatingButton'
 
 const INPUTS      = [0.8, 0.3, 0.9, 0.1, 0.6]
 const INIT_WEIGHTS = [0.5, -0.3, 0.7, 0.2, -0.5]
@@ -541,9 +541,7 @@ export default function S03_NeuronasArtificial({ profesorMode, ref }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-        <STModalBadge symbol="T" content="IDEALIZATION_TRADE" title="Trade-off Epistémico" />
-      </div>
+      <STFloatingButton slideId="S03" />
 
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '880px', width: '100%', fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>

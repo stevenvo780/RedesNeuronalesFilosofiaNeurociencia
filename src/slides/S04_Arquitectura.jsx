@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Play } from 'lucide-react'
 import { useNeuralNet } from '../hooks/useNeuralNet'
 import STTooltip from '../components/st/STTooltip'
-import STModalBadge from '../components/st/STModalBadge'
+import STFloatingButton from '../components/st/STFloatingButton'
 
 // ── Subtle neural background ───────────────────────────────────────────────────
 function NeuralBg() {
@@ -402,10 +402,7 @@ export default function S04_Arquitectura({ profesorMode }) {
         </p>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <STModalBadge symbol="O" content="LAYER_ONTOLOGY" title="Ontología Jerárquica" />
-        <STModalBadge symbol="→" content="FWD_PASS" title="Procesamiento Bottom-Up" />
-      </div>
+      <STFloatingButton slideId="S04" />
 
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1000px', width: '100%', fontSize: '0.95rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>

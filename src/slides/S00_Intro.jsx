@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, useState } from 'react'
+import { useRef, useMemo, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { ExternalLink, QrCode, X } from 'lucide-react'
@@ -343,8 +343,16 @@ function NeuralScene() {
 }
 
 // ── Slide ────────────────────────────────────────────────────────────────────
-export default function S00_Intro() {
+const S00_Intro = forwardRef(function S00_Intro(_props, ref) {
   const [qrOpen, setQrOpen] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    advanceStep() {
+      if (!qrOpen) { setQrOpen(true); return true }
+      setQrOpen(false); return false
+    },
+    retreatStep() { return false },
+  }))
 
   useEffect(() => {
     if (!qrOpen) return
@@ -614,4 +622,6 @@ export default function S00_Intro() {
       </div>
     </div>
   )
-}
+})
+
+export default S00_Intro

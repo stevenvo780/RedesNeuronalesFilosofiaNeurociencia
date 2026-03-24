@@ -4,7 +4,7 @@ import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
 import STTooltip from '../components/st/STTooltip'
-import STModalBadge from '../components/st/STModalBadge'
+import STFloatingButton from '../components/st/STFloatingButton'
 
 const PHASES = [
   { id: 'presentar', label: '1. PRESENTAR',   color: '#22c55e', desc: 'Un punto (x,y) del espacio espiral entra a la red. La capa de entrada se activa.' },
@@ -341,10 +341,7 @@ export default function S05_Entrenamiento({ profesorMode }) {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <STModalBadge symbol="=" content="MODEL_EQ" title="Identidad Matemática" />
-        <STModalBadge symbol="C" content="CAUSAL_AGENCY" title="Agencia Causal por Error" />
-      </div>
+      <STFloatingButton slideId="S05" />
 
       {profesorMode && (
         <div className="st-card" style={{ maxWidth: '1200px', width: '100%', fontSize: '0.95rem', color: 'var(--text-dim)', lineHeight: 1.6 }}>
