@@ -177,7 +177,7 @@ function hexRgb(hex) {
   return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '124,109,250'
 }
 function getY(H, size, i) {
-  const spacing = Math.min(90, (H - 30) / Math.max(size - 1, 1))
+  const spacing = Math.min(60, (H - 60) / Math.max(size - 1, 1))
   return H / 2 - ((size - 1) * spacing) / 2 + i * spacing
 }
 
@@ -187,11 +187,14 @@ function getY(H, size, i) {
 
 const CYCLE_PERIOD = 2200 // ms for one full pulse cycle
 const REVEAL_DURATION = 900 // ms for initial staggered reveal
+const EQ_MAX_WIDTH = '850px' // max width of equation containers (controls visual size)
+const EQ_BW = 600  // virtual width of equation canvas
+const EQ_BH = 120  // virtual height of equation canvas
 
 const EQ_CONFIGS = [
   // Step 0: EA_j = y_j − d_j
   {
-    BW: 600, BH: 120,
+    BW: EQ_BW, BH: EQ_BH,
     nodes: [
       { x: 70,  y: 30,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: 14,
         tip: 'Salida real de la neurona j. Es el valor que la red produjo tras el forward pass.' },
@@ -210,7 +213,7 @@ const EQ_CONFIGS = [
   },
   // Step 1: EI_j = EA_j · y_j(1−y_j)
   {
-    BW: 600, BH: 120,
+    BW: EQ_BW, BH: EQ_BH,
     nodes: [
       { x: 60,  y: 30,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: 14,
         tip: 'Error de activación del paso anterior. Cuánto se equivocó la neurona.' },
@@ -229,7 +232,7 @@ const EQ_CONFIGS = [
   },
   // Step 2: EW_ij = EI_j · y_i
   {
-    BW: 600, BH: 120,
+    BW: EQ_BW, BH: EQ_BH,
     nodes: [
       { x: 70,  y: 30,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: 14,
         tip: 'Error de entrada de la neurona j. Viene del paso anterior.' },
@@ -248,7 +251,7 @@ const EQ_CONFIGS = [
   },
   // Step 3: EA_i = Σ_j EI_j · w_ij
   {
-    BW: 600, BH: 120,
+    BW: EQ_BW, BH: EQ_BH,
     nodes: [
       { x: 60,  y: 30,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: 14,
         tip: 'Error de entrada de la neurona j. Puede haber varios j que se suman.' },
@@ -601,7 +604,7 @@ function SingleEquationCanvas({ config, isActive }) {
 
 // Forward pass equation config — shown on initial entry
 const FORWARD_CONFIG = {
-  BW: 600, BH: 120,
+  BW: EQ_BW, BH: EQ_BH,
   nodes: [
     { x: 40,  y: 30,  label: 'x_i',  sub: 'entradas',       color: '#06b6d4', r: 14,
       tip: 'Valores de entrada a la neurona. Pueden ser datos crudos o activaciones de la capa anterior.' },
@@ -636,7 +639,7 @@ function BackpropEquationLine({ activeStep, mode }) {
         <div style={{
           borderRadius: '8px', overflow: 'hidden',
           background: '#0a0a1e', border: '1px solid #22c55e44',
-          maxWidth: '850px', margin: '0 auto',
+          maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
         }}>
           <SingleEquationCanvas config={FORWARD_CONFIG} isActive={true} key="forward" />
         </div>
@@ -647,7 +650,7 @@ function BackpropEquationLine({ activeStep, mode }) {
   if (activeStep === null) {
     return (
       <div style={{
-        height: '160px', maxWidth: '850px', margin: '0 auto',
+        height: '160px', maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
         borderRadius: '8px', overflow: 'hidden',
         background: '#0a0a1e', border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -672,7 +675,7 @@ function BackpropEquationLine({ activeStep, mode }) {
       <div style={{
         borderRadius: '8px', overflow: 'hidden',
         background: '#0a0a1e', border: `1px solid ${STEPS[activeStep]?.color || 'var(--border)'}44`,
-        maxWidth: '850px', margin: '0 auto',
+        maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
       }}>
         <SingleEquationCanvas config={eq} isActive={true} key={activeStep} />
       </div>
