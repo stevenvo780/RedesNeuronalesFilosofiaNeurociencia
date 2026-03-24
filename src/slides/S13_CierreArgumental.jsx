@@ -3,6 +3,8 @@ import STModalBadge from '../components/st/STModalBadge'
 import { motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 
+void motion
+
 function NeuralBg() {
   const ref = useRef(null)
   useEffect(() => {

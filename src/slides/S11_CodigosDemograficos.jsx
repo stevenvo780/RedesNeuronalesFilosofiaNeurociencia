@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Pause, Play } from 'lucide-react'
 
+void motion
+
 const N_UNITS = 20
 
 // Deterministic star field (stable between renders)

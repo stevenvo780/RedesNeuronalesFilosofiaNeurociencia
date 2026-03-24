@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import STDeriveCard from '../components/st/STDeriveCard'
 import { ST_ONTOLOGIA } from '../data/st_results'
 
+void motion
+
 const PARADIGMS = [
   { label: 'Supervisado + Retroprop.', instructor: 'Sí',               repr: 'Distribuida',            uso: 'Clasificación, visión, voz',
     signal: 'Error explícito (δ)',       bio: 'Debatido — sin evidencia directa de backprop biológico',  limit: 'Requiere etiquetas masivas',    ref: 'Rumelhart 1986', color: '#7c6dfa' },

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import STModalBadge from '../components/st/STModalBadge'
 
+void motion
+
 // ── Pre-computed deterministic background data ─────────────────────────────────
 const N_BG = 80
 

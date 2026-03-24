@@ -20,46 +20,58 @@ export function generateSpiral(n = 100, noise = 0.12) {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nPoints = 100 } = {}) {
-  const modelRef   = useRef(null)
-  const dataRef    = useRef(null)
-  const xsRef      = useRef(null)
-  const ysRef      = useRef(null)
-  const runningRef = useRef(false)
+  const modelRef      = useRef(null)
+  const dataRef       = useRef(null)
+  const xsRef         = useRef(null)
+  const ysRef         = useRef(null)
+  const runningRef    = useRef(false)
   const isFittingRef = useRef(false)
-  const speedRef   = useRef(60)
+  const speedRef      = useRef(60)
+  const gridResRef    = useRef(gridRes)
+  const initConfigRef = useRef({ hiddenSizes, lr, gridRes, nPoints })
 
-  const [epoch,       setEpoch]       = useState(0)
-  const [loss,        setLoss]        = useState(1.0)
-  const [accuracy,    setAccuracy]    = useState(0.5)
-  const [weights,     setWeights]     = useState([])  // [{matrix, shape}]
-  const [gridPreds,   setGridPreds]   = useState([])  // flat, gridRes² values ∈ [0,1]
+  const [epoch, setEpoch] = useState(0)
+  const [loss, setLoss] = useState(1.0)
+  const [accuracy, setAccuracy] = useState(0.5)
+  const [lossHistory, setLossHistory] = useState([1.0])
+  const [accuracyHistory, setAccuracyHistory] = useState([0.5])
+  const [weights, setWeights] = useState([])  // [{matrix, shape}]
+  const [gridPreds, setGridPreds] = useState([])  // flat, gridRes² values ∈ [0,1]
   const [activations, setActivations] = useState([])  // [inputVec, l1Acts, ..., outputActs]
-  const [gradMags,    setGradMags]    = useState([])  // [{flat, rms, shape}]
-  const [training,    setTraining]    = useState(false)
-  const [speed,       setSpeed]       = useState(60)
+  const [gradMags, setGradMags] = useState([])  // [{flat, rms, shape}]
+  const [training, setTraining] = useState(false)
+  const [speed, setSpeed] = useState(60)
+
+  useEffect(() => {
+    gridResRef.current = gridRes
+  }, [gridRes])
 
   // ── Internal helpers ─────────────────────────────────────────────────────────
-  function snapWeights(model) {
+  const snapWeights = useCallback((model) => {
     const ws = []
     model.layers.forEach(l => {
       const wts = l.getWeights()
       if (wts.length) ws.push({ matrix: wts[0].arraySync(), shape: wts[0].shape })
     })
     setWeights(ws)
-  }
+  }, [])
 
-  function computeGrid(model) {
+  const computeGrid = useCallback((model) => {
     tf.tidy(() => {
+      const resolution = gridResRef.current
       const pts = []
-      for (let row = 0; row < gridRes; row++)
-        for (let col = 0; col < gridRes; col++)
-          pts.push([(col / (gridRes - 1)) * 2 - 1, (row / (gridRes - 1)) * 2 - 1])
+      for (let row = 0; row < resolution; row++) {
+        for (let col = 0; col < resolution; col++) {
+          const span = Math.max(resolution - 1, 1)
+          pts.push([(col / span) * 2 - 1, (row / span) * 2 - 1])
+        }
+      }
       const preds = model.predict(tf.tensor2d(pts))
       setGridPreds(Array.from(preds.dataSync()))
     })
-  }
+  }, [])
 
-  function computeActivations(model, sample) {
+  const computeActivations = useCallback((model, sample) => {
     tf.tidy(() => {
       let x = tf.tensor2d([sample])
       const acts = [sample]
@@ -69,9 +81,9 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
       }
       setActivations(acts)
     })
-  }
+  }, [])
 
-  function computeGrads(model) {
+  const computeGrads = useCallback((model) => {
     const xs = xsRef.current
     const ys = ysRef.current
     if (!xs || !ys) return
@@ -89,25 +101,30 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
         })
         setGradMags(result)
       })
-    } catch (_) { /* gradient computation may fail before model is ready */ }
-  }
+    } catch (error) {
+      void error
+    }
+  }, [])
 
   // ── Init ──────────────────────────────────────────────────────────────────────
   useEffect(() => {
+    let cancelled = false
     tf.ready().then(() => {
-      const data = generateSpiral(nPoints)
+      if (cancelled) return
+      const { hiddenSizes: sizes, lr: learningRate, nPoints: totalPoints } = initConfigRef.current
+      const data = generateSpiral(totalPoints)
       dataRef.current = data
-      xsRef.current   = tf.tensor2d(data.X)
-      ysRef.current   = tf.tensor2d(data.y, [data.y.length, 1])
+      xsRef.current = tf.tensor2d(data.X)
+      ysRef.current = tf.tensor2d(data.y, [data.y.length, 1])
 
       const model = tf.sequential()
-      model.add(tf.layers.dense({ units: hiddenSizes[0], activation: 'relu', inputShape: [2] }))
-      hiddenSizes.slice(1).forEach(u =>
+      model.add(tf.layers.dense({ units: sizes[0], activation: 'relu', inputShape: [2] }))
+      sizes.slice(1).forEach(u =>
         model.add(tf.layers.dense({ units: u, activation: 'relu' }))
       )
       model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }))
       model.compile({
-        optimizer: tf.train.adam(lr),
+        optimizer: tf.train.adam(learningRate),
         loss: 'binaryCrossentropy',
         metrics: ['accuracy'],
       })
@@ -119,12 +136,13 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
     })
 
     return () => {
+      cancelled = true
       runningRef.current = false
-      try { modelRef.current?.dispose() } catch (_) {}
-      try { xsRef.current?.dispose() } catch (_) {}
-      try { ysRef.current?.dispose() } catch (_) {}
+      try { modelRef.current?.dispose() } catch (error) { void error }
+      try { xsRef.current?.dispose() } catch (error) { void error }
+      try { ysRef.current?.dispose() } catch (error) { void error }
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [computeActivations, computeGrid, snapWeights])
 
   // ── Train step ────────────────────────────────────────────────────────────────
   const doStep = useCallback(async () => {
@@ -141,19 +159,21 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
 
       setLoss(l)
       setAccuracy(a)
+      setLossHistory(h => [...h.slice(-79), l])
+      setAccuracyHistory(h => [...h.slice(-79), a])
       setEpoch(e => {
         const ne = e + 1
         if (ne % 5  === 0) computeGrid(model)
         if (ne % 3  === 0) snapWeights(model)
         if (ne % 10 === 0) computeGrads(model)
         if (ne % 5  === 0 && dataRef.current)
-          computeActivations(model, dataRef.current.X[Math.floor(Math.random() * 10)])
+          computeActivations(model, dataRef.current.X[Math.floor(Math.random() * dataRef.current.X.length)])
         return ne
       })
     } finally {
       isFittingRef.current = false
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [computeActivations, computeGrads, computeGrid, snapWeights])
 
   const start = useCallback(async () => {
     if (runningRef.current) return
@@ -189,17 +209,21 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
         newW.forEach(w => w.dispose())
       }
     })
-    setEpoch(0); setLoss(1.0); setAccuracy(0.5)
+    setEpoch(0)
+    setLoss(1.0)
+    setAccuracy(0.5)
+    setLossHistory([1.0])
+    setAccuracyHistory([0.5])
     snapWeights(model)
     computeGrid(model)
     setGradMags([])
     if (dataRef.current) computeActivations(model, dataRef.current.X[0])
-  }, [stop]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [computeActivations, computeGrid, snapWeights, stop])
 
   const getActivationsFor = useCallback((sample) => {
     const model = modelRef.current
     if (model && sample) computeActivations(model, sample)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [computeActivations])
 
   const updateSpeed = useCallback((ms) => {
     speedRef.current = ms
@@ -207,7 +231,7 @@ export function useNeuralNet({ hiddenSizes = [8, 8], lr = 0.04, gridRes = 48, nP
   }, [])
 
   return {
-    epoch, loss, accuracy, weights, gridPreds, activations, gradMags, training,
+    epoch, loss, accuracy, lossHistory, accuracyHistory, weights, gridPreds, activations, gradMags, training,
     data: dataRef.current,
     gridRes,
     speed, updateSpeed,

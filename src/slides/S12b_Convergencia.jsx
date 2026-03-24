@@ -3,6 +3,8 @@ import STFloatingButton from '../components/st/STFloatingButton'
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
+void motion
+
 // ── Pre-compute deterministic dendrite branches ───────────────────────────────
 function buildBranches(cx, cy, W, H) {
   const branches = []

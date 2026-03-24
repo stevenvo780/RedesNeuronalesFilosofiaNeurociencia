@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Microscope, X, GitBranch, Scale, Link2, AlertTriangle, HelpCircle, ChevronDown, BookOpen, LayoutList } from 'lucide-react'
 import { ST_ARGUMENTO, ST_PRESUPUESTOS, ST_CRITICA, VAR_DEFINITIONS, SLIDE_SUPUESTOS, ST_RESUMEN_NATURAL } from '../../data/st_results'
 
+void motion
+
 // ── Tooltip chip for variable names ───────────────────────────────────────────
 function VarChip({ varName, value, onClick, size = 'md' }) {
   const [tipPos, setTipPos] = useState(null)

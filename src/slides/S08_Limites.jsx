@@ -7,6 +7,8 @@ import * as THREE from 'three'
 import STTooltip from '../components/st/STTooltip'
 import STFloatingButton from '../components/st/STFloatingButton'
 
+void motion
+
 // ── Loss surface ───────────────────────────────────────────────────────────────
 const RES = 64
 

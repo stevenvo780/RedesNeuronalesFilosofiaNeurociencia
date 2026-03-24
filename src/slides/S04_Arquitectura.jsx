@@ -80,7 +80,7 @@ function nodeY(H, size, i) {
 }
 
 export default function S04_Arquitectura({ profesorMode }) {
-  const { activations, weights, epoch, data, getActivationsFor, training, start, stop } = useNeuralNet({ hiddenSizes: [8, 8] })
+  const { activations, weights, epoch, data, getActivationsFor, start, stop } = useNeuralNet({ hiddenSizes: [8, 8] })
   const canvasRef   = useRef(null)
   const [sample, setSample]       = useState(0)
   const [showW, setShowW]         = useState(true)
@@ -107,12 +107,12 @@ export default function S04_Arquitectura({ profesorMode }) {
       stop()
       clearInterval(loopRef.current)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [start, stop])
 
   // Trigger activations when sample or epoch changes
   useEffect(() => {
     if (data?.X?.[sample]) getActivationsFor(data.X[sample])
-  }, [sample, data, epoch]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, epoch, getActivationsFor, sample])
 
   // Manual forward pass: restart the loop from current sample
   const runForward = () => {

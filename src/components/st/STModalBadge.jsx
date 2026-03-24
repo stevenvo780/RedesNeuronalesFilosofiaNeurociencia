@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import STLogicModal from './STLogicModal'
 
-export default function STModalBadge({ formula, symbol, content, title, status = 'satisfacible', system = 'Modal K' }) {
+export default function STModalBadge({ formula, symbol, content, title, system = 'Modal K' }) {
   const [modalOpen, setModalOpen] = useState(false)
 
   const handleClick = (e) => {

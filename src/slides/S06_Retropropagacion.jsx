@@ -67,8 +67,6 @@ function GradNetCanvas({ gradMags, activations, weights, mode, activeStep }) {
       // ── Connections ──
       layers.slice(0, -1).forEach((fromSize, l) => {
         const toSize = layers[l + 1]
-        const gRms = gradMags[l]?.rms ?? 0
-        const maxRms = 0.3
 
         for (let i = 0; i < fromSize; i++) {
           for (let j = 0; j < toSize; j++) {
@@ -136,7 +134,6 @@ function GradNetCanvas({ gradMags, activations, weights, mode, activeStep }) {
           const act = Array.isArray(activations[l]) ? activations[l][i] : (activations[l] ?? 0)
           const norm = Math.max(0, Math.min(1, act))
           const isOutput = l === layers.length - 1
-          const isInput  = l === 0
 
           ctx.beginPath(); ctx.arc(x, y, nodeR, 0, Math.PI * 2)
           const g = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, nodeR)
@@ -191,20 +188,26 @@ const EQ_MAX_WIDTH = '850px' // max width of equation containers (controls visua
 const EQ_BW = 600  // virtual width of equation canvas
 const EQ_BH = 120  // virtual height of equation canvas
 
+// ── Radios centralizados para Nodos de Ecuaciones ──
+const R_VAR = 14    // Radio para nodos de variables (y_j, d_j, w_ij, etc)
+const R_OP = 10     // Radio para nodos de operadores (+, -, ×, =, Σ)
+const R_RES = 18    // Radio para los nodos de resultado final
+const R_WIDE = 14   // Radio base para nodos extendidos (como derivadas)
+
 const EQ_CONFIGS = [
   // Step 0: EA_j = y_j − d_j
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 70,  y: 30,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: 14,
+      { x: 70,  y: 30,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: R_VAR,
         tip: 'Salida real de la neurona j. Es el valor que la red produjo tras el forward pass.' },
-      { x: 200, y: 60,  label: '−',     sub: '',            color: '#ef4444', r: 10, isOp: true,
+      { x: 200, y: 60,  label: '−',     sub: '',            color: '#ef4444', r: R_OP, isOp: true,
         tip: 'Resta: se calcula la diferencia entre la salida real y la deseada.' },
-      { x: 70,  y: 90,  label: 'd_j',   sub: 'deseada',     color: '#06b6d4', r: 14,
+      { x: 70,  y: 90,  label: 'd_j',   sub: 'deseada',     color: '#06b6d4', r: R_VAR,
         tip: 'Valor deseado (target). Lo que el profesor le dice a la red que debería haber producido.' },
-      { x: 350, y: 60,  label: '=',     sub: '',            color: '#888',    r: 10, isOp: true,
+      { x: 350, y: 60,  label: '=',     sub: '',            color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 510, y: 60,  label: 'EA_j',  sub: 'error de activación', color: '#ef4444', r: 18, isResult: true,
+      { x: 510, y: 60,  label: 'EA_j',  sub: 'error de activación', color: '#ef4444', r: R_RES, isResult: true,
         tip: 'Error de activación: cuánto se equivocó la neurona j. Es la señal que inicia todo el backprop.' },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
@@ -215,15 +218,15 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 60,  y: 30,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: 14,
+      { x: 60,  y: 30,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: R_VAR,
         tip: 'Error de activación del paso anterior. Cuánto se equivocó la neurona.' },
-      { x: 190, y: 60,  label: '×',          sub: '',                 color: '#eab308', r: 10, isOp: true,
+      { x: 190, y: 60,  label: '×',          sub: '',                 color: '#eab308', r: R_OP, isOp: true,
         tip: 'Multiplicación: el error se pondera por la derivada de la sigmoide.' },
-      { x: 60,  y: 90,  label: "y_j(1−y_j)", sub: "derivada σ'",     color: '#22c55e', r: 14, wide: true,
+      { x: 60,  y: 90,  label: "y_j(1−y_j)", sub: "derivada σ'",     color: '#22c55e', r: R_WIDE, wide: true,
         tip: "Derivada de la sigmoide evaluada en y_j. Mide la 'pendiente' de la activación: si es plana, el error no pasa." },
-      { x: 350, y: 60,  label: '=',          sub: '',                 color: '#888',    r: 10, isOp: true,
+      { x: 350, y: 60,  label: '=',          sub: '',                 color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 510, y: 60,  label: 'EI_j',       sub: 'error de entrada', color: '#eab308', r: 18, isResult: true,
+      { x: 510, y: 60,  label: 'EI_j',       sub: 'error de entrada', color: '#eab308', r: R_RES, isResult: true,
         tip: 'Error de entrada: cuánto debe cambiar la entrada total de la neurona j para reducir el error.' },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
@@ -234,15 +237,15 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 70,  y: 30,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: 14,
+      { x: 70,  y: 30,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: R_VAR,
         tip: 'Error de entrada de la neurona j. Viene del paso anterior.' },
-      { x: 200, y: 60,  label: '×',     sub: '',                   color: '#7c6dfa', r: 10, isOp: true,
+      { x: 200, y: 60,  label: '×',     sub: '',                   color: '#7c6dfa', r: R_OP, isOp: true,
         tip: 'Multiplicación: el error de entrada se multiplica por la activación que llegó por esa conexión.' },
-      { x: 70,  y: 90,  label: 'y_i',   sub: 'activación origen',  color: '#22c55e', r: 14,
+      { x: 70,  y: 90,  label: 'y_i',   sub: 'activación origen',  color: '#22c55e', r: R_VAR,
         tip: 'Activación de la neurona i (capa anterior). Si fue alta, esa conexión tuvo más responsabilidad en el error.' },
-      { x: 350, y: 60,  label: '=',     sub: '',                   color: '#888',    r: 10, isOp: true,
+      { x: 350, y: 60,  label: '=',     sub: '',                   color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 510, y: 60,  label: 'EW_ij', sub: 'error del peso',    color: '#7c6dfa', r: 18, isResult: true,
+      { x: 510, y: 60,  label: 'EW_ij', sub: 'error del peso',    color: '#7c6dfa', r: R_RES, isResult: true,
         tip: 'Error del peso w_ij: cuánto y en qué dirección debe cambiar esta conexión específica. Es el gradiente.' },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
@@ -253,17 +256,17 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 60,  y: 30,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: 14,
+      { x: 60,  y: 30,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: R_VAR,
         tip: 'Error de entrada de la neurona j. Puede haber varios j que se suman.' },
-      { x: 60,  y: 90,  label: 'w_ij',   sub: 'peso',          color: '#7c6dfa', r: 14,
+      { x: 60,  y: 90,  label: 'w_ij',   sub: 'peso',          color: '#7c6dfa', r: R_VAR,
         tip: 'Peso de la conexión entre i y j. Las conexiones más fuertes transmiten más error hacia atrás.' },
-      { x: 190, y: 60,  label: '×',      sub: '',               color: '#a78bfa', r: 10, isOp: true,
+      { x: 190, y: 60,  label: '×',      sub: '',               color: '#a78bfa', r: R_OP, isOp: true,
         tip: 'Multiplicación: cada error de entrada se pondera por el peso de esa conexión.' },
-      { x: 310, y: 60,  label: 'Σ_j',    sub: 'sumar',          color: '#a78bfa', r: 14, isOp: true,
+      { x: 310, y: 60,  label: 'Σ_j',    sub: 'sumar',          color: '#a78bfa', r: R_VAR, isOp: true,
         tip: 'Sumatoria sobre todas las neuronas j de la capa siguiente. Se acumula la culpa de todas las conexiones salientes.' },
-      { x: 400, y: 60,  label: '=',      sub: '',               color: '#888',    r: 10, isOp: true,
+      { x: 400, y: 60,  label: '=',      sub: '',               color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 520, y: 60,  label: 'EA_i',   sub: 'error → anterior', color: '#a78bfa', r: 18, isResult: true,
+      { x: 520, y: 60,  label: 'EA_i',   sub: 'error → anterior', color: '#a78bfa', r: R_RES, isResult: true,
         tip: 'Error de activación de la neurona i (capa anterior). Este valor vuelve al Paso 1 para esa capa — es la recurrencia del backprop.' },
     ],
     edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5]],
@@ -280,11 +283,14 @@ function SingleEquationCanvas({ config, isActive }) {
 
   useEffect(() => {
     mountRef.current = performance.now()
-    setTooltip(null)
+    // Avoid setting state here, instead clear it in the dependency effect if needed
   }, [isActive])
 
   // Mouse hit-test for tooltips
   useEffect(() => {
+    let active = true;
+    if (active) setTimeout(() => setTooltip(null), 0) // defer resetting state
+
     const wrap = wrapRef.current
     const canvas = canvasRef.current
     if (!wrap || !canvas) return
@@ -308,8 +314,10 @@ function SingleEquationCanvas({ config, isActive }) {
       }
 
       if (hit && hit.tip) {
+        const wrapWidth = wrap.offsetWidth || rect.width || 400
+        const tooltipLeft = Math.max(0, Math.min(e.clientX - rect.left, wrapWidth - 220))
         setTooltip({
-          x: e.clientX - rect.left,
+          x: tooltipLeft,
           y: e.clientY - rect.top,
           text: hit.tip,
           color: hit.color,
@@ -582,8 +590,8 @@ function SingleEquationCanvas({ config, isActive }) {
       {tooltip && (
         <div style={{
           position: 'absolute',
-          left: Math.min(tooltip.x, (wrapRef.current?.offsetWidth || 400) - 220),
-          top: tooltip.y < 60 ? tooltip.y + 16 : tooltip.y - 70,
+          left: tooltip.x,
+          top: tooltip.y,
           maxWidth: '220px', padding: '0.5rem 0.65rem',
           background: 'rgba(10,10,30,0.95)', backdropFilter: 'blur(8px)',
           border: `1px solid ${tooltip.color}55`, borderRadius: '8px',
@@ -606,19 +614,19 @@ function SingleEquationCanvas({ config, isActive }) {
 const FORWARD_CONFIG = {
   BW: EQ_BW, BH: EQ_BH,
   nodes: [
-    { x: 40,  y: 30,  label: 'x_i',  sub: 'entradas',       color: '#06b6d4', r: 14,
+    { x: 40,  y: 30,  label: 'x_i',  sub: 'entradas',       color: '#06b6d4', r: R_VAR,
       tip: 'Valores de entrada a la neurona. Pueden ser datos crudos o activaciones de la capa anterior.' },
-    { x: 40,  y: 90,  label: 'w_ij',  sub: 'pesos',          color: '#a78bfa', r: 14,
+    { x: 40,  y: 90,  label: 'w_ij',  sub: 'pesos',          color: '#a78bfa', r: R_VAR,
       tip: 'Pesos sinápticos: la fuerza de cada conexión. Son los parámetros que el backprop va a ajustar.' },
-    { x: 140, y: 60,  label: '×',     sub: '',                color: '#eab308', r: 10, isOp: true,
+    { x: 140, y: 60,  label: '×',     sub: '',                color: '#eab308', r: R_OP, isOp: true,
       tip: 'Cada entrada se multiplica por su peso correspondiente.' },
-    { x: 230, y: 60,  label: 'Σ',     sub: 'suma',           color: '#eab308', r: 14, isOp: true,
+    { x: 230, y: 60,  label: 'Σ',     sub: 'suma',           color: '#eab308', r: R_OP + 4, isOp: true,
       tip: 'Suma ponderada: se suman todos los productos x_i · w_ij más el sesgo b_j.' },
-    { x: 320, y: 60,  label: '+ b_j', sub: 'sesgo',          color: '#94a3b8', r: 12, isOp: true,
+    { x: 320, y: 60,  label: '+ b_j', sub: 'sesgo',          color: '#94a3b8', r: R_OP + 2, isOp: true,
       tip: 'Sesgo (bias): un valor que desplaza la activación. Permite que la neurona se active incluso sin entrada.' },
-    { x: 420, y: 60,  label: 'f(·)',  sub: 'activación',     color: '#22c55e', r: 15, wide: true,
+    { x: 420, y: 60,  label: 'f(·)',  sub: 'activación',     color: '#22c55e', r: R_WIDE + 1, wide: true,
       tip: 'Función de activación (sigmoide, ReLU, etc.). Introduce no-linealidad: sin ella, la red sería una simple regresión lineal.' },
-    { x: 540, y: 60,  label: 'y_j',   sub: 'salida',         color: '#22c55e', r: 18, isResult: true,
+    { x: 540, y: 60,  label: 'y_j',   sub: 'salida',         color: '#22c55e', r: R_RES, isResult: true,
       tip: 'Salida de la neurona j. Este valor se propaga a la siguiente capa o es la predicción final de la red.' },
   ],
   edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]],
@@ -720,7 +728,7 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
   useEffect(() => {
     start()
     return () => stop()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [start, stop])
 
   return (
     <div className="section-slide" style={{ gap: '0.5rem' }}>
@@ -866,4 +874,3 @@ export default function S06_Retropropagacion({ profesorMode, ref }) {
     </div>
   )
 }
-

@@ -187,8 +187,19 @@ function NeuralScene() {
   // ── Animated node positions buffer ──
   const livePos = useMemo(() => new Float32Array(N * 3), [])
 
-  // ── Static geometries ──
-  const { nodeGeo, edgeGeo, pulseGeo, nodeSizes } = useMemo(() => {
+  const nodeGeoRef = useRef(null)
+  const edgeGeoRef = useRef(null)
+  const pulseGeoRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      glowTex.dispose()
+      pulseTex.dispose()
+    }
+  }, [glowTex, pulseTex])
+
+  // ── Static geometry data ──
+  const { nodePos, nodeCol, nodeSizes, edgePos, pulsePos, pulseSizes } = useMemo(() => {
     const npos  = new Float32Array(N * 3)
     const ncol  = new Float32Array(N * 3)
     const sizes = new Float32Array(N)
@@ -198,30 +209,29 @@ function NeuralScene() {
       ncol[i*3] = 0.50 * b; ncol[i*3+1] = 0.40 * b; ncol[i*3+2] = b
       sizes[i] = 0.35 + prng(i * 3141) * 0.30
     })
-    const nodeGeo = new THREE.BufferGeometry()
-    nodeGeo.setAttribute('position', new THREE.BufferAttribute(npos, 3))
-    nodeGeo.setAttribute('color',    new THREE.BufferAttribute(ncol, 3))
-    nodeGeo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1))
-
     const epos = new Float32Array(EDGES.length * 6)
     EDGES.forEach(([a, b], i) => {
       const [ax,ay,az] = POSITIONS[a], [bx,by,bz] = POSITIONS[b]
       epos[i*6]=ax; epos[i*6+1]=ay; epos[i*6+2]=az
       epos[i*6+3]=bx; epos[i*6+4]=by; epos[i*6+5]=bz
     })
-    const edgeGeo = new THREE.BufferGeometry()
-    edgeGeo.setAttribute('position', new THREE.BufferAttribute(epos, 3))
 
     const ppos    = new Float32Array(pulseState.length * 3)
     const pSizes  = new Float32Array(pulseState.length)
-    const pulseGeo = new THREE.BufferGeometry()
-    pulseGeo.setAttribute('position', new THREE.BufferAttribute(ppos, 3))
-    pulseGeo.setAttribute('size',     new THREE.BufferAttribute(pSizes, 1))
 
-    return { nodeGeo, edgeGeo, pulseGeo, nodeSizes: sizes }
+    return {
+      nodePos: npos,
+      nodeCol: ncol,
+      nodeSizes: sizes,
+      edgePos: epos,
+      pulsePos: ppos,
+      pulseSizes: pSizes,
+    }
   }, [pulseState])
 
   useFrame(({ clock, camera }) => {
+    if (!nodeGeoRef.current || !edgeGeoRef.current || !pulseGeoRef.current) return
+
     const t   = clock.elapsedTime
     const now = performance.now()
 
@@ -232,8 +242,8 @@ function NeuralScene() {
     }
 
     // ── Update live node positions (floating / breathing) ──
-    const npos = nodeGeo.attributes.position.array
-    const eSrc = edgeGeo.attributes.position.array
+    const npos = nodeGeoRef.current.attributes.position.array
+    const eSrc = edgeGeoRef.current.attributes.position.array
     POSITIONS.forEach(([bx, by, bz], i) => {
       const a = NODE_ANIM[i]
       const x = bx + Math.sin(t * a.freqX + a.phaseX) * a.ampX
@@ -242,14 +252,14 @@ function NeuralScene() {
       npos[i*3] = x; npos[i*3+1] = y; npos[i*3+2] = z
       livePos[i*3] = x; livePos[i*3+1] = y; livePos[i*3+2] = z
     })
-    nodeGeo.attributes.position.needsUpdate = true
+    nodeGeoRef.current.attributes.position.needsUpdate = true
 
     // ── Update edge endpoints to follow floating nodes ──
     EDGES.forEach(([a, b], i) => {
       eSrc[i*6]   = livePos[a*3];   eSrc[i*6+1] = livePos[a*3+1]; eSrc[i*6+2] = livePos[a*3+2]
       eSrc[i*6+3] = livePos[b*3];   eSrc[i*6+4] = livePos[b*3+1]; eSrc[i*6+5] = livePos[b*3+2]
     })
-    edgeGeo.attributes.position.needsUpdate = true
+    edgeGeoRef.current.attributes.position.needsUpdate = true
 
     // ── Camera: steady close orbit ──
     if (autoFlyRef.current) {
@@ -275,8 +285,8 @@ function NeuralScene() {
     }
 
     // ── Pulse positions ──
-    const pAttr  = pulseGeo.attributes.position.array
-    const pSizes = pulseGeo.attributes.size.array
+    const pAttr  = pulseGeoRef.current.attributes.position.array
+    const pSizes = pulseGeoRef.current.attributes.size.array
     pulseState.forEach((p, idx) => {
       p.t = (p.t + p.spd) % 1
       const [a, b] = EDGES[p.edge]
@@ -289,12 +299,12 @@ function NeuralScene() {
       const envelope = Math.sin(p.t * Math.PI)
       pSizes[idx] = p.size * (0.4 + 0.6 * envelope)
     })
-    pulseGeo.attributes.position.needsUpdate = true
-    pulseGeo.attributes.size.needsUpdate = true
+    pulseGeoRef.current.attributes.position.needsUpdate = true
+    pulseGeoRef.current.attributes.size.needsUpdate = true
 
     // ── Node brightness pulse + size breathing ──
-    const col   = nodeGeo.attributes.color.array
-    const sAttr = nodeGeo.attributes.size.array
+    const col   = nodeGeoRef.current.attributes.color.array
+    const sAttr = nodeGeoRef.current.attributes.size.array
     POSITIONS.forEach((_, i) => {
       const ph    = (i * 2.71828) % (Math.PI * 2)
       const pulse = 0.5 + 0.5 * Math.sin(t * (0.35 + (i % 11) * 0.07) + ph)
@@ -305,13 +315,18 @@ function NeuralScene() {
       // Size breathing
       sAttr[i] = nodeSizes[i] * (0.85 + 0.30 * pulse)
     })
-    nodeGeo.attributes.color.needsUpdate = true
-    nodeGeo.attributes.size.needsUpdate = true
+    nodeGeoRef.current.attributes.color.needsUpdate = true
+    nodeGeoRef.current.attributes.size.needsUpdate = true
   })
 
   return (
     <>
-      <points geometry={nodeGeo}>
+      <points>
+        <bufferGeometry ref={nodeGeoRef}>
+          <bufferAttribute attach="attributes-position" array={nodePos} itemSize={3} count={nodePos.length / 3} />
+          <bufferAttribute attach="attributes-color" array={nodeCol} itemSize={3} count={nodeCol.length / 3} />
+          <bufferAttribute attach="attributes-size" array={nodeSizes} itemSize={1} count={nodeSizes.length} />
+        </bufferGeometry>
         <pointsMaterial
           map={glowTex}
           vertexColors
@@ -323,10 +338,17 @@ function NeuralScene() {
           blending={THREE.AdditiveBlending}
         />
       </points>
-      <lineSegments geometry={edgeGeo}>
+      <lineSegments>
+        <bufferGeometry ref={edgeGeoRef}>
+          <bufferAttribute attach="attributes-position" array={edgePos} itemSize={3} count={edgePos.length / 3} />
+        </bufferGeometry>
         <lineBasicMaterial color="#7c6dfa" transparent opacity={0.12} />
       </lineSegments>
-      <points geometry={pulseGeo}>
+      <points>
+        <bufferGeometry ref={pulseGeoRef}>
+          <bufferAttribute attach="attributes-position" array={pulsePos} itemSize={3} count={pulsePos.length / 3} />
+          <bufferAttribute attach="attributes-size" array={pulseSizes} itemSize={1} count={pulseSizes.length} />
+        </bufferGeometry>
         <pointsMaterial
           map={pulseTex}
           color="#ddd6fe"

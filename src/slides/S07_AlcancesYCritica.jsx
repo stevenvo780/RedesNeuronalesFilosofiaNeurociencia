@@ -11,6 +11,10 @@ import STFloatingButton from '../components/st/STFloatingButton'
 import STTooltip from '../components/st/STTooltip'
 import STModalBadge from '../components/st/STModalBadge'
 
+const MotionDiv = motion.div
+const MotionSpan = motion.span
+const MotionButton = motion.button
+
 // ── Animal data ────────────────────────────────────────────────────────────────
 const FEATURES = [
   { key: 'pelo',     label: 'Pelo / Pelaje',   Icon: Layers      },
@@ -58,13 +62,21 @@ function buildDataset(repeats = 80) {
   return { X, y }
 }
 
+function disposeModel(model) {
+  if (!model) return
+  try {
+    model.dispose()
+  } catch {
+    return
+  }
+}
+
 // ── Training hook ──────────────────────────────────────────────────────────────
 function useAnimalNet(hiddenLayersCfg, totalEpochs) {
   const modelRef   = useRef(null)
   const stopRef    = useRef(false)
   const speedRef   = useRef(200)
   const cfgRef     = useRef({ hiddenLayersCfg, totalEpochs })
-  cfgRef.current   = { hiddenLayersCfg, totalEpochs }
 
   const [speed, setSpeed]       = useState(200)
   const [ready, setReady]       = useState(false)
@@ -74,6 +86,10 @@ function useAnimalNet(hiddenLayersCfg, totalEpochs) {
   const [accHist, setAccHist]   = useState([])
   const [hiddenActs, setHiddenActs] = useState(null)
   const [training, setTraining] = useState(false)
+
+  useEffect(() => {
+    cfgRef.current = { hiddenLayersCfg, totalEpochs }
+  }, [hiddenLayersCfg, totalEpochs])
 
   const train = useCallback(async () => {
     stopRef.current = false
@@ -91,7 +107,7 @@ function useAnimalNet(hiddenLayersCfg, totalEpochs) {
     const { hiddenLayersCfg: layers, totalEpochs: TOTAL } = cfgRef.current
 
     // Dispose previous model
-    if (modelRef.current) { try { modelRef.current.dispose() } catch (_) {} }
+    disposeModel(modelRef.current)
 
     const model = tf.sequential()
     layers.forEach((units, i) => {
@@ -154,9 +170,9 @@ function useAnimalNet(hiddenLayersCfg, totalEpochs) {
     train()
     return () => {
       stopRef.current = true
-      try { modelRef.current?.dispose() } catch (_) {}
+      disposeModel(modelRef.current)
     }
-  }, [])
+  }, [train])
 
   const predict = useCallback((features) => {
     const model = modelRef.current
@@ -191,7 +207,7 @@ function useAnimalNet(hiddenLayersCfg, totalEpochs) {
 
 // ── Animated Network Canvas (interactive — hover shows weights) ─────────────
 const HIDDEN_COLORS = ['#06b6d4','#a78bfa','#f59e0b','#ec4899']
-function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340, height = 280, modelRef }) {
+function NetworkCanvas({ features, hiddenActs, layerConfig = [12,8], width = 340, height = 280 }) {
   const ref = useRef(null)
   const [tooltip, setTooltip] = useState(null)
   const nodesRef = useRef([]) // store node positions for hit-testing
@@ -431,6 +447,12 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   const [activeApp, setActiveApp] = useState(null)
   const [showArchModal, setShowArchModal] = useState(false)
   const [showNetFullscreen, setShowNetFullscreen] = useState(false)
+  const syncPrediction = useCallback(() => {
+    const nextProbs = predict(features)
+    if (nextProbs) {
+      setProbs(nextProbs)
+    }
+  }, [features, predict])
 
   // ── Architecture controls ─────────────────
   const addLayer = () => {
@@ -448,9 +470,8 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
   // Predict when features change or model ready
   useEffect(() => {
     if (!ready) return
-    const p = predict(features)
-    if (p) setProbs(p)
-  }, [features, ready, predict])
+    syncPrediction()
+  }, [ready, syncPrediction])
 
   // ESC to close fullscreen network
   useEffect(() => {
@@ -493,7 +514,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
         {APPS.map((a, i) => {
           const isOpen = activeApp === i
           return (
-            <motion.div
+            <MotionDiv
               key={a.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -517,7 +538,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                   <div style={{ fontSize: '0.82rem', color: isOpen ? a.color : 'var(--text-h)', fontWeight: 600 }}>{a.label}</div>
                   <div style={{ fontSize: '0.67rem', color: 'var(--text-dim)' }}>{a.desc}</div>
                 </div>
-                <motion.span animate={{ rotate: isOpen ? 180 : 0 }} style={{ display: 'flex', alignItems: 'center', color: a.color }}><ChevronDown size={14} strokeWidth={2} /></motion.span>
+                <MotionSpan animate={{ rotate: isOpen ? 180 : 0 }} style={{ display: 'flex', alignItems: 'center', color: a.color }}><ChevronDown size={14} strokeWidth={2} /></MotionSpan>
               </div>
               <AnimatePresence>
                 {isOpen && (
@@ -541,7 +562,7 @@ export default function S07_AlcancesYCritica({ profesorMode }) {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </MotionDiv>
           )
         })}
       </div>

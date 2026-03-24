@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+void motion
+
 const DICT = {
   dendrita: 'Extensión ramificada del soma neuronal que recibe señales de otras neuronas y las transmite al cuerpo celular.',
   axón: 'Prolongación larga del soma que conduce el potencial de acción hacia las terminales sinápticas.',

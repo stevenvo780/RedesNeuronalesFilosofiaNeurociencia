@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, SkipForward, RotateCcw, Gauge } from 'lucide-react'
 import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
@@ -70,7 +70,7 @@ function BoundaryCanvas({ gridPreds, gridRes, data, phase }) {
     }
 
     // Phase overlay indicator
-    ctx.fillStyle = PHASES[phase]?.color + '22' ?? 'transparent'
+    ctx.fillStyle = PHASES[phase]?.color ? `${PHASES[phase].color}22` : 'transparent'
     ctx.fillRect(0, 0, W, H)
 
   }, [gridPreds, gridRes, data, phase])
@@ -149,24 +149,17 @@ function LossCurve({ lossHistory, accHistory }) {
 export default function S05_Entrenamiento({ profesorMode }) {
   const net = useNeuralNet({ hiddenSizes: [8, 8], gridRes: 60, nPoints: 200 })
 
-  const [phase, setPhase]           = useState(0)
-  const [lossHistory, setLossH]     = useState([1.0])
-  const [accHistory, setAccH]       = useState([0.5])
+  const [phase, setPhase] = useState(0)
   const [phaseSpeed, setPhaseSpeed] = useState(2500)
-  const phaseTimerRef               = useRef(null)
+  const phaseTimerRef = useRef(null)
+  const { start, stop, updateSpeed, lossHistory, accuracyHistory } = net
 
   // Auto-start on slide mount (slower default)
   useEffect(() => {
-    net.updateSpeed(200)
-    net.start()
-    return () => net.stop()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Keep loss/acc history in sync with real values
-  useEffect(() => {
-    if (net.loss) setLossH(h => [...h.slice(-79), net.loss])
-    if (net.accuracy) setAccH(h => [...h.slice(-79), net.accuracy])
-  }, [net.epoch])
+    updateSpeed(200)
+    start()
+    return () => stop()
+  }, [start, stop, updateSpeed])
 
   // Auto-advance phase while training
   useEffect(() => {
@@ -179,7 +172,7 @@ export default function S05_Entrenamiento({ profesorMode }) {
 
   // Sync speed slider: training speed + phase speed
   const handleSpeedChange = (ms) => {
-    net.updateSpeed(ms)
+    updateSpeed(ms)
     // Phase advances proportionally: faster training = faster phases, but always readable
     setPhaseSpeed(Math.max(1200, ms * 10))
   }
@@ -211,7 +204,7 @@ export default function S05_Entrenamiento({ profesorMode }) {
             border: '1px solid var(--border)', overflow: 'hidden',
             position: 'relative',
           }}>
-            <LossCurve lossHistory={lossHistory} accHistory={accHistory} />
+            <LossCurve lossHistory={lossHistory} accHistory={accuracyHistory} />
             <div style={{ position: 'absolute', top: 10, left: 14, fontSize: '0.9rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
               curva de <STTooltip term="error">aprendizaje (loss)</STTooltip>
             </div>

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FlaskConical } from 'lucide-react'
 import STLogicModal from './STLogicModal'
 
+void motion
+
 const QUOTES = [
   '¿Y si todo es una metáfora?',
   'Hinton apostó, no demostró.',
@@ -15,7 +17,7 @@ const QUOTES = [
 export default function STFloatingButton({ slideId }) {
   const [open, setOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)]
+  const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)])
 
   return (
     <>
