@@ -1,6 +1,7 @@
 import STTooltip from '../components/st/STTooltip'
 import STFloatingButton from '../components/st/STFloatingButton'
 import STModalBadge from '../components/st/STModalBadge'
+import ConwayLifeBg from '../components/ConwayLifeBg'
 import { useEffect, useRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import 'katex/dist/katex.min.css'
@@ -10,126 +11,9 @@ import { useState } from 'react'
 void motion
 void AnimatePresence
 
-// ── Emergence canvas — particles that form a pattern only collectively ──────
-function EmergenceCanvas({ step }) {
-  const ref = useRef(null)
-  const stepRef = useRef(step)
-  useEffect(() => { stepRef.current = step }, [step])
-
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    let id, startTime = null
-    let W = 0, H = 0
-
-    // Deterministic particles
-    const N = 120
-    const seed = 42
-    const rng = ((s) => () => { s = (s * 16807 + 0) % 2147483647; return s / 2147483647 })(seed)
-    const particles = Array.from({ length: N }, (_, i) => {
-      const angle = (i / N) * Math.PI * 2
-      const dist = 0.15 + rng() * 0.32
-      return {
-        // Target positions form a brain/circle pattern
-        tx: 0.5 + Math.cos(angle) * dist * (0.8 + 0.2 * Math.sin(angle * 3)),
-        ty: 0.5 + Math.sin(angle) * dist * (0.7 + 0.3 * Math.cos(angle * 2)),
-        // Scattered positions
-        sx: rng(),
-        sy: rng(),
-        phase: rng() * Math.PI * 2,
-        speed: 0.3 + rng() * 0.7,
-        hue: 240 + rng() * 60, // purple-blue range
-      }
-    })
-
-    // Add connections between nearby target positions
-    const connections = []
-    for (let i = 0; i < N; i++) {
-      for (let j = i + 1; j < N; j++) {
-        const dx = particles[i].tx - particles[j].tx
-        const dy = particles[i].ty - particles[j].ty
-        if (Math.sqrt(dx * dx + dy * dy) < 0.12) {
-          connections.push([i, j])
-        }
-      }
-    }
-
-    const setSize = () => {
-      const nw = canvas.offsetWidth || 400
-      const nh = canvas.offsetHeight || 300
-      if (nw !== W || nh !== H) { W = nw; H = nh; canvas.width = W; canvas.height = H }
-    }
-    setSize()
-    const ro = new ResizeObserver(setSize); ro.observe(canvas)
-
-    function draw(ts) {
-      if (!W || !H) { id = requestAnimationFrame(draw); return }
-      if (!startTime) startTime = ts
-      const t = (ts - startTime) * 0.001
-      const ctx = canvas.getContext('2d')
-      ctx.fillStyle = 'rgba(4,4,14,0.12)'
-      ctx.fillRect(0, 0, W, H)
-
-      const s = stepRef.current
-      // Blend factor: 0 = scattered, 1 = assembled pattern
-      const blend = s >= 3 ? Math.min(1, (t * 0.3) % 1.5 > 0.75 ? 1 : (t * 0.3) % 1.5 / 0.75)
-                  : s >= 1 ? 0.3 + 0.2 * Math.sin(t * 0.4)
-                  : 0.1
-
-      // Draw connections (only visible when assembled)
-      if (blend > 0.3) {
-        const connAlpha = (blend - 0.3) * 0.4
-        connections.forEach(([i, j]) => {
-          const pi = particles[i], pj = particles[j]
-          const xi = (pi.sx + (pi.tx - pi.sx) * blend) * W
-          const yi = (pi.sy + (pi.ty - pi.sy) * blend) * H
-          const xj = (pj.sx + (pj.tx - pj.sx) * blend) * W
-          const yj = (pj.sy + (pj.ty - pj.sy) * blend) * H
-          ctx.beginPath()
-          ctx.moveTo(xi, yi)
-          ctx.lineTo(xj, yj)
-          ctx.strokeStyle = `rgba(124,109,250,${connAlpha})`
-          ctx.lineWidth = 0.5
-          ctx.stroke()
-        })
-      }
-
-      // Draw particles
-      particles.forEach((p) => {
-        const wobble = Math.sin(t * p.speed + p.phase) * (1 - blend) * 0.03
-        const x = (p.sx + (p.tx - p.sx) * blend + wobble) * W
-        const y = (p.sy + (p.ty - p.sy) * blend + wobble * 0.7) * H
-        const pulse = 0.5 + 0.5 * Math.sin(t * 1.5 + p.phase)
-        const r = 2 + pulse * 1.5 + blend * 2
-
-        // Glow
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3)
-        g.addColorStop(0, `hsla(${p.hue}, 70%, 65%, ${0.15 + blend * 0.15})`)
-        g.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.beginPath(); ctx.arc(x, y, r * 3, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-
-        // Core
-        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 70%, ${0.5 + pulse * 0.4 + blend * 0.1})`
-        ctx.fill()
-      })
-
-      // Label
-      ctx.fillStyle = `rgba(124,109,250,${0.4 + blend * 0.4})`
-      ctx.font = '10px monospace'
-      ctx.textAlign = 'center'
-      const label = blend > 0.7
-        ? 'P emerge del conjunto — ninguna Nᵢ lo contiene'
-        : 'N₁, N₂, ... Nₖ dispersas — sin P'
-      ctx.fillText(label, W / 2, H - 8)
-
-      id = requestAnimationFrame(draw)
-    }
-    id = requestAnimationFrame(draw)
-    return () => { cancelAnimationFrame(id); ro.disconnect() }
-  }, [])
-
-  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
+// ── Emergence background — Conway garden with persistent structures ─────────
+function EmergenceCanvas() {
+  return <ConwayLifeBg />
 }
 
 // ── Step content definitions ──────────────────────────────────────────────────
