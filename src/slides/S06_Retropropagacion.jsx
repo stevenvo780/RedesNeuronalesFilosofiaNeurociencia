@@ -184,30 +184,30 @@ function getY(H, size, i) {
 
 const CYCLE_PERIOD = 2200 // ms for one full pulse cycle
 const REVEAL_DURATION = 900 // ms for initial staggered reveal
-const EQ_MAX_WIDTH = '850px' // max width of equation containers (controls visual size)
-const EQ_BW = 600  // virtual width of equation canvas
-const EQ_BH = 120  // virtual height of equation canvas
+const EQ_MAX_WIDTH = '100%' // max width of equation containers (controls visual size)
+const EQ_BW = 900  // virtual width of equation canvas
+const EQ_BH = 300  // virtual height of equation canvas
 
 // ── Radios centralizados para Nodos de Ecuaciones ──
-const R_VAR = 14    // Radio para nodos de variables (y_j, d_j, w_ij, etc)
-const R_OP = 10     // Radio para nodos de operadores (+, -, ×, =, Σ)
-const R_RES = 18    // Radio para los nodos de resultado final
-const R_WIDE = 14   // Radio base para nodos extendidos (como derivadas)
+const R_VAR = 35
+const R_OP = 25
+const R_RES = 45
+const R_WIDE = 35
 
 const EQ_CONFIGS = [
   // Step 0: EA_j = y_j − d_j
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 70,  y: 30,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: R_VAR,
+      { x: 105,  y: 120,  label: 'y_j',  sub: 'salida real', color: '#22c55e', r: R_VAR,
         tip: 'Salida real de la neurona j. Es el valor que la red produjo tras el forward pass.' },
-      { x: 200, y: 60,  label: '−',     sub: '',            color: '#ef4444', r: R_OP, isOp: true,
+      { x: 300, y: 120,  label: '−',     sub: '',            color: '#ef4444', r: R_OP, isOp: true,
         tip: 'Resta: se calcula la diferencia entre la salida real y la deseada.' },
-      { x: 70,  y: 90,  label: 'd_j',   sub: 'deseada',     color: '#06b6d4', r: R_VAR,
+      { x: 105,  y: 180,  label: 'd_j',   sub: 'deseada',     color: '#06b6d4', r: R_VAR,
         tip: 'Valor deseado (target). Lo que el profesor le dice a la red que debería haber producido.' },
-      { x: 350, y: 60,  label: '=',     sub: '',            color: '#888',    r: R_OP, isOp: true,
+      { x: 525, y: 120,  label: '=',     sub: '',            color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 510, y: 60,  label: 'EA_j',  sub: 'error de activación', color: '#ef4444', r: R_RES, isResult: true,
+      { x: 765, y: 120,  label: 'EA_j',  sub: 'error de activación', color: '#ef4444', r: R_RES, isResult: true,
         tip: 'Error de activación: cuánto se equivocó la neurona j. Es la señal que inicia todo el backprop.' },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
@@ -218,15 +218,15 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 60,  y: 30,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: R_VAR,
+      { x: 90,  y: 120,  label: 'EA_j',      sub: 'error activación', color: '#ef4444', r: R_VAR,
         tip: 'Error de activación del paso anterior. Cuánto se equivocó la neurona.' },
-      { x: 190, y: 60,  label: '×',          sub: '',                 color: '#eab308', r: R_OP, isOp: true,
+      { x: 285, y: 120,  label: '×',          sub: '',                 color: '#eab308', r: R_OP, isOp: true,
         tip: 'Multiplicación: el error se pondera por la derivada de la sigmoide.' },
-      { x: 60,  y: 90,  label: "y_j(1−y_j)", sub: "derivada σ'",     color: '#22c55e', r: R_WIDE, wide: true,
+      { x: 90,  y: 180,  label: "y_j(1−y_j)", sub: "derivada σ'",     color: '#22c55e', r: R_WIDE, wide: true,
         tip: "Derivada de la sigmoide evaluada en y_j. Mide la 'pendiente' de la activación: si es plana, el error no pasa." },
-      { x: 350, y: 60,  label: '=',          sub: '',                 color: '#888',    r: R_OP, isOp: true,
+      { x: 525, y: 120,  label: '=',          sub: '',                 color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 510, y: 60,  label: 'EI_j',       sub: 'error de entrada', color: '#eab308', r: R_RES, isResult: true,
+      { x: 765, y: 120,  label: 'EI_j',       sub: 'error de entrada', color: '#eab308', r: R_RES, isResult: true,
         tip: 'Error de entrada: cuánto debe cambiar la entrada total de la neurona j para reducir el error.' },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
@@ -237,15 +237,15 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 70,  y: 30,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: R_VAR,
+      { x: 105,  y: 120,  label: 'EI_j', sub: 'error entrada',     color: '#eab308', r: R_VAR,
         tip: 'Error de entrada de la neurona j. Viene del paso anterior.' },
-      { x: 200, y: 60,  label: '×',     sub: '',                   color: '#7c6dfa', r: R_OP, isOp: true,
+      { x: 300, y: 120,  label: '×',     sub: '',                   color: '#7c6dfa', r: R_OP, isOp: true,
         tip: 'Multiplicación: el error de entrada se multiplica por la activación que llegó por esa conexión.' },
-      { x: 70,  y: 90,  label: 'y_i',   sub: 'activación origen',  color: '#22c55e', r: R_VAR,
+      { x: 105,  y: 180,  label: 'y_i',   sub: 'activación origen',  color: '#22c55e', r: R_VAR,
         tip: 'Activación de la neurona i (capa anterior). Si fue alta, esa conexión tuvo más responsabilidad en el error.' },
-      { x: 350, y: 60,  label: '=',     sub: '',                   color: '#888',    r: R_OP, isOp: true,
+      { x: 525, y: 120,  label: '=',     sub: '',                   color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 510, y: 60,  label: 'EW_ij', sub: 'error del peso',    color: '#7c6dfa', r: R_RES, isResult: true,
+      { x: 765, y: 120,  label: 'EW_ij', sub: 'error del peso',    color: '#7c6dfa', r: R_RES, isResult: true,
         tip: 'Error del peso w_ij: cuánto y en qué dirección debe cambiar esta conexión específica. Es el gradiente.' },
     ],
     edges: [[0, 1], [2, 1], [1, 3], [3, 4]],
@@ -256,17 +256,17 @@ const EQ_CONFIGS = [
   {
     BW: EQ_BW, BH: EQ_BH,
     nodes: [
-      { x: 60,  y: 30,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: R_VAR,
+      { x: 90,  y: 120,  label: 'EI_j',  sub: 'error entrada', color: '#eab308', r: R_VAR,
         tip: 'Error de entrada de la neurona j. Puede haber varios j que se suman.' },
-      { x: 60,  y: 90,  label: 'w_ij',   sub: 'peso',          color: '#7c6dfa', r: R_VAR,
+      { x: 90,  y: 180,  label: 'w_ij',   sub: 'peso',          color: '#7c6dfa', r: R_VAR,
         tip: 'Peso de la conexión entre i y j. Las conexiones más fuertes transmiten más error hacia atrás.' },
-      { x: 190, y: 60,  label: '×',      sub: '',               color: '#a78bfa', r: R_OP, isOp: true,
+      { x: 285, y: 120,  label: '×',      sub: '',               color: '#a78bfa', r: R_OP, isOp: true,
         tip: 'Multiplicación: cada error de entrada se pondera por el peso de esa conexión.' },
-      { x: 310, y: 60,  label: 'Σ_j',    sub: 'sumar',          color: '#a78bfa', r: R_VAR, isOp: true,
+      { x: 465, y: 120,  label: 'Σ_j',    sub: 'sumar',          color: '#a78bfa', r: R_VAR, isOp: true,
         tip: 'Sumatoria sobre todas las neuronas j de la capa siguiente. Se acumula la culpa de todas las conexiones salientes.' },
-      { x: 400, y: 60,  label: '=',      sub: '',               color: '#888',    r: R_OP, isOp: true,
+      { x: 600, y: 120,  label: '=',      sub: '',               color: '#888',    r: R_OP, isOp: true,
         tip: 'Resultado de la operación.' },
-      { x: 520, y: 60,  label: 'EA_i',   sub: 'error → anterior', color: '#a78bfa', r: R_RES, isResult: true,
+      { x: 780, y: 120,  label: 'EA_i',   sub: 'error → anterior', color: '#a78bfa', r: R_RES, isResult: true,
         tip: 'Error de activación de la neurona i (capa anterior). Este valor vuelve al Paso 1 para esa capa — es la recurrencia del backprop.' },
     ],
     edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5]],
@@ -532,7 +532,7 @@ function SingleEquationCanvas({ config, isActive }) {
         ctx.globalAlpha = 1
 
         // Label
-        const fontSize = isResult ? 12 : isOp ? 11 : 10
+        const fontSize = isResult ? 28 : isOp ? 24 : 22
         ctx.fillStyle = node.color
         ctx.globalAlpha = Math.max(alpha, 0.1)
         ctx.font = `${isResult ? 'bold ' : ''}${fontSize * s}px monospace`
@@ -545,9 +545,9 @@ function SingleEquationCanvas({ config, isActive }) {
         if (node.sub && alpha > 0.5) {
           ctx.fillStyle = '#666'
           ctx.globalAlpha = alpha * 0.85
-          ctx.font = `${7 * s}px monospace`
+          ctx.font = `${14 * s}px monospace`
           ctx.textBaseline = 'top'
-          ctx.fillText(node.sub, p.x * s, (p.y + (p.r || 14) + 4) * s)
+          ctx.fillText(node.sub, p.x * s, (p.y + (p.r || 35) + 20) * s)
           ctx.globalAlpha = 1
         }
       })
@@ -571,7 +571,7 @@ function SingleEquationCanvas({ config, isActive }) {
         ctx.globalAlpha = 1
         ctx.fillStyle = '#888'
         ctx.globalAlpha = 0.5
-        ctx.font = `${7 * s}px monospace`
+        ctx.font = `${14 * s}px monospace`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillText('↻', cx, cy + 0.5 * s)
@@ -614,19 +614,19 @@ function SingleEquationCanvas({ config, isActive }) {
 const FORWARD_CONFIG = {
   BW: EQ_BW, BH: EQ_BH,
   nodes: [
-    { x: 40,  y: 30,  label: 'x_i',  sub: 'entradas',       color: '#06b6d4', r: R_VAR,
+    { x: 90,  y: 120,  label: 'x_i',  sub: 'entradas',       color: '#06b6d4', r: R_VAR,
       tip: 'Valores de entrada a la neurona. Pueden ser datos crudos o activaciones de la capa anterior.' },
-    { x: 40,  y: 90,  label: 'w_ij',  sub: 'pesos',          color: '#a78bfa', r: R_VAR,
+    { x: 90,  y: 180,  label: 'w_ij',  sub: 'pesos',          color: '#a78bfa', r: R_VAR,
       tip: 'Pesos sinápticos: la fuerza de cada conexión. Son los parámetros que el backprop va a ajustar.' },
-    { x: 140, y: 60,  label: '×',     sub: '',                color: '#eab308', r: R_OP, isOp: true,
+    { x: 210, y: 120,  label: '×',     sub: '',                color: '#eab308', r: R_OP, isOp: true,
       tip: 'Cada entrada se multiplica por su peso correspondiente.' },
-    { x: 230, y: 60,  label: 'Σ',     sub: 'suma',           color: '#eab308', r: R_OP + 4, isOp: true,
+    { x: 345, y: 120,  label: 'Σ',     sub: 'suma',           color: '#eab308', r: R_OP + 4, isOp: true,
       tip: 'Suma ponderada: se suman todos los productos x_i · w_ij más el sesgo b_j.' },
-    { x: 320, y: 60,  label: '+ b_j', sub: 'sesgo',          color: '#94a3b8', r: R_OP + 2, isOp: true,
+    { x: 480, y: 120,  label: '+ b_j', sub: 'sesgo',          color: '#94a3b8', r: R_OP + 2, isOp: true,
       tip: 'Sesgo (bias): un valor que desplaza la activación. Permite que la neurona se active incluso sin entrada.' },
-    { x: 420, y: 60,  label: 'f(·)',  sub: 'activación',     color: '#22c55e', r: R_WIDE + 1, wide: true,
+    { x: 630, y: 120,  label: 'f(·)',  sub: 'activación',     color: '#22c55e', r: R_WIDE + 1, wide: true,
       tip: 'Función de activación (sigmoide, ReLU, etc.). Introduce no-linealidad: sin ella, la red sería una simple regresión lineal.' },
-    { x: 540, y: 60,  label: 'y_j',   sub: 'salida',         color: '#22c55e', r: R_RES, isResult: true,
+    { x: 810, y: 120,  label: 'y_j',   sub: 'salida',         color: '#22c55e', r: R_RES, isResult: true,
       tip: 'Salida de la neurona j. Este valor se propaga a la siguiente capa o es la predicción final de la red.' },
   ],
   edges: [[0, 2], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]],
@@ -658,7 +658,7 @@ function BackpropEquationLine({ activeStep, mode }) {
   if (activeStep === null) {
     return (
       <div style={{
-        height: '160px', maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
+        height: '350px', maxWidth: EQ_MAX_WIDTH, margin: '0 auto',
         borderRadius: '8px', overflow: 'hidden',
         background: '#0a0a1e', border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
