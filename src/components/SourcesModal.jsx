@@ -106,10 +106,11 @@ export default function SourcesModal({ isOpen, onClose }) {
             transition={{ type: 'spring', stiffness: 300, damping: 26 }}
             style={{
               position: 'fixed',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
+              inset: 0,
+              margin: 'auto',
               width: 'clamp(360px, 72vw, 820px)',
               maxHeight: '82vh',
+              height: 'fit-content',
               background: 'rgba(17,17,24,0.94)',
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(124,109,250,0.25)',
