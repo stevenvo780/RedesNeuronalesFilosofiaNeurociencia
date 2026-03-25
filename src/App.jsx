@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Radio, BotMessageSquare, HelpCircle, Menu, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Radio, BotMessageSquare, HelpCircle, Menu, X, BookOpen } from 'lucide-react'
 import AIPanel from './components/AIPanel'
 import MobileLayout from './components/MobileLayout'
+import SourcesModal from './components/SourcesModal'
 import S00_Intro from './slides/S00_Intro'
 import S01_Apertura from './slides/S01_Apertura'
 import S02_NeuronasReal from './slides/S02_NeuronasReal'
@@ -48,6 +49,7 @@ export default function App() {
   const [profesorMode, setProfesorMode] = useState(false)
   const [aiVisible, setAiVisible] = useState(false)
   const [qaOpen, setQaOpen] = useState(false)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
   const [navVisible, setNavVisible] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
 
@@ -74,6 +76,10 @@ export default function App() {
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'Escape' && sourcesOpen) {
+        setSourcesOpen(false)
+        return
+      }
       if (e.key === 'Escape' && qaOpen) {
         setQaOpen(false)
         return
@@ -127,6 +133,10 @@ export default function App() {
         case 'Q':
           setQaOpen(v => !v)
           break
+        case 'f':
+        case 'F':
+          setSourcesOpen(v => !v)
+          break
         case 'Home':
           goTo(0)
           break
@@ -137,7 +147,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [aiVisible, current, goTo, navVisible, qaOpen])
+  }, [aiVisible, current, goTo, navVisible, qaOpen, sourcesOpen])
 
   // ── Media Session API: watch / headphones / lock-screen controls ──
   // Start silent audio on first user interaction (auto-play policy)
@@ -364,7 +374,7 @@ export default function App() {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
               N / <Menu size={12} strokeWidth={2} />
             </span>
-            = índice · P = profesor · A = IA · Q = Q&A
+            = índice · P = profesor · A = IA · Q = Q&A · F = fuentes
           </div>
         )}
       </main>
@@ -542,6 +552,24 @@ export default function App() {
                   <HelpCircle size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
                   Q&A <span style={{ opacity: 0.5, fontWeight: 400 }}>(Q)</span>
                 </button>
+                <button
+                  onClick={() => { setSourcesOpen(true); setNavVisible(false) }}
+                  style={{
+                    padding: '0.65rem 0.8rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    background: 'none',
+                    color: 'var(--text-dim)',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '0.45rem',
+                  }}
+                >
+                  <BookOpen size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                  Fuentes <span style={{ opacity: 0.5, fontWeight: 400 }}>(F)</span>
+                </button>
               </div>
             </MotionDiv>
           </>
@@ -551,6 +579,7 @@ export default function App() {
       {/* AI Panel */}
       <AIPanel visible={aiVisible} onClose={() => setAiVisible(false)} currentSlide={SLIDES[current]} />
       <QAModal isOpen={qaOpen} onClose={() => setQaOpen(false)} />
+      <SourcesModal isOpen={sourcesOpen} onClose={() => setSourcesOpen(false)} />
 
       {/* Silent audio for Media Session API (watch / headphones / media controls) */}
       <audio ref={audioRef} src="/silence.wav" loop preload="auto" style={{ display: 'none' }} />

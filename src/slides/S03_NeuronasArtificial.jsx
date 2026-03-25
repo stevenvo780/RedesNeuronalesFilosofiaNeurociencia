@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useImperativeHandle } from 'react'
-import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
 import { Check, ChevronRight } from 'lucide-react'
 import STTooltip from '../components/st/STTooltip'

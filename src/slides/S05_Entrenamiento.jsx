@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, SkipForward, RotateCcw, Gauge } from 'lucide-react'
 import { InlineMath } from 'react-katex'
-import 'katex/dist/katex.min.css'
 import { useNeuralNet } from '../hooks/useNeuralNet'
 import STTooltip from '../components/st/STTooltip'
 import STFloatingButton from '../components/st/STFloatingButton'
